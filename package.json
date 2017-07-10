@@ -1,0 +1,14 @@
+{
+  "name": "bmp280-spi",
+  "version": "1.0.0",
+  "description": "",
+  "main": "temp.js",
+  "dependencies": {
+    "pi-spi": "^1.0.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:johntalton/bmp280-spi.git"
+  },
+  "author": "johntalton@gmail.com"
+}
