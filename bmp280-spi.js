@@ -120,9 +120,34 @@ const bmp280 = {
       return [adc_P, adc_T];      
     });
   },
-  press: function() {
+  press: function(dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9) {
     return this._burstMeasurment().then(([P, T]) => {
-      return P;
+      const var1 = T / 2.0 - 64000.0;
+
+      if(var1 == 0){ return 0; }
+
+      const var2 = var1 * var1 * dig_P6 / 32768.0;
+      const var3 = var2 + var1 * dig_P5 * 2.0;
+      const var4 = (var3 / 4.0) + (dig_P4 * 65536.0);
+      
+      const var5 = (dig_P3 * var1 * var1 / 524288.0 + dig_P2) / 524288.0;
+      const var6 = (1.0 + var1 / 32768.0) * dig_P1;
+
+      const p1 = 1048576.0 - P;
+      const p2 = (p1 - (var4 / 4096.0)) * 6250.0 / var6;
+      const p3 = dig_P9 * p2 * p2 / 2147483648.0;
+      const p4 = p2 * dig_P8 / 32768.0;
+      const p5 = p2 + (p3 + p4 + dig_P7) / 16.0;
+
+      //console.log(dig_P9, p2 * p2);
+      console.log(var1, var2, var3, var4, var5, p1, p2, p3, p4, p5, p5/256.0);
+
+      return p5 / 256.0;
+    });
+  },
+  altitude: function(seaLevelPa){
+    return this.press().then(P => {
+      return 44330 * (1.0 * Math.pow(P / 100 / seaLevelPa, 0.1903));
     });
   },
   _atemp: function() {

@@ -22,7 +22,7 @@ function trim(f) {
 let calibration_data = [];;
 
 function prompt() {
-  rl.question('bmp280@SPI0.0>', commandHandler);
+  rl.question('bmp280@spi0.1> ', commandHandler);
 }
 
 function commandHandler(cmd) {
@@ -120,6 +120,15 @@ function commandHandler(cmd) {
       prompt();
     });
   }
+  else if(cmd.toLowerCase() === 'forced') {
+    bmp280.setMode(bmp280.MODE_FORCED).then(noop => {
+      console.log('forced mode');
+      prompt();
+    }).catch(e => {
+      console.log('error', e);
+      prompt();
+    });
+  }
   else if(cmd.toLowerCase() === 'config') {
     bmp280.config().then(([t_sb, filter, spi3wire_en]) => {
       console.log('Normal Mode Timing: ', t_sb, ' IIR Filter: ', filter);
@@ -130,7 +139,24 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'press') {
+    const [,p1, p2, p3, p4, p5, p6, p7, p8, p9] = calibration_data;
 
+    bmp280.press(p1, p2, p3, p4, p5, p6, p7, p8, p9).then(press => {
+      console.log('Under preasure:', press);
+      prompt();
+    }).catch(e => {
+      console.log('error', e);
+      prompt();
+    });
+  }
+  else if(cmd.toLowerCase() === 'altitude') {
+    bmp280.altitude(1013.25).then(alt => {
+      console.log('Altitude: ', alt);
+      prompt();
+    }).catch(e => {
+      console.log('error', e);
+      prompt();
+    });
   }
   else if(cmd.toLowerCase() === 'temp') {
     const [t1, t2, t3, ...rest] = calibration_data;
@@ -160,8 +186,8 @@ function commandHandler(cmd) {
         
         count += 1;
         console.log('#' + count +  ' @ ' + now.getHours() + ':' + now.getMinutes());
-        console.log('Tempature (c)', trim(temp.cf), trim(temp.ci));
-        console.log('          (f)', trim(ctof(temp.cf)), trim(ctof(temp.ci)));
+        console.log('Tempature (c)', trim(temp.cf), trim(temp.ci), trim(temp.cg));
+        console.log('          (f)', trim(ctof(temp.cf)), trim(ctof(temp.ci)), trim(ctof(temp.cg)));
 
         timer = setTimeout(poll, 1000 * 60 * 1);
       }).catch(e => {
