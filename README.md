@@ -1,13 +1,9 @@
 # BMP280 using SPI (pi-spi) interface
-
----
 ## REPL interface 
-
   ```
   > node temp
   bmp280@spi0.1> 
   ```
-  
 command listing:
  - ```id``` reads and prints static chipdId (validates agains code value)
  - ```version``` reads and prints version 
