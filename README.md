@@ -1,7 +1,7 @@
-#BMP280 using SPI (pi-spi) interface
+# BMP280 using SPI (pi-spi) interface
 
 ---
-##REPL interface 
+## REPL interface 
 
   ```
   > node temp
