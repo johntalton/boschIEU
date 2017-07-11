@@ -77,8 +77,8 @@ const bmp280 = {
     },
     MAX_STANDBY: {
       mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X2,
-      oversampling_t: this.OVERSAMPLE_X2,
+      oversampling_p: this.OVERSAMPLE_X1,
+      oversampling_t: this.OVERSAMPLE_X1,
       filter_coefficient: this.COEFFICIENT_OFF,
       standby_time: this.STANDBY_4000
     },
@@ -234,69 +234,96 @@ const bmp280 = {
       return [adc_P, adc_T];      
     });
   },
-  press: function(dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9) {
+  measurement: function(...calibration_data) {
     return this._burstMeasurment().then(([P, T]) => {
-      if(P === this.SKIPPED_SAMPLE_VALUE) {
-        return;
-      }
-
-      const var1 = T / 2.0 - 64000.0;
-
-      if(var1 == 0){ return 0; }
-
-      const var2 = var1 * var1 * dig_P6 / 32768.0;
-      const var3 = var2 + var1 * dig_P5 * 2.0;
-      const var4 = (var3 / 4.0) + (dig_P4 * 65536.0);
-      
-      const var5 = (dig_P3 * var1 * var1 / 524288.0 + dig_P2) / 524288.0;
-      const var6 = (1.0 + var1 / 32768.0) * dig_P1;
-
-      const p1 = 1048576.0 - P;
-      const p2 = (p1 - (var4 / 4096.0)) * 6250.0 / var6;
-      const p3 = dig_P9 * p2 * p2 / 2147483648.0;
-      const p4 = p2 * dig_P8 / 32768.0;
-      const p5 = p2 + (p3 + p4 + dig_P7) / 16.0;
-
-      //console.log(dig_P9, p2 * p2);
-      console.log(var1, var2, var3, var4, var5, p1, p2, p3, p4, p5, p5/256.0);
-
-      return p5 / 256.0;
+      return [
+        this._compensateP(P, T, ...(calibration_data.slice(3))),
+        this._compensateT(T, ...(calibration_data.slice(0, 3)))
+      ];
     });
   },
-  altitude: function(seaLevelPa){
-    return this.press().then(P => {
-      return 44330 * (1.0 * Math.pow(P / 100 / seaLevelPa, 0.1903));
+  press: function(...p9calibration) {
+    return this._burstMeasurment().then(([P, T]) => {
+      return this._compensateP(P, T, ...p9calibration);
     });
   },
-  temp: function(dig_T1, dig_T2, dig_T3) {
-    return this._burstMeasurment().then(([P, T]) => { 
-      //console.log(T);
-      
-      if(T === this.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
-      if(dig_T1 === undefined){ return { undef: 't1' }; }
-      if(dig_T2 === undefined){ return { undef: 't2' }; }
-      if(dig_T3 === undefined){ return { undef: 't3' }; }
-
-      const var1f = (T/16384.0 - dig_T1/1024.0) * dig_T2;
-      const var2f = (T/131072.0 - dig_T1/8192.0) * (T/131072.0 - dig_T1/8192.0) * dig_T3;
-      const finef = var1f + var2f;
-      const cf = finef / 5120.0;
-      
-      const var1i = (((T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11;
-      const var2i = ( (( ((T >> 4) - dig_T1) * ((T >> 4) - dig_T1) ) >> 12) * dig_T3 ) >> 14;
-      const finei = var1i + var2i;
-      const ci = ((finei * 5 + 128) >> 8) / 100;
-
-      // console.log(var1f, var2f, finef, cf);
-      // console.log(var1i, var2i, finei, ci);
-
-      return { 
-        cf: cf,
-        finef: finef, 
-        ci: ci,
-        finei: finei
-      };
+  temp: function(...t3calibration) {
+    return this._burstMeasurment().then(([P, T]) => {
+      return this._compensateT(T, ...t3calibration);
     });
+  },
+  _compensateP: function(P, T, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9){
+    if(P === this.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
+    if(dig_P1 === undefined){ return { undef: 'p1' }; }
+    if(dig_P2 === undefined){ return { undef: 'p2' }; }
+    if(dig_P3 === undefined){ return { undef: 'p3' }; }
+    if(dig_P4 === undefined){ return { undef: 'p4' }; }
+    if(dig_P5 === undefined){ return { undef: 'p5' }; }
+    if(dig_P6 === undefined){ return { undef: 'p6' }; }
+    if(dig_P7 === undefined){ return { undef: 'p7' }; }
+    if(dig_P8 === undefined){ return { undef: 'p8' }; }
+    if(dig_P9 === undefined){ return { undef: 'p9' }; }
+
+    const var1 = T / 2.0 - 64000.0;
+
+    if(var1 == 0){ return 0; }
+
+    const var2 = var1 * var1 * dig_P6 / 32768.0;
+    const var3 = var2 + var1 * dig_P5 * 2.0;
+    const var4 = (var3 / 4.0) + (dig_P4 * 65536.0);
+      
+    const var5 = (dig_P3 * var1 * var1 / 524288.0 + dig_P2) / 524288.0;
+    const var6 = (1.0 + var1 / 32768.0) * dig_P1;
+
+    const p1 = 1048576.0 - P;
+    const p2 = (p1 - (var4 / 4096.0)) * 6250.0 / var6;
+    const p3 = dig_P9 * p2 * p2 / 2147483648.0;
+    const p4 = p2 * dig_P8 / 32768.0;
+    const p5 = p2 + (p3 + p4 + dig_P7) / 16.0;
+
+    //console.log(dig_P9, p2 * p2);
+    //console.log(var1, var2, var3, var4, var5, p1, p2, p3, p4, p5, p5/256.0);
+
+    return p5 / 256.0;
+  },
+  _compensateT: function(T, dig_T1, dig_T2, dig_T3){
+    if(T === this.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
+    if(dig_T1 === undefined){ return { undef: 't1' }; }
+    if(dig_T2 === undefined){ return { undef: 't2' }; }
+    if(dig_T3 === undefined){ return { undef: 't3' }; }
+
+    const var1f = (T/16384.0 - dig_T1/1024.0) * dig_T2;
+    const var2f = (T/131072.0 - dig_T1/8192.0) * (T/131072.0 - dig_T1/8192.0) * dig_T3;
+    const finef = var1f + var2f;
+    const cf = finef / 5120.0;
+      
+    const var1i = (((T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11;
+    const var2i = ( (( ((T >> 4) - dig_T1) * ((T >> 4) - dig_T1) ) >> 12) * dig_T3 ) >> 14;
+    const finei = var1i + var2i;
+    const ci = ((finei * 5 + 128) >> 8) / 100;
+
+    // console.log(var1f, var2f, finef, cf);
+    // console.log(var1i, var2i, finei, ci);
+
+    return { 
+      cf: cf,
+      finef: finef, 
+      ci: ci,
+      finei: finei
+    };
+  },
+  altitudeFromPressure: function(seaLevelPa, P){
+    if(P === undefined){ return; }
+
+    // https://en.wikipedia.org/wiki/Pressure_altitude
+    const millibars = P;
+    const ft = (1 - Math.pow( P / seaLevelPa), 0.190284) * 145366.45 
+
+    const foo =  44330 * (1.0 * Math.pow(P / 100 / seaLevelPa, 0.1903));
+
+    console.log('alt:', ft, foo);      
+
+    return foo;
   },
   _ctrlMeasFromSamplingMode: function(osrs_p, osrs_t, mode){
     return (osrs_t << 5) | (osrs_p << 2) | mode;

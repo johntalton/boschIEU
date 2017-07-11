@@ -113,7 +113,7 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'control'){
     bmp280.control().then(([osrs_p, osrs_t, mode]) => {
-      console.log('Oversample Temp: ', oLabels[osrs_t], ' Oversample Press: ', oLabels[osrs_p], ' Mode: ', modeLaberls[mode]);
+      console.log('Oversample Temp: ', oLabels[osrs_t], ' Oversample Press: ', oLabels[osrs_p], ' Mode: ', modeLabels[mode]);
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -179,8 +179,9 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'normal') {
+    bmp280.setProfile(bmp280.profiles().MAX_STANDBY).then(noop => {
     //bmp280.setProfile(bmp280.profiles().TEMPATURE_MOSTLY).then(noop => {
-    bmp280.setProfile(bmp280.profiles().TEMPATURE_ONLY).then(noop => {
+    //bmp280.setProfile(bmp280.profiles().TEMPATURE_ONLY).then(noop => {
       console.log('normal mode');
       prompt();
     }).catch(e => {
@@ -199,9 +200,16 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'press') {
     const [,p1, p2, p3, p4, p5, p6, p7, p8, p9] = calibration_data;
-
     bmp280.press(p1, p2, p3, p4, p5, p6, p7, p8, p9).then(press => {
-      console.log('Under preasure:', press);
+      console.log('Under pressure:', press);
+      if(press.skip){
+      
+      } else if(press.undef) {
+
+      } else {
+        console.log('Pressure (Pa):', press);
+      }
+
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -209,8 +217,11 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'altitude') {
-    bmp280.altitude(1013.25).then(alt => {
+    const seaLevelPa = 1013.25;
+    bmp280.press(...(calibration_data.slice(3))).then(P => {
+      const alt = bmp280.altitudeFromPressure(seaLevelPa, P);
       console.log('Altitude: ', alt);
+      
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -239,19 +250,31 @@ function commandHandler(cmd) {
 
 
   else if(cmd.toLowerCase() === 'poll') {
-    const [t1, t2, t3, ...rest] = calibration_data;
-
     let count = 0;
     let timer;
 
     function poll() {
-      bmp280.temp(t1, t2, t3).then(temp => {
+      bmp280.measurement(...calibration_data).then(([press, temp]) => {
         const now = new Date();
         
         count += 1;
         console.log('#' + count +  ' @ ' + now.getHours() + ':' + now.getMinutes());
-        console.log('Tempature (c)', trim(temp.cf), trim(temp.ci));
-        console.log('          (f)', trim(ctof(temp.cf)), trim(ctof(temp.ci)));
+        if(temp.skip){
+          console.log('Tempature Skipped');
+        } else if(temp.undef){ 
+          console.log('Tempature calibration unset: ', temp.undef);
+        }else {
+          console.log('Tempature (c)', trim(temp.cf), trim(temp.ci));
+          console.log('          (f)', trim(ctof(temp.cf)), trim(ctof(temp.ci)));
+        }
+
+        if(press.skip){
+          console.log('Pressue Skipped');
+        } else if(press.undef){ 
+          console.log('Pressure calibration unset: ', press.undef);
+        }else {
+          console.log('Pressure (Pa)', trim(press));
+        }
 
         timer = setTimeout(poll, 1000 * 1);
       }).catch(e => {
