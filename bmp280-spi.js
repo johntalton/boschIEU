@@ -44,6 +44,16 @@ const bmp280 = {
 
   profiles: function() { 
     return  {
+    // Sleep 
+    SLEEP: {
+      mode: this.MODE_SLEEP,
+      oversampling_p: this.OVERSAMPLE_SKIP,
+      oversampling_t: this.OVERSAMPLE_SKIP, 
+      filter_coefficient: this.COEFFICIENT_OFF,
+      standby_time: this.STANDBY_4000
+    },
+
+    // randoms
     TEMPATURE_ONLY: {
       mode: this.MODE_NORMAL,
       oversampling_p: this.OVERSAMPLE_OFF,
@@ -296,8 +306,7 @@ const bmp280 = {
     return (timing << 5) | (filter << 2) | spi3wire; 
   },
   setSleepMode: function() {
-    const control = this._ctrlMeasFromSamplingMode(this.OVERSAMPLE_SKIP, this.OVERSAMPLE_SKIP, this.MODE_SLEEP);
-    return this._write(this.REG_CTRL, control);
+    return this.setProfile(this.profiles().SLEEP);
   },
   force: function(press, temp) {
     if(press === undefined) { press = true; }
