@@ -44,6 +44,13 @@ const bmp280 = {
 
   profiles: function() { 
     return  {
+    TEMPATURE_ONLY: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_OFF,
+      oversampling_t: this.OVERSAMPLE_X16,
+      filter_coefficient: this.COEFFICIENT_OFF,
+      standby_time: this.STANDBY_05
+    },
     TEMPATURE_MOSTLY: {
       mode: this.MODE_NORMAL,
       oversampling_p: this.OVERSAMPLE_X1,
@@ -202,13 +209,15 @@ const bmp280 = {
       const press_lsb = buffer.readUInt8(2);
       const press_xlsb = buffer.readUInt8(3);
 
-      const adc_P = press_msb << 12 | press_lsb << 4 | press_xlsb;
+      const adc_P = press_msb << 12 | press_lsb << 4 | press_xlsb >> 4;
+      //console.log('P: ', adc_P);
 
       const msb = buffer.readUInt8(4);
       const lsb = buffer.readUInt8(5);
       const xlsb = buffer.readUInt8(6);
 
-      const adc_T = msb << 12 | lsb << 4 | xlsb;
+      const adc_T = msb << 12 | lsb << 4 | xlsb >> 4;
+      //console.log('T: ', adc_T);
 
       //console.log(msb.toString(16), lsb.toString(16), xlsb.toString(16), adc_T.toString(16));
 
@@ -217,6 +226,10 @@ const bmp280 = {
   },
   press: function(dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9) {
     return this._burstMeasurment().then(([P, T]) => {
+      if(P === this.SKIPPED_SAMPLE_VALUE) {
+        return;
+      }
+
       const var1 = T / 2.0 - 64000.0;
 
       if(var1 == 0){ return 0; }
@@ -245,38 +258,34 @@ const bmp280 = {
       return 44330 * (1.0 * Math.pow(P / 100 / seaLevelPa, 0.1903));
     });
   },
-  _atemp: function() {
-    return this._burstMeasurment().then(([P, T]) => T);
-  },
   temp: function(dig_T1, dig_T2, dig_T3) {
-    return this._atemp().then(T => {
- 
-      //dig_T1 = 27504;
-      //dig_T2 = 26435;
-      //dig_T3 = -1000;
-      //T = 519888;
+    return this._burstMeasurment().then(([P, T]) => { 
       //console.log(T);
+      
+      if(T === this.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
+      if(dig_T1 === undefined){ return { undef: 't1' }; }
+      if(dig_T2 === undefined){ return { undef: 't2' }; }
+      if(dig_T3 === undefined){ return { undef: 't3' }; }
 
       const var1f = (T/16384.0 - dig_T1/1024.0) * dig_T2;
       const var2f = (T/131072.0 - dig_T1/8192.0) * (T/131072.0 - dig_T1/8192.0) * dig_T3;
       const finef = var1f + var2f;
       const cf = finef / 5120.0;
       
-      const var1i = ((T >> 3) - (dig_T1 << 1)) * (dig_T2 >> 11);
+      const var1i = (((T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11;
       const var2i = ( (( ((T >> 4) - dig_T1) * ((T >> 4) - dig_T1) ) >> 12) * dig_T3 ) >> 14;
       const finei = var1i + var2i;
       const ci = ((finei * 5 + 128) >> 8) / 100;
 
-      // https://github.com/gradymorgan/node-BMP280/blob/master/BMP280.js
-      const var1g = (((T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11;
-      const var2g = (((((T >> 4) - (dig_T1)) * ((T >> 4) - (dig_T1))) >> 12) * (dig_T3)) >> 14;
-      const fineg = var1g + var2g;
-      const cg = ((fineg * 5 + 128) >> 8) / 100.0;
+      // console.log(var1f, var2f, finef, cf);
+      // console.log(var1i, var2i, finei, ci);
 
-      //console.log(var1f, var2f, finef, cf);
-      //console.log(var1i, var2i, finei, ci);
-
-      return { cf: cf, ci: ci, cg: cg };
+      return { 
+        cf: cf,
+        finef: finef, 
+        ci: ci,
+        finei: finei
+      };
     });
   },
   _ctrlMeasFromSamplingMode: function(osrs_p, osrs_t, mode){
@@ -290,8 +299,13 @@ const bmp280 = {
     const control = this._ctrlMeasFromSamplingMode(this.OVERSAMPLE_SKIP, this.OVERSAMPLE_SKIP, this.MODE_SLEEP);
     return this._write(this.REG_CTRL, control);
   },
-  force: function() {
-    const control = this._ctrlMeasFromSamplingMode(this.OVERSAMPLE_X1, this.OVERSAMPLE_X1, this.MODE_FORCED);
+  force: function(press, temp) {
+    if(press === undefined) { press = true; }
+    if(temp === undefined) { temp = true; }
+
+    const osrs_p = press ? this.OVERSAMPLE_X1 : this.OVERSAMPLE_OFF;
+    const osrs_t = temp ? this.OVERSAMPLE_X1 : this.OVERSAMPLE_OFF
+    const control = this._ctrlMeasFromSamplingMode(osrs_p, osrs_t, this.MODE_FORCED);
     return this._write(this.REG_CTRL, control);  
   },
   setProfile: function(profile) {

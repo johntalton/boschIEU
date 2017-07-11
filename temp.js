@@ -10,11 +10,13 @@ const rl = readline.createInterface({
 });
 
 function ctof(c) {
+  if(c === undefined){ return undefined; }
   return c * (9/5.0) + 32;
 }
 
 function trim(f) {
-  return Math.round(f * 100) / 100;
+  if(f === undefined){ return undefined; }
+  return Math.round(f * 10000) / 10000;
 }
 
 // global cache (from calibration call)
@@ -75,7 +77,7 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'control'){
-    bmp280.control().then(([osrs_t, osrs_p, mode]) => {
+    bmp280.control().then(([osrs_p, osrs_t, mode]) => {
       let modeStr = '<unknown>';
       if(mode === bmp280.MODE_NORMAL){ modeStr = 'Normal';}
       else if(mode === bmp280.MODE_FORCED){ modeStr = 'Forced'; }
@@ -167,7 +169,7 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'normal') {
     //bmp280.setProfile(bmp280.profiles().TEMPATURE_MOSTLY).then(noop => {
-    bmp280.setProfile(bmp280.profiles().MAX_STANDBY).then(noop => {
+    bmp280.setProfile(bmp280.profiles().TEMPATURE_ONLY).then(noop => {
       console.log('normal mode');
       prompt();
     }).catch(e => {
@@ -206,10 +208,15 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'temp') {
     const [t1, t2, t3, ...rest] = calibration_data;
-
     bmp280.temp(t1, t2, t3).then(temp => {
-      console.log('Tempature (c): ', trim(temp.cf), trim(temp.ci), trim(temp.cg));
-      console.log('          (f): ', trim(ctof(temp.cf)), trim(ctof(temp.ci)), trim(ctof(temp.cg)));
+      if(temp.skip){
+        console.log('Tempature sensing disabled');
+      }else if(temp.undef){
+        console.log('Tempature calibration unset:', temp.undef);
+      }else{
+        console.log('Tempature (c): ', trim(temp.cf), trim(temp.ci));
+        console.log('          (f): ', trim(ctof(temp.cf)), trim(ctof(temp.ci)));
+      }
 
       prompt();
     }).catch(e => {
@@ -232,8 +239,8 @@ function commandHandler(cmd) {
         
         count += 1;
         console.log('#' + count +  ' @ ' + now.getHours() + ':' + now.getMinutes());
-        console.log('Tempature (c)', trim(temp.cf), trim(temp.ci), trim(temp.cg));
-        console.log('          (f)', trim(ctof(temp.cf)), trim(ctof(temp.ci)), trim(ctof(temp.cg)));
+        console.log('Tempature (c)', trim(temp.cf), trim(temp.ci));
+        console.log('          (f)', trim(ctof(temp.cf)), trim(ctof(temp.ci)));
 
         timer = setTimeout(poll, 1000 * 1);
       }).catch(e => {
