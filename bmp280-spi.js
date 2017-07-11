@@ -2,11 +2,12 @@ var SPI = require('pi-spi');
 var spi = SPI.initialize("/dev/spidev0.1");
 
 const bmp280 = {
-  CHIP_ID:0x58,
+  CHIP_ID: 0x58, // some suggest 0x56 and 0x57
   RESET_MAGIC: 0xB6,
+  SKIPPED_SAMPLE_VALUE: 0x80000,
 
   MODE_SLEEP: 0b00,
-  MODE_FORCED: 0b01, // 0x10 alt
+  MODE_FORCED: 0b01, // alts 01 10
   MODE_NORMAL: 0b11,
 
   REG_CALIBRATION: 0x88,
@@ -18,6 +19,99 @@ const bmp280 = {
   REG_CONFIG:      0xF5,
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
+
+  OVERSAMPLE_SKIP: 0b000,
+  OVERSAMPLE_X1:   0b001,
+  OVERSAMPLE_X2:   0b010,
+  OVERSAMPLE_X4:   0b011,
+  OVERSAMPLE_X8:   0b100,
+  OVERSAMPLE_X16:  0b101, // t-alts 101 110 111, p-alts 101, Others <-- thanks docs
+
+  COEFFICIENT_OFF: 0b000,
+  COEFFICIENT_2:   0b001,
+  COEFFICIENT_4:   0b010,
+  COEFFICIENT_8:   0b011,
+  COEFFICIENT_16:  0b100,
+
+  STANDBY_05:   0b000, //    0.5 ms
+  STANDBY_62:   0b001, //   62.5
+  STANDBY_125:  0b010, //  125
+  STANDBY_250:  0b011, //  250
+  STANDBY_500:  0b100, //  500
+  STANDBY_1000: 0b101, // 1000
+  STANDBY_2000: 0b110, // 2000
+  STANDBY_4000: 0b111, // 4000
+
+  profiles: function() { 
+    return  {
+    TEMPATURE_MOSTLY: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X1,
+      oversampling_t: this.OVERSAMPLE_X16,
+      filter_coefficient: this.COEFFICIENT_2,
+      standby_time: this.STANDBY_05
+    },
+    SLOW_TEMPATURE_MOSTLY: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X1,
+      oversampling_t: this.OVERSAMPLE_X16,
+      filter_coefficient: this.COEFFICIENT_2,
+      standby_time: this.STANDBY_1000
+    },
+    MAX_STANDBY: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X2,
+      oversampling_t: this.OVERSAMPLE_X2,
+      filter_coefficient: this.COEFFICIENT_OFF,
+      standby_time: this.STANDBY_4000
+    },
+
+    // from the spec
+    HANDHELD_DEVICE_LOW_POWER: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X16,
+      oversampling_t: this.OVERSAMPLE_X2,      
+      filter_coefficient: 4,
+      standby_time: this.STANDBY_62
+    },
+    HANDHELD_DEVICE_DYNAMIC: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X4,
+      oversampling_t: this.OVERSAMPLE_X1,
+      filter_coefficient: 16,
+      standby_time: this.STANDBY_05
+    },
+    WEATHER_MONITORING: {
+      mode: this.MODE_FORCED,
+      oversampling_p: this.OVERSAMPLE_X1,
+      oversampling_t: this.OVERSAMPLE_X1,
+      filter_coefficient: 0,
+      standby_time: this.STANDBY_1
+    },
+    ELEVATOR_FLOOR_CHAHGE: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X4,
+      oversampling_t: this.OVERSAMPLE_X1,
+      filter_coefficient: 4,
+      standby_time: this.STANDBY_125
+    },
+    DROP_DETECTION: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X2,
+      oversampling_t: this.OVERSAMPLE_X1,
+      filter_coefficient: 0,
+      standby_time: this.STANDBY_05
+    },
+    INDOR_NAVIGATION: {
+      mode: this.MODE_NORMAL,
+      oversampling_p: this.OVERSAMPLE_X16,
+      oversampling_t: this.OVERSAMPLE_X2,
+      filter_coefficient: 16,
+      standby_time: this.STANDBY_05
+    }
+    }
+  },
+
 
   _writeMask: function(value){ return value & ~0x80; },
   _read: function(cmd, length) {
@@ -77,26 +171,27 @@ const bmp280 = {
   status: function() {
     return this._read(this.REG_STATUS).then(buffer => {
       const tmp = buffer.readUInt8(1);
-      const measuring = tmp & 0x04 === 0x04;
-      const im_update = tmp & 0x01 === 0x01;
+      // console.log('status: ', tmp);
+      const measuring = (tmp & 0b1000) === 0b1000;
+      const im_update = (tmp & 0b0001) === 0b0001;
       return [measuring, im_update];
     });
   },
   control: function() {
     return this._read(this.REG_CTRL).then(buffer => {
       const tmp = buffer.readUInt8(1);
-      const osrs_t = tmp;
-      const osrs_p = tmp;
-      const mode = tmp & 0x03;
-      return [osrs_t, osrs_p, mode];
+      const osrs_t = (tmp >> 5) & 0b111;
+      const osrs_p = (tmp >> 2) & 0b111;
+      const mode = tmp & 0b11;
+      return [osrs_p, osrs_t, mode];
     });
   },
   config: function() {
     return this._read(this.REG_CONFIG).then(buffer => {
       const tmp = buffer.readUInt8(1);
-      const t_sb = tmp;
-      const filter = tmp;
-      const spi3w_en = tmp;
+      const t_sb = (tmp >> 5) & 0b111;
+      const filter = (tmp >> 2) & 0b111;
+      const spi3w_en = tmp & 0b01 === 0b01;
       return [t_sb, filter, spi3w_en];
     });
   },
@@ -184,12 +279,38 @@ const bmp280 = {
       return { cf: cf, ci: ci, cg: cg };
     });
   },
-  setMode: function(mode) {
-    const osrs_t = 0b001;
-    const osrs_p = 0b001;
-    const value = (osrs_t << 5) | (osrs_p << 2) | mode;
-    // tempconsole.log('value', value, value.toString(16));
-    return this._write(this.REG_CTRL, value);
+  _ctrlMeasFromSamplingMode: function(osrs_p, osrs_t, mode){
+    return (osrs_t << 5) | (osrs_p << 2) | mode;
+  },
+  _configFromTimingFilter: function(timing, filter) {
+    const spi3wire = 0; // TODO 
+    return (timing << 5) | (filter << 2) | spi3wire; 
+  },
+  setSleepMode: function() {
+    const control = this._ctrlMeasFromSamplingMode(this.OVERSAMPLE_SKIP, this.OVERSAMPLE_SKIP, this.MODE_SLEEP);
+    return this._write(this.REG_CTRL, control);
+  },
+  force: function() {
+    const control = this._ctrlMeasFromSamplingMode(this.OVERSAMPLE_X1, this.OVERSAMPLE_X1, this.MODE_FORCED);
+    return this._write(this.REG_CTRL, control);  
+  },
+  setProfile: function(profile) {
+    // console.log(profile);
+    const control = this._ctrlMeasFromSamplingMode(profile.oversampling_p, profile.oversampling_t, profile.mode);
+    const config = this._configFromTimingFilter(profile.standby_time, profile.filter_coefficient);
+    return this._write(this.REG_CTRL, control)
+      .then(this._write(this.REG_CONFIG, config));
+  },
+  getProfile: function() {
+    return this.control().then(ctrl => [ctrl, this.config()]).then((ctrl, cfg) => {
+      return {
+        mode: ctrl.moder,
+        oversampling_p: ctrl.osrs_p,
+        oversampling_t: ctrl.osrs_t,
+        filter_coefficient: cfg.filter,
+        standby_time: cfg.standby
+      }
+    });
   }
 };
 

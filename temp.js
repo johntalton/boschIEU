@@ -63,14 +63,68 @@ function commandHandler(cmd) {
       prompt();
     });
   }
+  else if(cmd.toLowerCase() === 'status!') {
+    Promise.all(Array(15).fill().map(() => bmp280.status())).then(results => {
+      results.map(([measuring, im_update]) => {
+        console.log('Measuring: ', measuring, ' Updating: ', im_update);
+      });
+      prompt();
+    }).catch(e => {
+      console.log('error', e);
+      prompt();
+    });
+  }
   else if(cmd.toLowerCase() === 'control'){
     bmp280.control().then(([osrs_t, osrs_p, mode]) => {
       let modeStr = '<unknown>';
       if(mode === bmp280.MODE_NORMAL){ modeStr = 'Normal';}
       else if(mode === bmp280.MODE_FORCED){ modeStr = 'Forced'; }
       else if(mode === bmp280.MODE_SLEEP){ modeStr = 'Sleep'; }
+      
+      let oLabels = {};
+      oLabels[bmp280.OVERSAMPLE_SKIP] = 'Skip'; 
+      oLabels[bmp280.OVERSAMPLE_X1] = 'x1'; 
+      oLabels[bmp280.OVERSAMPLE_X2] = 'x2'; 
+      oLabels[bmp280.OVERSAMPLE_X4] = 'x4'; 
+      oLabels[bmp280.OVERSAMPLE_X8] = 'x8'; 
+      oLabels[bmp280.OVERSAMPLE_X16] = 'x16'; 
 
-      console.log('Oversample Temp: ', osrs_t, ' Oversample Press: ', osrs_p, ' Mode: ', modeStr);
+      console.log('Oversample Temp: ', oLabels[osrs_t], ' Oversample Press: ', oLabels[osrs_p], ' Mode: ', modeStr);
+      prompt();
+    }).catch(e => {
+      console.log('error', e);
+      prompt();
+    });
+  }
+  else if(cmd.toLowerCase() === 'config') {
+    bmp280.config().then(([t_sb, filter, spi3wire_en]) => {
+      let timingLabels = {};
+      timingLabels[bmp280.STANDBY_05]   = '   0.5 ms';
+      timingLabels[bmp280.STANDBY_62]   = '  62.5 ms';
+      timingLabels[bmp280.STANDBY_125]  = ' 125 ms';
+      timingLabels[bmp280.STANDBY_250]  = ' 250 ms';
+      timingLabels[bmp280.STANDBY_500]  = ' 500 ms';
+      timingLabels[bmp280.STANDBY_1000] = '1000 ms';
+      timingLabels[bmp280.STANDBY_2000] = '2000 ms';
+      timingLabels[bmp280.STANDBY_4000] = '4000 ms';
+
+      let filterLabels = {};
+      filterLabels[bmp280.COEFFICIENT_OFF] = 'Off';
+      filterLabels[bmp280.COEFFICIENT_2] = '2';
+      filterLabels[bmp280.COEFFICIENT_4] = '4';
+      filterLabels[bmp280.COEFFICIENT_8] = '8';
+      filterLabels[bmp280.COEFFICIENT_16] = '16';
+
+      console.log('Normal Mode Timing: ', timingLabels[t_sb], ' IIR Filter: ', filterLabels[filter]);
+      prompt();
+    }).catch(e => {
+      console.log('error', e);
+      prompt();
+    });
+  }
+  else if(cmd.toLowerCase() === 'profile') {
+    bmp280.getProfile().then(profile => {
+      console.log(profile);
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -103,7 +157,7 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'sleep') {
-    bmp280.setMode(bmp280.MODE_SLEEP).then(noop => {
+    bmp280.setSleepMode().then(noop => {
       console.log('sleep mode');
       prompt();
     }).catch(e => {
@@ -112,7 +166,8 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'normal') {
-    bmp280.setMode(bmp280.MODE_NORMAL).then(noop => {
+    //bmp280.setProfile(bmp280.profiles().TEMPATURE_MOSTLY).then(noop => {
+    bmp280.setProfile(bmp280.profiles().MAX_STANDBY).then(noop => {
       console.log('normal mode');
       prompt();
     }).catch(e => {
@@ -121,17 +176,8 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'forced') {
-    bmp280.setMode(bmp280.MODE_FORCED).then(noop => {
+    bmp280.force().then(noop => {
       console.log('forced mode');
-      prompt();
-    }).catch(e => {
-      console.log('error', e);
-      prompt();
-    });
-  }
-  else if(cmd.toLowerCase() === 'config') {
-    bmp280.config().then(([t_sb, filter, spi3wire_en]) => {
-      console.log('Normal Mode Timing: ', t_sb, ' IIR Filter: ', filter);
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -189,7 +235,7 @@ function commandHandler(cmd) {
         console.log('Tempature (c)', trim(temp.cf), trim(temp.ci), trim(temp.cg));
         console.log('          (f)', trim(ctof(temp.cf)), trim(ctof(temp.ci)), trim(ctof(temp.cg)));
 
-        timer = setTimeout(poll, 1000 * 60 * 1);
+        timer = setTimeout(poll, 1000 * 1);
       }).catch(e => {
         console.log('error', e);
         prompt();
