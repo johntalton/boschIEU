@@ -4,6 +4,41 @@ var spi = SPI.initialize("/dev/spidev0.1");
 
 const bmp280 = require('./bmp280-spi.js');
 
+let modeLabels = {};
+modeLabels[bmp280.MODE_SLEEP] = 'Sleep';
+modeLabels[bmp280.MODE_FORCED] = 'Forced';
+modeLabels[bmp280.MODE_NORMAL] = 'Normal';
+   
+let oLabels = {};
+oLabels[bmp280.OVERSAMPLE_SKIP] = 'Skip'; 
+oLabels[bmp280.OVERSAMPLE_X1] = 'x1'; 
+oLabels[bmp280.OVERSAMPLE_X2] = 'x2'; 
+oLabels[bmp280.OVERSAMPLE_X4] = 'x4'; 
+oLabels[bmp280.OVERSAMPLE_X8] = 'x8'; 
+oLabels[bmp280.OVERSAMPLE_X16] = 'x16'; 
+
+
+
+let timingLabels = {};
+timingLabels[bmp280.STANDBY_05]   = '   0.5 ms';
+timingLabels[bmp280.STANDBY_62]   = '  62.5 ms';
+timingLabels[bmp280.STANDBY_125]  = ' 125 ms';
+timingLabels[bmp280.STANDBY_250]  = ' 250 ms';
+timingLabels[bmp280.STANDBY_500]  = ' 500 ms';
+timingLabels[bmp280.STANDBY_1000] = '1000 ms';
+timingLabels[bmp280.STANDBY_2000] = '2000 ms';
+timingLabels[bmp280.STANDBY_4000] = '4000 ms';
+
+let filterLabels = {};
+filterLabels[bmp280.COEFFICIENT_OFF] = 'Off';
+filterLabels[bmp280.COEFFICIENT_2] = '2';
+filterLabels[bmp280.COEFFICIENT_4] = '4';
+filterLabels[bmp280.COEFFICIENT_8] = '8';
+filterLabels[bmp280.COEFFICIENT_16] = '16';
+
+
+
+
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
@@ -78,20 +113,7 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'control'){
     bmp280.control().then(([osrs_p, osrs_t, mode]) => {
-      let modeStr = '<unknown>';
-      if(mode === bmp280.MODE_NORMAL){ modeStr = 'Normal';}
-      else if(mode === bmp280.MODE_FORCED){ modeStr = 'Forced'; }
-      else if(mode === bmp280.MODE_SLEEP){ modeStr = 'Sleep'; }
-      
-      let oLabels = {};
-      oLabels[bmp280.OVERSAMPLE_SKIP] = 'Skip'; 
-      oLabels[bmp280.OVERSAMPLE_X1] = 'x1'; 
-      oLabels[bmp280.OVERSAMPLE_X2] = 'x2'; 
-      oLabels[bmp280.OVERSAMPLE_X4] = 'x4'; 
-      oLabels[bmp280.OVERSAMPLE_X8] = 'x8'; 
-      oLabels[bmp280.OVERSAMPLE_X16] = 'x16'; 
-
-      console.log('Oversample Temp: ', oLabels[osrs_t], ' Oversample Press: ', oLabels[osrs_p], ' Mode: ', modeStr);
+      console.log('Oversample Temp: ', oLabels[osrs_t], ' Oversample Press: ', oLabels[osrs_p], ' Mode: ', modeLaberls[mode]);
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -100,23 +122,6 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'config') {
     bmp280.config().then(([t_sb, filter, spi3wire_en]) => {
-      let timingLabels = {};
-      timingLabels[bmp280.STANDBY_05]   = '   0.5 ms';
-      timingLabels[bmp280.STANDBY_62]   = '  62.5 ms';
-      timingLabels[bmp280.STANDBY_125]  = ' 125 ms';
-      timingLabels[bmp280.STANDBY_250]  = ' 250 ms';
-      timingLabels[bmp280.STANDBY_500]  = ' 500 ms';
-      timingLabels[bmp280.STANDBY_1000] = '1000 ms';
-      timingLabels[bmp280.STANDBY_2000] = '2000 ms';
-      timingLabels[bmp280.STANDBY_4000] = '4000 ms';
-
-      let filterLabels = {};
-      filterLabels[bmp280.COEFFICIENT_OFF] = 'Off';
-      filterLabels[bmp280.COEFFICIENT_2] = '2';
-      filterLabels[bmp280.COEFFICIENT_4] = '4';
-      filterLabels[bmp280.COEFFICIENT_8] = '8';
-      filterLabels[bmp280.COEFFICIENT_16] = '16';
-
       console.log('Normal Mode Timing: ', timingLabels[t_sb], ' IIR Filter: ', filterLabels[filter]);
       prompt();
     }).catch(e => {
@@ -126,7 +131,13 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'profile') {
     bmp280.getProfile().then(profile => {
-      console.log(profile);
+      
+      console.log('Mode: ', modeLabels[profile.mode]);
+      console.log('Oversampling Press: ', oLabels[profile.oversampling_p]);
+      console.log('Oversampling Temp:  ', oLabels[profile.oversampling_t]);
+      console.log('IIR Filter Coefficient: ', filterLabels[profile.filter_coefficient]);
+      console.log('Standby Time: ', timingLabels[profile.standby_time]);
+
       prompt();
     }).catch(e => {
       console.log('error', e);

@@ -316,13 +316,15 @@ const bmp280 = {
       .then(this._write(this.REG_CONFIG, config));
   },
   getProfile: function() {
-    return this.control().then(ctrl => [ctrl, this.config()]).then((ctrl, cfg) => {
+    return Promise.all([this.control(), this.config()]).then(([ctrl, cfg]) => {
+      const [osrs_p, osrs_t, mode] = ctrl;
+      const [sb, filter, spi3en] = cfg;
       return {
-        mode: ctrl.moder,
-        oversampling_p: ctrl.osrs_p,
-        oversampling_t: ctrl.osrs_t,
-        filter_coefficient: cfg.filter,
-        standby_time: cfg.standby
+        mode: mode,
+        oversampling_p: osrs_p,
+        oversampling_t: osrs_t,
+        filter_coefficient: filter,
+        standby_time: sb
       }
     });
   }
