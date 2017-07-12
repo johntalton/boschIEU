@@ -129,7 +129,6 @@ const bmp280 = {
     }
   },
 
-
   _writeMask: function(value){ return value & ~0x80; },
   _read: function(cmd, length) {
     if(length == undefined){ length = 1; }

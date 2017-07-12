@@ -101,9 +101,14 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'status!') {
-    Promise.all(Array(15).fill().map(() => bmp280.status())).then(results => {
+    Promise.all(Array(5000).fill().map(() => bmp280.status())).then(results => {
+      let prevm, prevu;
       results.map(([measuring, im_update]) => {
-        console.log('Measuring: ', measuring, ' Updating: ', im_update);
+        if(measuring !== prevm || im_update !== prevu) {
+          prevm = measuring;
+          prevu = im_update;
+          console.log('Measuring: ', measuring, ' Updating: ', im_update);
+        }
       });
       prompt();
     }).catch(e => {
