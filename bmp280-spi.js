@@ -20,6 +20,9 @@ const bmp280 = {
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
 
+  // https://github.com/drotek/BMP280/blob/master/Software/BMP280/BMP280.h
+  REG_CAL26: 0xE1,  // R calibration stored in 0xE1-0xF0
+
   OVERSAMPLE_SKIP: 0b000,
   OVERSAMPLE_X1:   0b001,
   OVERSAMPLE_X2:   0b010,
@@ -319,6 +322,8 @@ const bmp280 = {
     const ft = (1 - Math.pow( P / seaLevelPa), 0.190284) * 145366.45 
 
     const foo =  44330 * (1.0 * Math.pow(P / 100 / seaLevelPa, 0.1903));
+
+    // 44330.0 * (1.0 - pow(pressure / sealevel_pa, (1.0/5.255)))
 
     console.log('alt:', ft, foo);      
 
