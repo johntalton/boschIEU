@@ -92,3 +92,109 @@ both the ```pi-spi``` and the ```spi``` node modules are used in an abstration S
 
 
 
+# API 
+## General
+
+This API uses an abstracted SPI driver that needs to be initialized and set on the bmp280 object prior to its use.
+
+currently the ```pi-spi`` and ```spi``` node modules provide SPI abstraction.   A wrapper for both of these can be found in ```spi.js```.  User provided implementation are welcome etc.
+
+using these example wrappers:
+
+```
+const SPI = require('./spi.js');
+SPI.init(device).then(spi => {
+  bmp280.spi = spi;
+  
+  bmp280.read( ... .then( ...
+  
+});
+```
+(note: this api is not desirable and lacks flexibility as we move to new chips and multi-chip enviroments etc)
+### id()
+```
+bmp280.id()
+   .then(id => id === bmp280.CHIP_ID ? 'valid' : 'invlaid')
+   .then(console.log);
+```
+### version()
+```
+bmp280.version().then(console.log);
+```
+---
+### calibration()
+```
+bmp280.calibration().then(calibration_data => {
+  // ...
+  // and then, later on at the bat cave ...
+  bmp280.measurement(...caliberation_data).then(() => {}); // ... etc
+});
+```
+---
+### status()
+### getProfile() control() config()
+---
+### setProfile() setSleepMode() profiles()
+### force()
+```
+bmp280.force().then( ... )
+```
+Write the force mode profile to the chip.  Resulting in mdoe sleep state.  
+
+### reset()
+
+```bmp280.reset().then( ... )```
+Write a soft-reset to the chip.  Returning it to power-on state.
+---
+### measurement(...) _burstMeasurement()
+```
+bmp280.measurement(...caliberation_data).then(([P, T]) => {
+  //
+});
+```
+Measurment is a Compensated wrapper for _bustMeasurment.  That is:
+
+These methods read both the pressure and tempature register in a single pass.  This provide syncronization of data and beter performance / power managment.
+
+Measurment applies the proper compenstation formula based on the calibration data unique to each chip.  
+
+The unconpensated values can be obtained directy via the _burstMeasument() call.  Supplied compensation method (see _compensateP/T) can be used, or augment via user supplied code.
+
+---
+### temp()
+```
+const [t1, t2, t3, ...rest] = calibration_data;
+bmp280.temp(t1, t2, t3).then(T => {});
+```
+A more optimized call to explicity fetch the tempature over ```measurment()```.  Best used when ```OVERSAMPLE_OFF``` is applied.  And is genraly a good shorthand.
+
+Unlike ```measurment()``` calls to ```temp()``` require only the first tempature related caliberation parameters.
+### press()
+```
+bmp280.press(...(calibration_data.slice(3))).then(P => {
+  //
+});
+```
+
+A more optimized call over ```measurment``` when only interested in presure data.  Best used when ```OVERSAMPLE_OFF``` is set.
+
+note, like ```temp()``` this require only the pressure slice of the calibration_data
+
+---
+### altitudeFromPressure()
+```const alt = bmp280.altitudeFromPressure(seaLevelPa, P);```
+Simple conversion.
+---
+### _compensateP() _compensateT()
+```const P = bmp280._compensateP(adcP, T, ...calibrtion_data.slice(3))```
+
+These compensation functions take in the raw adc P/T values and perform the spec defined conversion using the calibration data provided.
+
+
+---
+### _ctrlMeasFromSamplingMode() _configFromTimingFilter()
+```
+const config_register = bmp280._configFromTimingFilter(bmp280.OVERSAMPLE_X2, bmp280.OVERSAMPLE_X16, bmp280.MODE_NORMAL);
+const control_register = bmp280._ctrlMeasFromSamplingMode(bmp280.STANDBY_4000, bmp280.COEFFICIENT_8);
+```
+Internal register packing bit twiddly stuff.  see spec for more info :)
