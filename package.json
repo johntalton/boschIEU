@@ -4,7 +4,8 @@
   "description": "",
   "main": "temp.js",
   "dependencies": {
-    "pi-spi": "^1.0.1"
+    "pi-spi": "^1.0.1",
+    "spi": "^0.2.0"
   },
   "repository": {
     "type": "git",

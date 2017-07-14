@@ -1,8 +1,7 @@
 var readline = require('readline');
-var SPI = require('pi-spi');
-var spi = SPI.initialize("/dev/spidev0.1");
 
 const bmp280 = require('./bmp280-spi.js');
+const spiImpl = require('./spi.js');
 
 let modeLabels = {};
 modeLabels[bmp280.MODE_SLEEP] = 'Sleep';
@@ -295,6 +294,10 @@ function commandHandler(cmd) {
   else { prompt(); }
 }
 
-prompt();
+spiImpl.init('/dev/spidev0.1').then(spi => {
+  console.log('spi device inited', spi);
+  bmp280.spi = spi;
+  prompt();
+});
 
 

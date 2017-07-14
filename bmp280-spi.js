@@ -1,7 +1,7 @@
-var SPI = require('pi-spi');
-var spi = SPI.initialize("/dev/spidev0.1");
 
 const bmp280 = {
+  spi: undefined, // poor-mans interface
+
   CHIP_ID: 0x58, // some suggest 0x56 and 0x57
   RESET_MAGIC: 0xB6,
   SKIPPED_SAMPLE_VALUE: 0x80000,
@@ -133,28 +133,8 @@ const bmp280 = {
   },
 
   _writeMask: function(value){ return value & ~0x80; },
-  _read: function(cmd, length) {
-    if(length == undefined){ length = 1; }
-    // console.log('length: ' + length);
-    return new Promise(function(resolve, reject) {
-      const txBuf = new Buffer([cmd]);
-      spi.transfer(txBuf, length + 1, function(e, buffer){
-        if(e){ reject(e); }
-        resolve(buffer);
-      });
-    });
-  },
-  _write: function(reg, ...buff) {
-    return new Promise((resolve, reject) => {
-      const txBuf = new Buffer([this._writeMask(reg), ...buff]);
-      spi.write(txBuf, function(e, buffer){
-        if(e){ reject(e); }
-        resolve(buffer);
-      });
-    });
-  },
   calibration: function() {
-    return this._read(this.REG_CALIBRATION, 24).then(buffer => {
+    return this.spi.read(this.REG_CALIBRATION, 24).then(buffer => {
       const dig_T1 = buffer.readUInt16LE(1);
       const dig_T2 = buffer.readInt16LE(3);
       const dig_T3 = buffer.readInt16LE(5);
@@ -175,20 +155,20 @@ const bmp280 = {
     });
   },
   id: function() {
-    return this._read(this.REG_ID).then(buffer => {
+    return this.spi.read(this.REG_ID).then(buffer => {
       return buffer.readInt8(1);
     });
   },
   version: function() {
-    return this._read(this.REG_VERSION).then(buffer => {
+    return this.spi.read(this.REG_VERSION).then(buffer => {
       return buffer.readUInt8(1);
     });
   },
   reset: function(){
-    return this._write(this.REG_RESET, this.RESET_MAGIC);
+    return this.spi.write(this._writeMask(this.REG_RESET), this.RESET_MAGIC);
   },
   status: function() {
-    return this._read(this.REG_STATUS).then(buffer => {
+    return this.spi.read(this.REG_STATUS).then(buffer => {
       const tmp = buffer.readUInt8(1);
       // console.log('status: ', tmp);
       const measuring = (tmp & 0b1000) === 0b1000;
@@ -197,7 +177,7 @@ const bmp280 = {
     });
   },
   control: function() {
-    return this._read(this.REG_CTRL).then(buffer => {
+    return this.spi.read(this.REG_CTRL).then(buffer => {
       const tmp = buffer.readUInt8(1);
       const osrs_t = (tmp >> 5) & 0b111;
       const osrs_p = (tmp >> 2) & 0b111;
@@ -206,7 +186,7 @@ const bmp280 = {
     });
   },
   config: function() {
-    return this._read(this.REG_CONFIG).then(buffer => {
+    return this.spi.read(this.REG_CONFIG).then(buffer => {
       const tmp = buffer.readUInt8(1);
       const t_sb = (tmp >> 5) & 0b111;
       const filter = (tmp >> 2) & 0b111;
@@ -215,7 +195,7 @@ const bmp280 = {
     });
   },
   _burstMeasurment: function() {
-    return this._read(this.REG_PRESS, 6).then(buffer => {
+    return this.spi.read(this.REG_PRESS, 6).then(buffer => {
       //console.log('burst', buffer);
       const press_msb = buffer.readUInt8(1);
       const press_lsb = buffer.readUInt8(2);
@@ -346,14 +326,14 @@ const bmp280 = {
     const osrs_p = press ? this.OVERSAMPLE_X1 : this.OVERSAMPLE_OFF;
     const osrs_t = temp ? this.OVERSAMPLE_X1 : this.OVERSAMPLE_OFF
     const control = this._ctrlMeasFromSamplingMode(osrs_p, osrs_t, this.MODE_FORCED);
-    return this._write(this.REG_CTRL, control);  
+    return this.spi.write(this._writeMask(this.REG_CTRL), control);  
   },
   setProfile: function(profile) {
     // console.log(profile);
     const control = this._ctrlMeasFromSamplingMode(profile.oversampling_p, profile.oversampling_t, profile.mode);
     const config = this._configFromTimingFilter(profile.standby_time, profile.filter_coefficient);
-    return this._write(this.REG_CTRL, control)
-      .then(this._write(this.REG_CONFIG, config));
+    return this.spi.write(this._writeMask(this.REG_CTRL), control)
+      .then(this.spi.write(this._writeMask(this.REG_CONFIG), config));
   },
   getProfile: function() {
     return Promise.all([this.control(), this.config()]).then(([ctrl, cfg]) => {
