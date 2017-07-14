@@ -5,6 +5,8 @@ High level API for Bosch BMP280 tempature / pressure over SPI.
 - sleep / reset / fine grained profile control
 - Push / Pull interaction modes
 
+[Adafruit BMP280](https://www.adafruit.com/product/2651)
+
 ## REPL interface 
   ```
   > node temp
