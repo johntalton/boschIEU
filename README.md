@@ -1,4 +1,10 @@
-# BMP280 using SPI (pi-spi) interface
+# BMP280 (via spi & pi-spi)
+High level API for Bosch BMP280 tempature / pressure over SPI.
+
+- full set of lightly abstracted low level method
+- sleep / reset / fine grained profile control
+- Push / Pull interaction modes
+
 ## REPL interface 
   ```
   > node temp
