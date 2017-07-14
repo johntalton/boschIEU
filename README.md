@@ -82,6 +82,7 @@ Measuring:  false  Updating:  false
 currently hardcoded driver path "/dev/spidev0.1".
 bmp280 3-wire SPI not supported.
 
+both the ```pi-spi``` and the ```spi``` node modules are used in an abstration SPI layer.  User provided abstractions can be added via the ```.spi``` member varaible as seen in ```setupDevice()``` (client.js).
 
 
 
