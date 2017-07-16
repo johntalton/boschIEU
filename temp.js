@@ -291,13 +291,22 @@ function commandHandler(cmd) {
     rl.question('', function(){ clearTimeout(timer); console.log('Poll Ended'); prompt(); });
   }
 
+
+  else if(cmd.toLowerCase().startsWith('init')) {
+    const [, arg] = cmd.split(' ');
+    openDevice(arg);
+    prompt();
+  }
   else { prompt(); }
 }
 
-spiImpl.init('/dev/spidev0.1').then(spi => {
-  console.log('spi device inited', spi);
-  bmp280.spi = spi;
-  prompt();
-});
+function openDevice(device) {
+  spiImpl.init(device).then(spi => {
+    console.log('spi device inited', spi);
+    bmp280.spi = spi;
+    prompt();
+  });
+}
 
+prompt();
 

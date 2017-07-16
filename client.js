@@ -1,49 +1,55 @@
-const bmp280 = require('./bmp280-spi.js');
+const bosch = require('./boschIEU.js');
 
 function defaultConfig() {
-  return Promise.resolve('/dev/spidev0.1');
+  return Promise.resolve({ devices: ['/dev/spidev0.0', '/dev/spidev0.1'] });
 }
 
-function setupDevice(device){
-   const SPI = require('./spi.js');
-   return SPI.init(device).then(spi => {
-      bmp280.spi = spi;
-   });
-}
+function setupDevice(application){
+  const SPI = require('./spi.js');
+  application.devices = application.devices.map(devicename => {
+    return SPI.init(devicename).then(spi => {
+      let device = {
+        name: devicename,
+        sensor: null,
+        timer: null
+      };
 
-function validateID(){
-  return bmp280.id().then(id => {
-    if(id === bmp280.CHIP_ID) { return true; }
-    throw new Error('Invalid chip ID');
+      return bosch.sensor(devicename, spi)
+        .then(sensor => { device.sensor = sensor; })
+        .then(() => device.sensor.id())
+        .then(() => { if(!device.sensor.valid()){ throw new Error('invalid'); } })
+        .then(() => device.sensor.calibration())
+        .then(() => device.sensor.setProfile({
+          mode: device.sensor.chip.MODE_NORMAL,
+          oversampling_p: device.sensor.chip.OVERSAMPLE_X1,
+          oversampling_t: device.sensor.chip.OVERSAMPLE_X2,
+          filter_coefficient: device.sensor.chip.COEFFICIENT_OFF,
+          standby_time: device.sensor.chip.STANDBY_500
+        }))
+        .then(() => {
+          return setInterval(poll, 1000, device);
+        })
+        .then(timer => { device.timer = timer; })
+        .then(() => { console.log('device up: ', device.name); return device; });
+
+    })
+    //.catch(e => {
+    //  console.log('error', e);
+    //  device = { error: e };
+    //});
   });
+  return Promise.all(application.devices);
 }
 
-function initMode(){
-  return bmp280.setProfile({
-    mode: bmp280.MODE_NORMAL,
-    oversampling_p: bmp280.OVERSAMPLE_X1,
-    oversampling_t: bmp280.OVERSAMPLE_X2,
-    filter_coefficient: bmp280.COEFFICIENT_OFF,
-    standby_time: bmp280.STANDBY_500
-  });
-}
-
-function fetchCalibration(){
-  return bmp280.calibration();
-}
-
-function poll(calibration_data){
-  bmp280.measurement(...calibration_data).then(([P, T]) => {
-    console.log(P, T);
-  });
+function poll(device){
+  device.sensor.measurement().then(([P, T, H]) => {
+    console.log(device.name, device.sensor.chip.name, P, T, H);
+  }).catch(e => {
+    console.log('error measuring', e);
+  })
 }
 
 defaultConfig()
   .then(setupDevice)
-  .then(validateID)
-  .then(initMode)
-  .then(fetchCalibration)
-  .then(calibration_data => {
-    return setInterval(poll, 1000, calibration_data);
-  })
+  .then(foo => { console.log('All Devices Setup'); })
   .catch(e => { console.log('error', e); });
