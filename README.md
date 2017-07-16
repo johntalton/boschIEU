@@ -1,11 +1,13 @@
-# BMP280 (via spi & pi-spi)
-High level API for Bosch BMP280 tempature / pressure over SPI.
+# Bosch Integrated Environmental Unit (via spi & pi-spi)
+High level API for Bosch BMP280 BME280 tempature / pressure / humidity over SPI.
 
 - full set of lightly abstracted low level method
 - sleep / reset / fine grained profile control
 - Push / Pull interaction modes
 
 [Adafruit BMP280](https://www.adafruit.com/product/2651)
+[Adafruid BME280](https://www.adafruit.com/product/2652)
+
 
 ## REPL interface 
   ```
