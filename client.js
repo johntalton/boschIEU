@@ -1,4 +1,4 @@
-const bosch = require('./boschIEU.js');
+const bosch = require('./src/boschIEU.js');
 
 function defaultConfig() {
   return Promise.resolve({ devices: ['/dev/spidev0.0', '/dev/spidev0.1'] });
