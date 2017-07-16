@@ -1,15 +1,15 @@
 {
-  "name": "bmp280-spi",
-  "version": "1.0.0",
+  "name": "boschieu",
+  "version": "1.1.0",
   "description": "",
-  "main": "temp.js",
+  "main": "repl.js",
   "dependencies": {
     "pi-spi": "^1.0.1",
     "spi": "^0.2.0"
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:johntalton/bmp280-spi.git"
+    "url": "git@github.com:johntalton/boschIEU.git"
   },
   "author": "johntalton@gmail.com"
 }
