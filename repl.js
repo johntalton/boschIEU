@@ -1,26 +1,18 @@
 var readline = require('readline');
 
-const bosch = require('./src/boschIEU.js');
-const spiImpl = require('./src/spi.js');
+const boschLib = require('./src/boschIEU.js');
+const bosch = boschLib.BoschIEU;
+const Converter = boschLib.Converter;
+
+const rasbus = require('rasbus');
+const spiImpl = rasbus.spi;
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
 
-function ctof(c) {
-  if(c === undefined){ return undefined; }
-  return c * (9/5.0) + 32;
-}
-
-function trim(f) {
-  if(f === undefined){ return undefined; }
-  return Math.round(f * 10000) / 10000;
-}
-
-// global cache (from calibration call)
-// must be inited before p/t calls
-let calibration_data = [];
+// global sensor object we work with
 let sensor;
 
 function prompt() {
@@ -37,6 +29,7 @@ function prompt() {
 
 function commandHandler(cmd) {
   if(cmd.toLowerCase() === 'id'){
+    if(sensor === undefined) { console.log('init bus prior to accessing sensor'); prompt(); return; }
     sensor.id().then(id => {
       console.log('Chip ID: ' + (sensor.valid() ? sensor.chip.name : ' (invalid)'));
       prompt();
@@ -108,7 +101,7 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'profile') {
-    sensor.getProfile().then(profile => {
+    sensor.profile().then(profile => {
       console.log('Mode: ', modeLabels[profile.mode]);
       console.log('Oversampling Press: ', oLabels[profile.oversampling_p]);
       console.log('Oversampling Temp:  ', oLabels[profile.oversampling_t]);

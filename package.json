@@ -4,6 +4,7 @@
   "description": "",
   "main": "repl.js",
   "dependencies": {
+    "rasbus": "file:../rasbus",
     "pi-spi": "^1.0.1",
     "spi": "^0.2.0"
   },

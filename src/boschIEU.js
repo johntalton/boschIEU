@@ -38,7 +38,7 @@ class BoschSensor {
   }
 
   valid(){
-    return true;
+    return this._id !== 0;
   }
 
   version() { return Common.version(this._bus, this._chip); }
@@ -56,13 +56,14 @@ class BoschSensor {
   sleep() { return Common.sleep(this._bus, this._chip); }
 
   config() { return Common.config(this._bus, this._chip); }
-  control() { return Common.control(this._bus, this._chip); }
+  controlMeasurment() { return Common.controlMeasurment(this._bus, this._chip); }
+  controlHumidity() { return Common.controlHumidity(this._bus, this._chip); }
   status() { return Common.status(this._bus, this._chip); }
   profile() { return Common.profile(this._bus, this._chip); }
   setProfile(profile) { return Common.setProfile(this._bus, this._chip, profile); }
 
   get _p9() {
-    return this._calibration_data.slice(3, 9);
+    return this._calibration_data.slice(3, 12);
   }
 
   get _t3() {
@@ -75,30 +76,30 @@ class BoschSensor {
 
 
   measurement() {
-    return Common.measurment(this._bus, this._chip, true, true, true).then(([P, T, H]) => {
+    return Common.measurment(this._bus, this._chip, true, true, true).then(result => {
       return [
-        Converter.compensateP(P, T, ...this._p9),
-        Converter.compensateT(T, ...this._t3),
-        Converter.compensateH(H, this._h2)
+        Converter.compensateP(this._chip, result.adcP, result.adcT, ...this._p9),
+        Converter.compensateT(this._chip, result.adcT, ...this._t3),
+        Converter.compensateH(this._chip, result.adcH, this._h2)
       ];
     });
   }
 
   pressure() {
-    return Common.measurment(this._bus, this._chip, true, false, false).then(([P, T, H]) => {
-      return Converter.compensateP(P, T, ...this._p9);
+    return Common.measurment(this._bus, this._chip, true, true, false).then(result => {
+      return Converter.compensateP(result.adcP, result.adcT, ...this._p9);
     });
   }
 
   tempature() {
-    return Common.measurment(this._bus, this._chip, false, true, false).then(([P, T, H]) => {
-      return Converter.compensateT(T, ...this._t3);
+    return Common.measurment(this._bus, this._chip, false, true, false).then(result => {
+      return Converter.compensateT(result.adcT, ...this._t3);
     });
   }
 
   humidity(){
-    return Common.measurment(this._bus, this._chip, false, false, true).then(([P, T, H]) => {
-      return Converter.compensateH(H, ...this._h2);
+    return Common.measurment(this._bus, this._chip, false, false, true).then(result => {
+      return Converter.compensateH(result.adcH, ...this._h2);
     });
   }
 }
@@ -114,7 +115,7 @@ class Common {
   }
 
   static version(bus, chip){
-    return this.spi.read(chip.REG_VERSION).then(buffer => {
+    return bus.read(chip.REG_VERSION).then(buffer => {
       return buffer.readUInt8(1);
     });
   }
@@ -152,10 +153,17 @@ class Common {
     });
   }
 
-  static control(bus, chip) {
+  static controlMeasurment(bus, chip) {
     return bus.read(chip.REG_CTRL).then(buffer => {
       const control = buffer.readUInt8(1);
-      return Converter.fromControl(control);
+      return Converter.fromControlMeasurment(control);
+    });
+  }
+
+  static controlHumidity(bus, chip) {
+    return bus.read(chip.REG_CTRL_HUM).then(buffer => {
+      const control = buffer.readUInt8(1);
+      return Converter.fromControlHumidity(control)
     });
   }
 
@@ -190,7 +198,7 @@ class Common {
   }
 
   static profile(bus, chip) {
-    return Promise.all([Commob.control(bus, chip), Common.config(bus, chip)]).then(([ctrl, cfg]) => {
+    return Promise.all([Common.control(bus, chip), Common.config(bus, chip)]).then(([ctrl, cfg]) => {
       const [osrs_p, osrs_t, mode] = ctrl;
       const [sb, filter, spi3en] = cfg;
       return {
@@ -205,29 +213,36 @@ class Common {
 
   static measurment(bus, chip, press, temp, humi) {
     let length = 0;
-    if(press) { length += 3; }
-    if(temp) { length += 3; }
-    if(humi) { length += 2; }
+    let reg;
+    if(chip.supportsPressure){ if(length === 0) { reg = chip.REG_PRESS; } length += 3; }
+    if(chip.supportsTempature){ if(length === 0) { reg = chip.REG_TEMP; } length += 3; }
+    if(chip.supportsHumidity){ if(length === 0) { reg = chip.REG_HUMI; } length += 2; }
 
-    return bus.read(chip.REG_PRESS, 6).then(buffer => {
-      //console.log('burst', buffer);
-      const press_msb = buffer.readUInt8(1);
-      const press_lsb = buffer.readUInt8(2);
-      const press_xlsb = buffer.readUInt8(3);
+    if(length === 0) { return; }
+    if(reg === undefined){ return; }
 
-      const adc_P = press_msb << 12 | press_lsb << 4 | press_xlsb >> 4;
-      //console.log('P: ', adc_P);
+    return bus.read(reg, length).then(buffer => {
+      let adcP, adcT, adcH;
 
-      const msb = buffer.readUInt8(4);
-      const lsb = buffer.readUInt8(5);
-      const xlsb = buffer.readUInt8(6);
+      if(chip.supportsPressure) {
+         const msbP = buffer.readUInt8(1);
+         const lsbP = buffer.readUInt8(2);
+         const xlsbP = buffer.readUInt8(3);
+         adcP = Converter.reconstruct20bit(msbP, lsbP, xlsbP);
+      }
 
-      const adc_T = msb << 12 | lsb << 4 | xlsb >> 4;
-      //console.log('T: ', adc_T);
+      if(chip.supportsTempature) {
+        const msbT = buffer.readUInt8(4);
+        const lsbT = buffer.readUInt8(5);
+        const xlsbT = buffer.readUInt8(6);
+        adcT = Converter.reconstruct20bit(msbT, lsbT, xlsbT);
+      }
 
-      //console.log(msb.toString(16), lsb.toString(16), xlsb.toString(16), adc_T.toString(16));
+      if(chip.supportsHumidity) {
+        adcH = buffer.readUInt16LE(7);
+      }
 
-      return [adc_P, adc_T];
+      return { adcP: adcP, adcT: adcT, adcH: adcH };
     });
   }
 }
@@ -236,6 +251,10 @@ class Common {
  *
  */
 class Converter {
+  static reconstruct20bit(msb, lsb, xlsb) {
+    return  msb << 12 | lsb << 4 | xlsb >> 4;
+  }
+
   static configFromTimingFilter(timing, filter) {
     const spi3wire = 0; // TODO 
     return (timing << 5) | (filter << 2) | spi3wire; 
@@ -246,28 +265,33 @@ class Converter {
   }
 
   static fromCofig(config) {
-    const t_sb = (tmp >> 5) & 0b111;
-    const filter = (tmp >> 2) & 0b111;
-    const spi3w_en = tmp & 0b01 === 0b01;
+    const t_sb = (config >> 5) & 0b111;
+    const filter = (config >> 2) & 0b111;
+    const spi3w_en = config & 0b01 === 0b01;
     return [t_sb, filter, spi3w_en];
   }
 
-  static fromControl(control) {
-    const osrs_t = (tmp >> 5) & 0b111;
-    const osrs_p = (tmp >> 2) & 0b111;
-    const mode = tmp & 0b11;
+  static fromControlMeasurment(control) {
+    const osrs_t = (control >> 5) & 0b111;
+    const osrs_p = (control >> 2) & 0b111;
+    const mode = control & 0b11;
     return [osrs_p, osrs_t, mode];
   }
 
+  static fromControlHumidity(control) {
+    const osrs_h = control & 0b111;
+    return [osrs_h];
+  }
+
   static formStatus(status) {
-    const measuring = (tmp & 0b1000) === 0b1000;
-    const im_update = (tmp & 0b0001) === 0b0001;
+    const measuring = (status & 0b1000) === 0b1000;
+    const im_update = (status & 0b0001) === 0b0001;
     return [measuring, im_update];
   }
 
 
-  static compensateP(P, T, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9){
-    if(P === this.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
+  static compensateP(chip, P, T, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9){
+    if(P === chip.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
     if(dig_P1 === undefined){ return { undef: 'p1' }; }
     if(dig_P2 === undefined){ return { undef: 'p2' }; }
     if(dig_P3 === undefined){ return { undef: 'p3' }; }
@@ -301,8 +325,8 @@ class Converter {
     return p5 / 256.0;
   }
 
-  static compensateT(T, dig_T1, dig_T2, dig_T3){
-    if(T === this.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
+  static compensateT(chip, T, dig_T1, dig_T2, dig_T3){
+    if(T === chip.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
     if(dig_T1 === undefined){ return { undef: 't1' }; }
     if(dig_T2 === undefined){ return { undef: 't2' }; }
     if(dig_T3 === undefined){ return { undef: 't3' }; }
@@ -328,7 +352,7 @@ class Converter {
     };
   }
 
-  static compensateH(H, dig_H1, dig_H2) {
+  static compensateH(chip, H, dig_H1, dig_H2) {
     return;
   }
 
@@ -347,10 +371,20 @@ class Converter {
 
     return foo;
   }
+
+  static ctof(c) {
+    if(c === undefined){ return undefined; }
+    return c * (9/5.0) + 32;
+  }
+
+  static trim(f, p) {
+    if(f === undefined){ return undefined; }
+    return Math.round(f * 10000) / 10000;
+  }
 }
 
-module.exports = BoschIEU;
-
+module.exports.BoschIEU = BoschIEU;
+module.exports.Converter = Converter;
 
 class Chip {
   static fromId(id){
@@ -367,6 +401,10 @@ const UnknownChip = {
 
 const bme280Chip = {
   name: 'bme280',
+  supportsPressure: true,
+  supportsTempature: true,
+  supportsHumidity: true,
+
   CHIP_ID: 0x60,
   RESET_MAGIC: 0xB6,
   SKIPPED_SAMPLE_VALUE: 0x80000,
@@ -379,11 +417,13 @@ const bme280Chip = {
   REG_ID:          0xD0,
   REG_VERSION:     0xD1,
   REG_RESET:       0xE0,
+  REG_CTRL_HUM:    0xF2, // bme280 
   REG_STATUS:      0xF3,
-  REG_CTRL:        0xF4,
+  REG_CTRL:        0xF4, // REG_CTRL_MEAS
   REG_CONFIG:      0xF5,
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
+  REG_HUM:         0xFD,
 
   // https://github.com/drotek/BMP280/blob/master/Software/BMP280/BMP280.h
   REG_CAL26: 0xE1,  // R calibration stored in 0xE1-0xF0
@@ -401,20 +441,23 @@ const bme280Chip = {
   COEFFICIENT_8:   0b011,
   COEFFICIENT_16:  0b100,
 
-  STANDBY_05:   0b000, //    0.5 ms
-  STANDBY_62:   0b001, //   62.5
-  STANDBY_125:  0b010, //  125
-  STANDBY_250:  0b011, //  250
-  STANDBY_500:  0b100, //  500
-  STANDBY_1000: 0b101, // 1000
-  STANDBY_2000: 0b110, // 2000
-  STANDBY_4000: 0b111, // 4000
-
-
+  // bme280
+  STANDBY_05:   0b000, //     0.5 ms
+  STANDBY_10:   0b110, //    10
+  STANDBY_20:   0b111, //    20
+  STANDBY_62:   0b001, //    62.5
+  STANDBY_125:  0b010, //   125
+  STANDBY_250:  0b011, //   250
+  STANDBY_500:  0b100, //   500
+  STANDBY_1000: 0b101, //  1000
 };
 
 const bmp280Chip = {
   name: 'bmp280',
+  supportsPressure: true,
+  supportsTempature: true,
+  supportsHumidity: false,
+
   CHIP_ID: 0x58, // some suggest 0x56 and 0x57
   RESET_MAGIC: 0xB6,
   SKIPPED_SAMPLE_VALUE: 0x80000,
