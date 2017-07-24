@@ -10,25 +10,32 @@ High level API for Bosch BMP280 BME280 tempature / pressure / humidity over SPI.
 
 
 ## REPL interface 
+
   ```
-  > node temp
-  bmp280@spi0.1> 
+  > node repl
+  > init /dev/spidev0.1
+  Unknown@/dev/spidev0.1> id
+  bmp280@/dev/spidev0.1> 
+  ...
   ```
+
 command listing:
- - ```id``` reads and prints static chipdId (validates agains code value)
+ - ```init <arg>``` sets the spi bus device (ie: /dev/spidev0.0)
+ - ```id``` reads and prints chip id (validates agains code value and selecting sensor chip)
  - ```version``` reads and prints version 
  - ```reset``` **soft-reset device**. returns to inital profile (mode Sleep) 
  - ```status``` reads and prints values (optional ```!``` sufix causes muliple executions)
  - ```control``` reads and prints control (prefer ```profile```)
  - ```config``` reads and prints config (prefer ```profile```)
- - ```calibration``` reads the static calibration data on chip and caches for usig in temp/press and friends
+ - ```calibration``` reads the static calibration data for sensor chip
  
  - ```sleep``` alias to set profile to "sleep" (mode Sleep, oversampling Off/Off coeff. Off, standby Max)
  - ```normal``` alias to set profile to "normal" (profile MAX_STANDBY, good for use in ```poll``` command and general test)
  - ```forced``` alias to set profile to "forced" (mode Forced, oversampling Off/Off, standby Off) 
  
+ - ```pres``` reads and prints value onchip (does *not* trigger convesion)
  - ```temp``` reads and prints value onchip (does *not* trigger converstion)
- - ```press``` reads and prints value onchip (does *not* trigger convesion)
+ - ```humi``` reads and prints value ohchip (does *not* trigger converstion)
  - ```altitude``` reads temp/press values onchip and prints aprox altitude
  
  - ```profile``` prints current onchip profile (config / control)
@@ -40,7 +47,7 @@ command listing:
 ## General
 
 ### Mode
-The Bosch bmp280 chip uses standard dual register interface to control asyncronous read/write via the digital interface (given the Adafruit chip this is the only accessable inteface.  As well as limiting only a single power line).  
+The Bosch Integrated Environmental Unit chips uses standard dual register interface to control asyncronous read/write via the digital interface (given the Adafruit chip this is the only accessable inteface.  As well as limiting only a single power line).  
 
 The chip Normal mode can be enabled (**push**).
 When enabled, the chip will refresh the value available to read (on intervale value 'standby').  Thus, calls to ```temp``` will return the 'latest' value.  Performance / timing profile can be configured. 
@@ -50,11 +57,11 @@ While in sleep mode (though transitioning from nomral mode is valid and results 
 
 ### Calibration
 
-Each bmp280 chip has a unique fingerprint (im tracking all of you) and thus callibration is needed.  this is a passive method by which the chip provides the 'trimming values'.  Usage of the press/temp methods require those values to do post processing (compensation).  Inital app cache is undefined, calling ```calibration``` will populate those caches.   
+Each  chip has a unique fingerprint (im tracking all of you) and thus callibration is needed.  this is a passive method by which the chip provides the 'trimming values'.  Usage of the press/temp methods require those values to do post processing (compensation).  Inital app cache is undefined, calling ```calibration``` will populate those caches.   
 
 ### Profiles
 
-Bosch spec for bmp280 is organized (and thus validated) based on a narrow range of profiles.  Further, paricular values are colocated in chip registers and require syncronized writing.  Profiles as and API solves this by making it a concern of the consumer.
+Bosch chip spec is organized (and thus validated) based on a narrow range of profiles.  Further, paricular values are colocated in chip registers and require syncronized writing.  Profiles as and API solves this by making it a concern of the consumer.
 
 Normal profile notes: for this demo, we disable most features and put in the common (4s) delay.  This is well suted for running the poll method (at interval of 1s) to be abvle to visaul the update process. 
 
@@ -72,15 +79,15 @@ Aditional performace / power can be managed by disabling the Press / Temp "measu
 
 ### Status
 
-Status updates give you insight into the bmp280 update process.
+Status updates give you insight into the chips update process.
  - measuring is true when a conversion is in process
  - update is true when NVM is being copied to registers
 
 Empirically running status in burst mode (!) you can see "update" occurse at the begining of each measuing cycle. Run here on a standby with 4s, thus needed to be run multiple times.
 ```
-bmp280@spi0.1> status!
+bmp280@/dev/spidev0.1> status!
 Measuring:  false  Updating:  false
-bmp280@spi0.1> status!
+bmp280@/dev/spidev> status!
 Measuring:  false  Updating:  false
 Measuring:  true  Updating:  true
 Measuring:  true  Updating:  false
@@ -89,44 +96,50 @@ Measuring:  false  Updating:  false
 
 ## SPI dependency
 
-currently hardcoded driver path "/dev/spidev0.1".
-bmp280 3-wire SPI not supported.
+3-wire SPI not supported.
 
 both the ```pi-spi``` and the ```spi``` node modules are used in an abstration SPI layer.  User provided abstractions can be added via the ```.spi``` member varaible as seen in ```setupDevice()``` (client.js).
 
 # API 
 ## General
 
-This API uses an abstracted SPI driver that needs to be initialized and set on the bmp280 object prior to its use.
+This API uses an abstracted SPI driver that needs to be initialized externaly.  Using the ```.sensor(name, bus)``` method this abstract bus driver is passed in.
 
-currently the ```pi-spi`` and ```spi``` node modules provide SPI abstraction.   A wrapper for both of these can be found in ```spi.js```.  User provided implementation are welcome etc.
+currently the ```pi-spi`` and ```spi``` node modules provide SPI abstraction.   A wrapper for both of these can be found in ```spi.js```.  User provided implementation are welcome etc. (specificly these chips also can use i2c).
 
 using these example wrappers:
 
 ```
 const SPI = require('./spi.js');
 SPI.init(device).then(spi => {
-  bmp280.spi = spi;
-  
-  bmp280.read( ... .then( ...
-  
+  bosch.sensor(device, spi).then(sensor => {
+     // ...
+  })
 });
 ```
 
-(note: this api is not desirable and lacks flexibility as we move to new chips and multi-chip enviroments etc)
+## BoschIEU
+
+### sensor
+
+```
+const boschieu = requre('./boschIEU.js');
+boschieu.sensor(name, bus).then( ... )
+``` 
+## BoschIEU Sensor
 
 ### id()
 
 ```
-bmp280.id()
-   .then(id => id === bmp280.CHIP_ID ? 'valid' : 'invlaid')
+sensor.id()
+   .then(id => sensor.valid() ? 'valid' : 'invlaid')
    .then(console.log);
 ```
 
 ### version()
 
 ```
-bmp280.version().then(console.log);
+sensor.version().then(console.log);
 ```
 
 ---
@@ -134,10 +147,10 @@ bmp280.version().then(console.log);
 ### calibration()
 
 ```
-bmp280.calibration().then(calibration_data => {
+sensor.calibration().then(calibration_data => {
   // ...
   // and then, later on at the bat cave ...
-  bmp280.measurement(...caliberation_data).then(() => {}); // ... etc
+  sensor.measurement().then(() => {}); // not passing calibration data 
 });
 ```
 
@@ -145,16 +158,24 @@ bmp280.calibration().then(calibration_data => {
 
 ### status()
 
-### getProfile() control() config()
+### profile() control() config()
+
+Returns the general configuration profile for the chip.  As noted in the Profile section, profiles are a mix of the ```control``` and ```config``` setting.  Using the low level methods is not recomended.   
+
+```profile``` reads on the chip, thus returning the active profile.  
 
 ---
 
-### setProfile() setSleepMode() profiles()
+### setProfile() sleep()
+
+Sets the profile for the chip.  This sets both the ```control``` and ```config``` values. 
+
+```sleep``` is a alias to use the sleep profile (specificly mode: sleep)
 
 ### force()
 
 ```
-bmp280.force().then( ... )
+sensor.force().then( ... )
 ```
 
 Write the force mode profile to the chip.  Resulting in mdoe sleep state.  
@@ -162,80 +183,78 @@ Write the force mode profile to the chip.  Resulting in mdoe sleep state.
 ### reset()
 
 ```
-bmp280.reset().then( ... )
+sensor.reset().then( ... )
 ```
 
 Write a soft-reset to the chip.  Returning it to power-on state.
 
 ---
 
-### measurement(...) _burstMeasurement()
+### measurement(...)
 
 ```
-bmp280.measurement(...caliberation_data).then(([P, T]) => {
+sensor.measurement().then(([P, T, H]) => {
   //
 });
 ```
 
-Measurment is a Compensated wrapper for _bustMeasurment.  That is:
 
-These methods read both the pressure and tempature register in a single pass.  This provide syncronization of data and beter performance / power managment.
+Read pressure, tempature and hunidity register in a single pass.  This provide syncronization of data and beter performance / power managment.
 
 Measurment applies the proper compenstation formula based on the calibration data unique to each chip.  
 
-The unconpensated values can be obtained directy via the _burstMeasument() call.  Supplied compensation method (see _compensateP/T) can be used, or augment via user supplied code.
-
 ---
 
-### temp()
+### tempature()
 
 ```
-const [t1, t2, t3, ...rest] = calibration_data;
-bmp280.temp(t1, t2, t3).then(T => {});
+sensor.tempature().then(T => {});
 ```
 
 A more optimized call to explicity fetch the tempature over ```measurment()```.  Best used when ```OVERSAMPLE_OFF``` is applied.  And is genraly a good shorthand.
 
-Unlike ```measurment()``` calls to ```temp()``` require only the first tempature related caliberation parameters.
+Unlike ```measurment()``` calls to ```tempature()``` require only the first tempature related caliberation parameters.
 
-### press()
+### pressure()
 
 ```
-bmp280.press(...(calibration_data.slice(3))).then(P => {
+sensor.press().then(P => {
   //
 });
 ```
 
 A more optimized call over ```measurment``` when only interested in presure data.  Best used when ```OVERSAMPLE_OFF``` is set.
-Note, like ```temp()``` this require only the pressure slice of the calibration_data
+Note, like ```tempature()``` this require only the pressure slice of the calibration_data
+
+### humidity()
+
+```
+sensor.humidity().then(H => {
+  //
+});
+```
+
+Optimized call over ```measurment``` is supported by chip.
 
 ---
+
+## Converter
 
 ### altitudeFromPressure()
 
 ```
-const alt = bmp280.altitudeFromPressure(seaLevelPa, P);
+const alt = Converter.altitudeFromPressure(seaLevelPa, P);
 ```
 
 Simple conversion.
 
 ---
 
-### _compensateP() _compensateT()
+### compensateP() compensateT() compensateH()
 
 ```
-const P = bmp280._compensateP(adcP, T, ...calibrtion_data.slice(3))
+const P = Converter.compensateP(adcP, T, ...calibrtion_data.slice(3))
 ```
 
 These compensation functions take in the raw adc P/T values and perform the spec defined conversion using the calibration data provided.
 
----
-
-### _ctrlMeasFromSamplingMode() _configFromTimingFilter()
-
-```
-const config_register = bmp280._configFromTimingFilter(bmp280.OVERSAMPLE_X2, bmp280.OVERSAMPLE_X16, bmp280.MODE_NORMAL);
-const control_register = bmp280._ctrlMeasFromSamplingMode(bmp280.STANDBY_4000, bmp280.COEFFICIENT_8);
-```
-
-Internal register packing bit twiddly stuff.  see spec for more info :)
