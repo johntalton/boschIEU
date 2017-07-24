@@ -1,3 +1,6 @@
+const chipLib = require('./chip.js');
+const Chip = chipLib.chip;
+const chips = chipLib.chips;
 
 function _writeMask(value){ return value & ~0x80; }
 
@@ -22,7 +25,7 @@ class BoschSensor {
     this._bus = bus;
     this._calibration_data;
     this._id;
-    this._chip = UnknownChip;
+    this._chip = chips.unknown;
   }
 
   get chip(){ return this._chip; }
@@ -110,6 +113,7 @@ class BoschSensor {
 class Common {
   static id(bus, chip){
     return bus.read(chip.REG_ID).then(buffer => {
+      // console.log(buffer);
       return buffer.readInt8(1);
     });
   }
@@ -137,7 +141,7 @@ class Common {
       const dig_P9 = buffer.readInt16LE(23);
 
       return [
-        dig_T1, dig_T2, dig_T3, 
+        dig_T1, dig_T2, dig_T3,
         dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9];
     });
   }
@@ -198,13 +202,19 @@ class Common {
   }
 
   static profile(bus, chip) {
-    return Promise.all([Common.control(bus, chip), Common.config(bus, chip)]).then(([ctrl, cfg]) => {
-      const [osrs_p, osrs_t, mode] = ctrl;
+    return Promise.all([
+      Common.controlMeasurment(bus, chip),
+      Common.controlHumidity(bus, chip),
+      Common.config(bus, chip)
+    ]).then(([ctrlM, ctrlH, cfg]) => {
+      const [osrs_p, osrs_t, mode] = ctrlM;
+      const [osrs_h] = ctrlH
       const [sb, filter, spi3en] = cfg;
       return {
         mode: mode,
         oversampling_p: osrs_p,
         oversampling_t: osrs_t,
+        oversampling_h: osrs_h,
         filter_coefficient: filter,
         standby_time: sb
       }
@@ -257,14 +267,14 @@ class Converter {
 
   static configFromTimingFilter(timing, filter) {
     const spi3wire = 0; // TODO 
-    return (timing << 5) | (filter << 2) | spi3wire; 
+    return (timing << 5) | (filter << 2) | spi3wire;
   }
 
   static ctrlMeasFromSamplingMode(osrs_p, osrs_t, mode){
     return (osrs_t << 5) | (osrs_p << 2) | mode;
   }
 
-  static fromCofig(config) {
+  static fromConfig(config) {
     const t_sb = (config >> 5) & 0b111;
     const filter = (config >> 2) & 0b111;
     const spi3w_en = config & 0b01 === 0b01;
@@ -283,7 +293,7 @@ class Converter {
     return [osrs_h];
   }
 
-  static formStatus(status) {
+  static fromStatus(status) {
     const measuring = (status & 0b1000) === 0b1000;
     const im_update = (status & 0b0001) === 0b0001;
     return [measuring, im_update];
@@ -381,211 +391,8 @@ class Converter {
     if(f === undefined){ return undefined; }
     return Math.round(f * 10000) / 10000;
   }
+
 }
 
 module.exports.BoschIEU = BoschIEU;
 module.exports.Converter = Converter;
-
-class Chip {
-  static fromId(id){
-    if(id === bmp280Chip.CHIP_ID){ return bmp280Chip; }
-    else if(id === bme280Chip.CHIP_ID){ return bme280Chip; }
-    return UnknownChip;
-  }
-}
-
-const UnknownChip = {
-  name: 'Unknown',
-  REG_ID:          0xD0
-};
-
-const bme280Chip = {
-  name: 'bme280',
-  supportsPressure: true,
-  supportsTempature: true,
-  supportsHumidity: true,
-
-  CHIP_ID: 0x60,
-  RESET_MAGIC: 0xB6,
-  SKIPPED_SAMPLE_VALUE: 0x80000,
-
-  MODE_SLEEP: 0b00,
-  MODE_FORCED: 0b01, // alts 01 10
-  MODE_NORMAL: 0b11,
-
-  REG_CALIBRATION: 0x88,
-  REG_ID:          0xD0,
-  REG_VERSION:     0xD1,
-  REG_RESET:       0xE0,
-  REG_CTRL_HUM:    0xF2, // bme280 
-  REG_STATUS:      0xF3,
-  REG_CTRL:        0xF4, // REG_CTRL_MEAS
-  REG_CONFIG:      0xF5,
-  REG_PRESS:       0xF7,
-  REG_TEMP:        0xFA,
-  REG_HUM:         0xFD,
-
-  // https://github.com/drotek/BMP280/blob/master/Software/BMP280/BMP280.h
-  REG_CAL26: 0xE1,  // R calibration stored in 0xE1-0xF0
-
-  OVERSAMPLE_SKIP: 0b000,
-  OVERSAMPLE_X1:   0b001,
-  OVERSAMPLE_X2:   0b010,
-  OVERSAMPLE_X4:   0b011,
-  OVERSAMPLE_X8:   0b100,
-  OVERSAMPLE_X16:  0b101, // t-alts 101 110 111, p-alts 101, Others <-- thanks docs
-
-  COEFFICIENT_OFF: 0b000,
-  COEFFICIENT_2:   0b001,
-  COEFFICIENT_4:   0b010,
-  COEFFICIENT_8:   0b011,
-  COEFFICIENT_16:  0b100,
-
-  // bme280
-  STANDBY_05:   0b000, //     0.5 ms
-  STANDBY_10:   0b110, //    10
-  STANDBY_20:   0b111, //    20
-  STANDBY_62:   0b001, //    62.5
-  STANDBY_125:  0b010, //   125
-  STANDBY_250:  0b011, //   250
-  STANDBY_500:  0b100, //   500
-  STANDBY_1000: 0b101, //  1000
-};
-
-const bmp280Chip = {
-  name: 'bmp280',
-  supportsPressure: true,
-  supportsTempature: true,
-  supportsHumidity: false,
-
-  CHIP_ID: 0x58, // some suggest 0x56 and 0x57
-  RESET_MAGIC: 0xB6,
-  SKIPPED_SAMPLE_VALUE: 0x80000,
-
-  MODE_SLEEP: 0b00,
-  MODE_FORCED: 0b01, // alts 01 10
-  MODE_NORMAL: 0b11,
-
-  REG_CALIBRATION: 0x88,
-  REG_ID:          0xD0,
-  REG_VERSION:     0xD1,
-  REG_RESET:       0xE0,
-  REG_STATUS:      0xF3,
-  REG_CTRL:        0xF4,
-  REG_CONFIG:      0xF5,
-  REG_PRESS:       0xF7,
-  REG_TEMP:        0xFA,
-
-  // https://github.com/drotek/BMP280/blob/master/Software/BMP280/BMP280.h
-  REG_CAL26: 0xE1,  // R calibration stored in 0xE1-0xF0
-
-  OVERSAMPLE_SKIP: 0b000,
-  OVERSAMPLE_X1:   0b001,
-  OVERSAMPLE_X2:   0b010,
-  OVERSAMPLE_X4:   0b011,
-  OVERSAMPLE_X8:   0b100,
-  OVERSAMPLE_X16:  0b101, // t-alts 101 110 111, p-alts 101, Others <-- thanks docs
-
-  COEFFICIENT_OFF: 0b000,
-  COEFFICIENT_2:   0b001,
-  COEFFICIENT_4:   0b010,
-  COEFFICIENT_8:   0b011,
-  COEFFICIENT_16:  0b100,
-
-  STANDBY_05:   0b000, //    0.5 ms
-  STANDBY_62:   0b001, //   62.5
-  STANDBY_125:  0b010, //  125
-  STANDBY_250:  0b011, //  250
-  STANDBY_500:  0b100, //  500
-  STANDBY_1000: 0b101, // 1000
-  STANDBY_2000: 0b110, // 2000
-  STANDBY_4000: 0b111, // 4000
-
-  profiles: function() { 
-    return  {
-    // Sleep 
-    SLEEP: {
-      mode: this.MODE_SLEEP,
-      oversampling_p: this.OVERSAMPLE_SKIP,
-      oversampling_t: this.OVERSAMPLE_SKIP, 
-      filter_coefficient: this.COEFFICIENT_OFF,
-      standby_time: this.STANDBY_4000
-    },
-
-    // randoms
-    TEMPATURE_ONLY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_OFF,
-      oversampling_t: this.OVERSAMPLE_X16,
-      filter_coefficient: this.COEFFICIENT_OFF,
-      standby_time: this.STANDBY_05
-    },
-    TEMPATURE_MOSTLY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X16,
-      filter_coefficient: this.COEFFICIENT_2,
-      standby_time: this.STANDBY_05
-    },
-    SLOW_TEMPATURE_MOSTLY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X16,
-      filter_coefficient: this.COEFFICIENT_2,
-      standby_time: this.STANDBY_1000
-    },
-    MAX_STANDBY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: this.COEFFICIENT_OFF,
-      standby_time: this.STANDBY_4000
-    },
-
-    // from the spec
-    HANDHELD_DEVICE_LOW_POWER: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X16,
-      oversampling_t: this.OVERSAMPLE_X2,      
-      filter_coefficient: 4,
-      standby_time: this.STANDBY_62
-    },
-    HANDHELD_DEVICE_DYNAMIC: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X4,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 16,
-      standby_time: this.STANDBY_05
-    },
-    WEATHER_MONITORING: {
-      mode: this.MODE_FORCED,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 0,
-      standby_time: this.STANDBY_1
-    },
-    ELEVATOR_FLOOR_CHAHGE: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X4,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 4,
-      standby_time: this.STANDBY_125
-    },
-    DROP_DETECTION: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X2,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 0,
-      standby_time: this.STANDBY_05
-    },
-    INDOR_NAVIGATION: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X16,
-      oversampling_t: this.OVERSAMPLE_X2,
-      filter_coefficient: 16,
-      standby_time: this.STANDBY_05
-    }
-    }
-  }
-};
-

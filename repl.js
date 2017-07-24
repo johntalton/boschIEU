@@ -6,6 +6,9 @@ const Converter = boschLib.Converter;
 
 const rasbus = require('rasbus');
 const spiImpl = rasbus.spi;
+const i2cImpl = rasbus.i2c;
+
+const Misc = require('./repl-misc.js');
 
 const rl = readline.createInterface({
   input: process.stdin,
@@ -82,9 +85,20 @@ function commandHandler(cmd) {
       prompt();
     });
   }
-  else if(cmd.toLowerCase() === 'control'){
-    sensor.control().then(([osrs_p, osrs_t, mode]) => {
-      console.log('Oversample Temp: ', oLabels[osrs_t], ' Oversample Press: ', oLabels[osrs_p], ' Mode: ', modeLabels[mode]);
+  else if(cmd.toLowerCase() === 'controlm'){
+    sensor.controlMeasurment().then(([osrs_p, osrs_t, mode]) => {
+      console.log('Mode: ', Misc.mode(sensor.chip, mode));
+      console.log('Oversample Temp:  ' + Misc.oversample(sensor.chip, osrs_t));
+      console.log('Oversample Press: ' + Misc.oversample(sensor.chip, osrs_p));
+      prompt();
+    }).catch(e => {
+      console.log('error', e);
+      prompt();
+    });
+  }
+  else if(cmd.toLowerCase() === 'controlh'){
+    sensor.controlHumidity().then(([osrs_h]) => {
+      console.log('Oversample Humi: ' + Misc.oversampl(sensor.chip, osrs_h));
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -93,7 +107,8 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'config') {
     sensor.config().then(([t_sb, filter, spi3wire_en]) => {
-      console.log('Normal Mode Timing: ', timingLabels[t_sb], ' IIR Filter: ', filterLabels[filter]);
+      console.log('Normal Mode Timing: ', Misc.standby(sensor.chip, t_sb));
+      console.log('IIR Filter: ' + Misc.coefficient(sensor.chip, filter));
       prompt();
     }).catch(e => {
       console.log('error', e);
@@ -102,11 +117,12 @@ function commandHandler(cmd) {
   }
   else if(cmd.toLowerCase() === 'profile') {
     sensor.profile().then(profile => {
-      console.log('Mode: ', modeLabels[profile.mode]);
-      console.log('Oversampling Press: ', oLabels[profile.oversampling_p]);
-      console.log('Oversampling Temp:  ', oLabels[profile.oversampling_t]);
-      console.log('IIR Filter Coefficient: ', filterLabels[profile.filter_coefficient]);
-      console.log('Standby Time: ', timingLabels[profile.standby_time]);
+      console.log('Mode: ', Misc.mode(sensor.chip, profile.mode));
+      console.log('Oversampling Press: ', Misc.oversample(sensor.chip, profile.oversampling_p));
+      console.log('Oversampling Temp:  ', Misc.oversample(sensor.chip, profile.oversampling_t));
+      console.log('Oversampling Humi:  ', Misc.oversample(sensor.chip, profile.oversampling_h));
+      console.log('IIR Filter Coefficient: ', Misc.coefficient(sensor.chip, profile.filter_coefficient));
+      console.log('Standby Time: ', Misc.standby(sensor.chip, profile.standby_time));
 
       prompt();
     }).catch(e => {
@@ -139,7 +155,7 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'sleep') {
-    sensor.setSleepMode().then(noop => {
+    sensor.sleep().then(noop => {
       console.log('sleep mode');
       prompt();
     }).catch(e => {
@@ -213,7 +229,7 @@ function commandHandler(cmd) {
     });
   }
   else if(cmd.toLowerCase() === 'exit'){ rl.close(); }
-
+  else if(cmd.toLowerCase() === 'clear') { console.log('\u001B[2J\u001B[0;0f'); prompt(); }
 
   else if(cmd.toLowerCase() === 'poll') {
     let count = 0;
@@ -262,14 +278,26 @@ function commandHandler(cmd) {
 }
 
 function openDevice(device) {
-  spiImpl.init(device).then(spi => {
-    console.log('spi device inited');
-    bosch.sensor(device, spi)
+
+  i2cImpl.init(device).then(i2c => {
+    console.log('i2c device inited');
+    return bosch.sensor(device, i2c)
       .then(s => {
         sensor = s;
         prompt();
       });
   })
+
+/*
+  spiImpl.init(device).then(spi => {
+    console.log('spi device inited');
+    return bosch.sensor(device, spi)
+      .then(s => {
+        sensor = s;
+        prompt();
+      });
+  })
+*/
   .catch(e => {
     console.log('error', e);
     sensor = null;
