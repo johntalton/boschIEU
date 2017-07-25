@@ -7,17 +7,17 @@ class Misc {
 
     if(chip === chips.bmp280) {
       if(chips.bmp280.MODE_SLEEP === mode){ return 'sleep'; }
-      if(chips.bmp280.MOSE_FORCED === mode){ return 'forced'; }
-      if(chips.bmp280.MOSE_NORMAL === mode){ return 'normal'; }
+      if(chips.bmp280.MODE_FORCED === mode){ return 'forced'; }
+      if(chips.bmp280.MODE_NORMAL === mode){ return 'normal'; }
     }
 
     if(chip === chips.bme280) {
-      if(chips.bmp280.MODE_SLEEP === mode){ return 'sleep'; }
-      if(chips.bmp280.MOSE_FORCED === mode){ return 'forced'; }
-      if(chips.bmp280.MOSE_NORMAL === mode){ return 'normal'; }
+      if(chips.bme280.MODE_SLEEP === mode){ return 'sleep'; }
+      if(chips.bme280.MODE_FORCED === mode){ return 'forced'; }
+      if(chips.bme280.MODE_NORMAL === mode){ return 'normal'; }
     }
 
-    return 'unidentified';
+    return 'unidentified (' + mode + ')';
   }
 
   static oversample(chip, oversample) {

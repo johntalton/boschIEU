@@ -2,8 +2,6 @@ const chipLib = require('./chip.js');
 const Chip = chipLib.chip;
 const chips = chipLib.chips;
 
-function _writeMask(value){ return value & ~0x80; }
-
 /**
  * Bosch Integrated Environmental Unit
  * bmp280 / bmp280
@@ -33,9 +31,9 @@ class BoschSensor {
   id(){
     return Common.id(this._bus, this._chip)
       .then(id => {
-        // console.log('caching chip id: ', id);
         this._id = id;
         this._chip = Chip.fromId(this._id);
+        // console.log('caching chip id: ', id, this._chip);
         return id;
       });
   }
@@ -147,7 +145,7 @@ class Common {
   }
 
   static reset(bus, chip){
-    return bus.write(_writeMask(chip.REG_RESET), chip.RESET_MAGIC);
+    return bus.write(chip.REG_RESET, chip.RESET_MAGIC);
   }
 
   static status(bus, chip) {
@@ -160,6 +158,7 @@ class Common {
   static controlMeasurment(bus, chip) {
     return bus.read(chip.REG_CTRL).then(buffer => {
       const control = buffer.readUInt8(1);
+      // console.log('ctrlM raw', buffer);
       return Converter.fromControlMeasurment(control);
     });
   }
@@ -182,8 +181,9 @@ class Common {
     // console.log(profile);
     const control = Converter.ctrlMeasFromSamplingMode(profile.oversampling_p, profile.oversampling_t, profile.mode);
     const config = Converter.configFromTimingFilter(profile.standby_time, profile.filter_coefficient);
-    return bus.write(_writeMask(chip.REG_CTRL), control)
-      .then(bus.write(_writeMask(chip.REG_CONFIG), config));
+    // console.log(control, config);
+    return bus.write(chip.REG_CTRL, control)
+      .then(bus.write(chip.REG_CONFIG, config));
   }
 
   static sleep(bus, chip) {
@@ -198,7 +198,7 @@ class Common {
     const osrs_t = temp ? chip.OVERSAMPLE_X1 : chip.OVERSAMPLE_OFF
 
     const control = Converter.ctrlMeasFromSamplingMode(osrs_p, osrs_t, chip.MODE_FORCED);
-    return bus.write(_writeMask(chip.REG_CTRL), control);
+    return bus.write(chip.REG_CTRL, control);
   }
 
   static profile(bus, chip) {
@@ -207,6 +207,7 @@ class Common {
       Common.controlHumidity(bus, chip),
       Common.config(bus, chip)
     ]).then(([ctrlM, ctrlH, cfg]) => {
+      // console.log(ctrlM, ctrlH, cfg);
       const [osrs_p, osrs_t, mode] = ctrlM;
       const [osrs_h] = ctrlH
       const [sb, filter, spi3en] = cfg;

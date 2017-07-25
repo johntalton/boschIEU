@@ -124,9 +124,9 @@ const bmp280Chip = {
 };
 
 
-  function profiles() { 
-    return  {
-    // Sleep 
+const Profiles = {
+  bmp280: {
+    // Sleep
     SLEEP: {
       mode: this.MODE_SLEEP,
       oversampling_p: this.OVERSAMPLE_SKIP,
@@ -158,18 +158,18 @@ const bmp280Chip = {
       standby_time: this.STANDBY_1000
     },
     MAX_STANDBY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: this.COEFFICIENT_OFF,
-      standby_time: this.STANDBY_4000
+      mode: bmp280Chip.MODE_NORMAL,
+      oversampling_p: bmp280Chip.OVERSAMPLE_X1,
+      oversampling_t: bmp280Chip.OVERSAMPLE_X1,
+      filter_coefficient: bmp280Chip.COEFFICIENT_OFF,
+      standby_time: bmp280Chip.STANDBY_4000
     },
 
     // from the spec
     HANDHELD_DEVICE_LOW_POWER: {
       mode: this.MODE_NORMAL,
       oversampling_p: this.OVERSAMPLE_X16,
-      oversampling_t: this.OVERSAMPLE_X2,      
+      oversampling_t: this.OVERSAMPLE_X2,
       filter_coefficient: 4,
       standby_time: this.STANDBY_62
     },
@@ -208,8 +208,18 @@ const bmp280Chip = {
       filter_coefficient: 16,
       standby_time: this.STANDBY_05
     }
+  },
+
+  bme280: {
+    MAX_STANDBY: {
+      mode: bme280Chip.MODE_NORMAL,
+      oversampling_p: bme280Chip.OVERSAMPLE_X1,
+      oversampling_t: bme280Chip.OVERSAMPLE_X1,
+      filter_coefficient: bme280Chip.COEFFICIENT_OFF,
+      standby_time: bme280Chip.STANDBY_4000
     }
   }
+}
 
 
 module.exports = {
@@ -218,6 +228,7 @@ module.exports = {
     unknown: UnknownChip,
     bmp280: bmp280Chip,
     bme280: bme280Chip
-  }
+  },
+  profiles: Profiles
 };
 
