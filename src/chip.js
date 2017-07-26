@@ -70,6 +70,8 @@ const bme280Chip = {
   STANDBY_250:  0b011, //   250
   STANDBY_500:  0b100, //   500
   STANDBY_1000: 0b101, //  1000
+
+  STANDBY_MAX: 0b101 // alias
 };
 
 const bmp280Chip = {
@@ -96,8 +98,7 @@ const bmp280Chip = {
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
 
-  // https://github.com/drotek/BMP280/blob/master/Software/BMP280/BMP280.h
-  REG_CAL26: 0xE1,  // R calibration stored in 0xE1-0xF0
+  REG_CALIBRATION_HUMIDITY: 0xE1,
 
   OVERSAMPLE_SKIP: 0b000,
   OVERSAMPLE_X1:   0b001,
@@ -121,6 +122,7 @@ const bmp280Chip = {
   STANDBY_2000: 0b110, // 2000
   STANDBY_4000: 0b111, // 4000
 
+  STANDBY_MAX: 0b111
 };
 
 module.exports = {

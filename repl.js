@@ -10,7 +10,7 @@ const Profiles = require('./src/profiles.js');
 
 const rasbus = require('rasbus');
 const spiImpl = rasbus.spi;
-const i2cImpl = rasbus.i2cbus;
+const i2cImpl = rasbus.i2c;
 
 const Misc = require('./repl-misc.js');
 
@@ -35,12 +35,21 @@ function prompt() {
   if(state.bus != undefined) {
     prompt = state.bus.name + close;
     if(state.sensor !== undefined) {
-      prompt = state.sensor.chip.name + '@' + state.bus.name + close;
+      prompt = state.bus.name + ':' + state.sensor.chip.name + close;
     }
   }
   rl.question(prompt, commandHandler);
 }
 
+function finderFull(cmd, state) {
+  return function(item) {
+    if(item.name.toLowerCase() === cmd.toLowerCase()) {
+      if(item.valid === undefined){ return state.defaultValid; } // default is enabled
+      return item.valid(state);
+    }
+    return false;
+  };
+}
 
 function finderPartial(partialCmd, state) {
   return function(item) {
@@ -65,17 +74,6 @@ function completer(line) {
   }
 
   return [suggestions, line];
-}
-
-
-function finderFull(cmd, state) {
-  return function(item) {
-    if(item.name.toLowerCase() === cmd.toLowerCase()) {
-      if(item.valid === undefined){ return state.defaultValid; } // default is enabled
-      return item.valid(state);
-    }
-    return false;
-  };
 }
 
 function commandHandler(line) {
@@ -132,7 +130,7 @@ commands.push({
     state.sensor = undefined;
 
     if(bus === 'i2c') {
-      return i2cImpl.init(id).then(i2c => {
+      return i2cImpl.init(id, 0x77).then(i2c => {
         console.log('i2c device inited');
         state.bus = i2c;
         return bosch.sensor('name', i2c)
@@ -298,25 +296,13 @@ commands.push({
 commands.push({
   name: 'calibration',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.valid() && !state.sensor.calibrated();
   },
   callback: function(state) {
     return state.sensor.calibration().then(data => {
-      calibration_data = data;
-      const [dig_T1, dig_T2, dig_T3, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9] = data;
-
-      console.log('dig T1', dig_T1);
-      console.log('dig T2', dig_T2);
-      console.log('dig T3', dig_T3);
-      console.log('dig P1', dig_P1);
-      console.log('dig P2', dig_P2);
-      console.log('dig P3', dig_P3);
-      console.log('dig P4', dig_P4);
-      console.log('dig P5', dig_P5);
-      console.log('dig P6', dig_P6);
-      console.log('dig P7', dig_P7);
-      console.log('dig P8', dig_P8);
-      console.log('dig P9', dig_P9);
+      console.log('digP', state.sensor._p9);
+      console.log('digT', state.sensor._t3);
+      console.log('digH', state.sensor._h6);
     });
   }
 });
@@ -339,8 +325,7 @@ commands.push({
     return state.sensor !== undefined && state.sensor.valid();
   },
   callback: function(state) {
-    // console.log('normal mode', profiles.bmp280.MAX_STANDBY);
-    return state.sensor.setProfile(profiles.bme280.MAX_STANDBY).then(noop => {
+    return state.sensor.setProfile(Profiles.chipProfile(Profiles.profile('MAX_STANDBY'), state.sensor.chip)).then(noop => {
       console.log('normal mode');
     });
   }
@@ -361,11 +346,14 @@ commands.push({
 commands.push({
   name: 'pressure',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+
+    return state.sensor !== undefined &&
+      state.sensor.valid() &&
+      state.sensor.calibrated() &&
+      state.sensor.chip.supportsPressure;
   },
   callback: function(state) {
-    const [,p1, p2, p3, p4, p5, p6, p7, p8, p9] = calibration_data;
-    return state.sensor.pressure(p1, p2, p3, p4, p5, p6, p7, p8, p9).then(press => {
+    return state.sensor.pressure().then(press => {
       console.log('Under pressure:', press);
       if(press.skip){
 
@@ -381,18 +369,20 @@ commands.push({
 commands.push({
   name: 'tempature',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined &&
+      state.sensor.valid() &&
+      state.sensor.calibrated() &&
+      state.sensor.chip.supportsTempature;
   },
   callback: function(state) {
-    const [t1, t2, t3, ...rest] = calibration_data;
-    sensor.tempature(t1, t2, t3).then(temp => {
+    return state.sensor.tempature().then(temp => {
       if(temp.skip){
         console.log('Tempature sensing disabled');
       }else if(temp.undef){
         console.log('Tempature calibration unset:', temp.undef);
       }else{
-        console.log('Tempature (c): ', trim(temp.cf), trim(temp.ci));
-        console.log('          (f): ', trim(ctof(temp.cf)), trim(ctof(temp.ci)));
+        console.log('Tempature (c): ', Converter.trim(temp.cf), Converter.trim(temp.ci));
+        console.log('          (f): ', Converter.trim(Converter.ctof(temp.cf)), Converter.trim(Converter.ctof(temp.ci)));
       }
     });
   }
@@ -401,10 +391,18 @@ commands.push({
 commands.push({
   name: 'humidity',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined &&
+      state.sensor.valid() &&
+      state.sensor.calibrated() &&
+      state.sensor.chip.supportsHumidity;
   },
   callback: function(state) {
-
+    return state.sensor.humidity().then(humi => {
+      if(humi.skip){
+      } else {
+        console.log('balmy', humi);
+      }
+    });
   }
 });
 
@@ -412,7 +410,10 @@ commands.push({
 commands.push({
   name: 'altitude',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined &&
+      state.sensor.valid() &&
+      state.sensor.calibrated() &&
+      state.sensor.chip.supportsPressure;
   },
   callback: function(state) {
     return state.sensor.pressure(...(calibration_data.slice(3))).then(P => {

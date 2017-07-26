@@ -22,7 +22,7 @@ class BoschSensor {
   constructor(name, bus) {
     this._name = name;
     this._bus = bus;
-    this._calibration_data;
+    this._calibration;
     this._id;
     this._chip = chips.unknown;
   }
@@ -43,12 +43,16 @@ class BoschSensor {
     return this._id !== undefined && this._id !== 0;
   }
 
+  calibrated() {
+    return this.valid() && this._calibration !== undefined;
+  }
+
   version() { return Common.version(this._bus, this._chip); }
   calibration() {
     return Common.calibration(this._bus, this._chip)
       .then(cali => {
         // console.log(cali);
-        this._calibration_data = cali;
+        this._calibration = cali;
         return cali;
       });
   }
@@ -65,15 +69,15 @@ class BoschSensor {
   setProfile(profile) { return Common.setProfile(this._bus, this._chip, profile); }
 
   get _p9() {
-    return this._calibration_data.slice(3, 12);
+    return this._calibration.P;
   }
 
   get _t3() {
-    return this._calibration_data.slice(0, 3);
+    return this._calibration.T;
   }
 
-  get _h2() {
-    return this._calibration_data.slice(9, 12);
+  get _h6() {
+    return this._calibration.H;
   }
 
 
@@ -82,26 +86,26 @@ class BoschSensor {
       return [
         Converter.compensateP(this._chip, result.adcP, result.adcT, ...this._p9),
         Converter.compensateT(this._chip, result.adcT, ...this._t3),
-        Converter.compensateH(this._chip, result.adcH, this._h2)
+        Converter.compensateH(this._chip, result.adcH, this._h6)
       ];
     });
   }
 
   pressure() {
     return Common.measurment(this._bus, this._chip, true, true, false).then(result => {
-      return Converter.compensateP(result.adcP, result.adcT, ...this._p9);
+      return Converter.compensateP(this._chip, result.adcP, result.adcT, ...this._p9);
     });
   }
 
   tempature() {
     return Common.measurment(this._bus, this._chip, false, true, false).then(result => {
-      return Converter.compensateT(result.adcT, ...this._t3);
+      return Converter.compensateT(this._chip, result.adcT, ...this._t3);
     });
   }
 
   humidity(){
     return Common.measurment(this._bus, this._chip, false, false, true).then(result => {
-      return Converter.compensateH(result.adcH, ...this._h2);
+      return Converter.compensateH(this._bus, result.adcH, ...this._h6);
     });
   }
 }
@@ -124,7 +128,17 @@ class Common {
   }
 
   static calibration(bus, chip) {
+    return Promise.all([
+      Common.calibrationM(bus, chip),
+      Common.calibrationH(bus, chip)]
+    ).then(([M, H]) => {
+      return { P: M.P, T: M.T, H: H.H };
+    });
+  }
+
+  static calibrationM(bus, chip) {
     return bus.read(chip.REG_CALIBRATION, 24).then(buffer => {
+      // console.log(buffer);
       const dig_T1 = buffer.readUInt16LE(1);
       const dig_T2 = buffer.readInt16LE(3);
       const dig_T3 = buffer.readInt16LE(5);
@@ -139,9 +153,31 @@ class Common {
       const dig_P8 = buffer.readInt16LE(21);
       const dig_P9 = buffer.readInt16LE(23);
 
-      return [
-        dig_T1, dig_T2, dig_T3,
-        dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9];
+      return {
+        T: [dig_T1, dig_T2, dig_T3],
+        P: [dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9]
+      };
+    });
+  }
+
+  static calibrationH(bus, chip) {
+    return Promise.resolve({ H: [] });
+
+    if(!chip.supportsHumidity){ return Promise.resolve({ H: [] });};
+
+    return bus.read(chip.REG_CALIBRATION_HUMIDITY, 9).then(buffer => {
+      // console.log(buffer);
+
+      const dig_H1 = buffer.readInt8(1);
+      const dig_H2 = buffer.readInt16LE(2);
+      const dig_H3 = buffer.readInt8(4);
+      const dig_H4 = buffer.readInt16LE(5);
+      const dig_H5 = buffer.readInt16LE(7);
+      const dig_H6 = buffer.readInt8(9);
+
+      return {
+        H: [dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6]
+      }
     });
   }
 
@@ -179,12 +215,12 @@ class Common {
   }
 
   static setProfile(bus, chip, profile) {
-    console.log(profile);
+    // console.log(profile);
     const control = Converter.ctrlMeasFromSamplingMode(profile.oversampling_p, profile.oversampling_t, profile.mode);
     const config = Converter.configFromTimingFilter(profile.standby_time, profile.filter_coefficient);
     // console.log(control, config);
-    return bus.write(chip.REG_CTRL, control)
-      .then(bus.write(chip.REG_CONFIG, config));
+    return bus.write(chip.REG_CONFIG, config)
+      .then(bus.write(chip.REG_CTRL, control));
   }
 
   static sleep(bus, chip) {
@@ -338,6 +374,7 @@ class Converter {
   }
 
   static compensateT(chip, T, dig_T1, dig_T2, dig_T3){
+    // console.log(T, dig_T1, dig_T2, dig_T3);
     if(T === chip.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
     if(dig_T1 === undefined){ return { undef: 't1' }; }
     if(dig_T2 === undefined){ return { undef: 't2' }; }

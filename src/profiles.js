@@ -25,12 +25,12 @@ class Profiles {
   }
 
   static chipProfile(jsonProfile, chip) {
-    console.log('chip profile from', jsonProfile);
+    // console.log('chip profile from', jsonProfile);
     const m = Profiles.chipMode(jsonProfile.mode, chip);
     const p = Profiles.chipOversample(jsonProfile.oversampling_p, chip);
     const t = Profiles.chipOversample(jsonProfile.oversampling_t, chip);
     const h = Profiles.chipOversample(jsonProfile.oversampling_h, chip);
-    const f = Profiles.chipCoefficient(jsonProfile.filter_coefficeient, chip);
+    const f = Profiles.chipCoefficient(jsonProfile.filter_coefficient, chip);
     const s = Profiles.chipStandby(jsonProfile.standby_time, chip);
 
     // console.log(m, p, t, h, f, s);
@@ -46,6 +46,7 @@ class Profiles {
   }
 
   static chipMode(mode, chip) {
+    if(mode === undefined){ return undefined; }
     if(mode === 'SLEEP') {
       return chip.MODE_SLEEP;
     } else if(mode  === 'NORMAL') {
@@ -58,6 +59,7 @@ class Profiles {
   }
 
   static chipOversample(oversample, chip) {
+    if(oversample === undefined){ return undefined; }
     switch(oversample){
     case false: return chip.OVERSAMPLE_SKIP; break;
     case 1: return chip.OVERSAMPLE_X1; break;
@@ -70,10 +72,19 @@ class Profiles {
   }
 
   static chipCoefficient(coefficient, chip) {
-    return chip.COEFFICIENT_OFF;
+    if(coefficient === undefined){ return undefined; }
+    switch(coefficient){
+    case false: return chip.COEFFICIENT_OFF; break;
+    case 2: return chip.COEFFICIENT_2; break;
+    case 4: return chip.COEFFICIENT_4; break;
+    case 8: return chip.COEFFICIENT_8; break;
+    case 16: return chip.COEFFICIENT_16; break;
+    default: throw new Error('unknown coefficient: ' + coefficient);
+    }
   }
 
   static chipStandby(standby, chip) {
+    if(standby === undefined){ return undefined; }
     switch(standby) {
     case false: return chip.STANDBY_MAX;
     case 0.5: return chip.STANDBY_05;

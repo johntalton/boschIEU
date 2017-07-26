@@ -5,21 +5,21 @@
     "oversampling_t": false,
     "oversampling_h": false,
     "filter_coefficient": false,
-    "standby_time": 4000
+    "standby_time": false
   },
   "TEMPATURE_ONLY": {
     "mode": "NORMAL",
     "oversampling_p": false,
     "oversampling_t": 16,
-    "filter_coefficient": "OFF",
-    "standby_time": 5
+    "filter_coefficient": false,
+    "standby_time": 0.5
   },
   "TEMPATURE_MOSTLY": {
     "mode": "NORMAL",
     "oversampling_p": 1, 
     "oversampling_t": 16,
     "filter_coefficient": 2,
-    "standby_time": 5
+    "standby_time": 0.5
   },
   "SLOW_TEMPATURE_MOSTLY": {
     "mode": "NORMAL",
@@ -32,7 +32,7 @@
     "mode": "NORMAL",
     "oversampling_p": 1,
     "oversampling_t": 1,
-    "filter_coefficient": false,
+    "filter_coefficient": 2,
     "standby_time": 4000
   },
 
