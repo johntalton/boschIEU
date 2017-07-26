@@ -116,13 +116,13 @@ class Common {
   static id(bus, chip){
     return bus.read(chip.REG_ID).then(buffer => {
       // console.log(buffer);
-      return buffer.readInt8(1);
+      return buffer.readInt8(0);
     });
   }
 
   static version(bus, chip){
     return bus.read(chip.REG_VERSION).then(buffer => {
-      return buffer.readUInt8(1);
+      return buffer.readUInt8(0);
     });
   }
 
@@ -137,20 +137,20 @@ class Common {
 
   static calibrationM(bus, chip) {
     return bus.read(chip.REG_CALIBRATION, 24).then(buffer => {
-      // console.log(buffer);
-      const dig_T1 = buffer.readUInt16LE(1);
-      const dig_T2 = buffer.readInt16LE(3);
-      const dig_T3 = buffer.readInt16LE(5);
+      console.log(buffer);
+      const dig_T1 = buffer.readUInt16LE(0);
+      const dig_T2 = buffer.readInt16LE(2);
+      const dig_T3 = buffer.readInt16LE(4);
 
-      const dig_P1 = buffer.readUInt16LE(7);
-      const dig_P2 = buffer.readInt16LE(9);
-      const dig_P3 = buffer.readInt16LE(11);
-      const dig_P4 = buffer.readInt16LE(13);
-      const dig_P5 = buffer.readInt16LE(15);
-      const dig_P6 = buffer.readInt16LE(17);
-      const dig_P7 = buffer.readInt16LE(19);
-      const dig_P8 = buffer.readInt16LE(21);
-      const dig_P9 = buffer.readInt16LE(23);
+      const dig_P1 = buffer.readUInt16LE(6);
+      const dig_P2 = buffer.readInt16LE(8);
+      const dig_P3 = buffer.readInt16LE(10);
+      const dig_P4 = buffer.readInt16LE(11);
+      const dig_P5 = buffer.readInt16LE(14);
+      const dig_P6 = buffer.readInt16LE(16);
+      const dig_P7 = buffer.readInt16LE(18);
+      const dig_P8 = buffer.readInt16LE(20);
+      const dig_P9 = buffer.readInt16LE(22);
 
       return {
         T: [dig_T1, dig_T2, dig_T3],
@@ -167,12 +167,12 @@ class Common {
     return bus.read(chip.REG_CALIBRATION_HUMIDITY, 9).then(buffer => {
       // console.log(buffer);
 
-      const dig_H1 = buffer.readInt8(1);
-      const dig_H2 = buffer.readInt16LE(2);
-      const dig_H3 = buffer.readInt8(4);
-      const dig_H4 = buffer.readInt16LE(5);
-      const dig_H5 = buffer.readInt16LE(7);
-      const dig_H6 = buffer.readInt8(9);
+      const dig_H1 = buffer.readInt8(0);
+      const dig_H2 = buffer.readInt16LE(1);
+      const dig_H3 = buffer.readInt8(3);
+      const dig_H4 = buffer.readInt16LE(4);
+      const dig_H5 = buffer.readInt16LE(6);
+      const dig_H6 = buffer.readInt8(8);
 
       return {
         H: [dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6]
@@ -186,14 +186,14 @@ class Common {
 
   static status(bus, chip) {
     return bus.read(chip.REG_STATUS).then(buffer => {
-      const status = buffer.readUInt8(1);
+      const status = buffer.readUInt8(0);
       return Converter.fromStatus(status);
     });
   }
 
   static controlMeasurment(bus, chip) {
     return bus.read(chip.REG_CTRL).then(buffer => {
-      const control = buffer.readUInt8(1);
+      const control = buffer.readUInt8(0);
       // console.log('ctrlM raw', buffer);
       return Converter.fromControlMeasurment(control);
     });
@@ -201,14 +201,14 @@ class Common {
 
   static controlHumidity(bus, chip) {
     return bus.read(chip.REG_CTRL_HUM).then(buffer => {
-      const control = buffer.readUInt8(1);
+      const control = buffer.readUInt8(0);
       return Converter.fromControlHumidity(control)
     });
   }
 
   static config(bus, chip) {
     return bus.read(chip.REG_CONFIG).then(buffer => {
-      const config = buffer.readUInt8(1);
+      const config = buffer.readUInt8(0);
       return Converter.fromConfig(config);
     });
   }
@@ -272,21 +272,21 @@ class Common {
       let adcP, adcT, adcH;
 
       if(chip.supportsPressure) {
-         const msbP = buffer.readUInt8(1);
-         const lsbP = buffer.readUInt8(2);
-         const xlsbP = buffer.readUInt8(3);
+         const msbP = buffer.readUInt8(0);
+         const lsbP = buffer.readUInt8(1);
+         const xlsbP = buffer.readUInt8(2);
          adcP = Converter.reconstruct20bit(msbP, lsbP, xlsbP);
       }
 
       if(chip.supportsTempature) {
-        const msbT = buffer.readUInt8(4);
-        const lsbT = buffer.readUInt8(5);
-        const xlsbT = buffer.readUInt8(6);
+        const msbT = buffer.readUInt8(3);
+        const lsbT = buffer.readUInt8(4);
+        const xlsbT = buffer.readUInt8(5);
         adcT = Converter.reconstruct20bit(msbT, lsbT, xlsbT);
       }
 
       if(chip.supportsHumidity) {
-        adcH = buffer.readUInt16LE(7);
+        adcH = buffer.readUInt16LE(6);
       }
 
       return { adcP: adcP, adcT: adcT, adcH: adcH };

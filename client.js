@@ -9,7 +9,7 @@ function defaultConfig() {
   return Promise.resolve({
     devices: [
       { bus: 'spi', id: 1 },
-      { bus: 'i2c', address: 0x77, id: 1 }
+      { bus: 'i2c-bus', address: 0x77, id: 1 }
     ]
   });
 }

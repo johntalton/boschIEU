@@ -10,7 +10,7 @@ const Profiles = require('./src/profiles.js');
 
 const rasbus = require('rasbus');
 const spiImpl = rasbus.spi;
-const i2cImpl = rasbus.i2c;
+const i2cImpl = rasbus.i2cbus;
 
 const Misc = require('./repl-misc.js');
 

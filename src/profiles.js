@@ -1,5 +1,10 @@
 const fs = require('fs');
 
+function throwIfUndef(obj, msg) {
+  if(obj === undefined){ throw new Error('undefined object:' + msg); }
+  return obj;
+}
+
 /**
  * Profiles
  */
@@ -86,16 +91,17 @@ class Profiles {
   static chipStandby(standby, chip) {
     if(standby === undefined){ return undefined; }
     switch(standby) {
-    case false: return chip.STANDBY_MAX;
-    case 0.5: return chip.STANDBY_05;
-    case 10: return chip.STANDBY_10;
-    case 20: return chip.STANDBY_20;
-    case 62.5: return chip.STANDBY_62;
-    case 125: return chip.STANDBY_125;
-    case 250: return chip.STANDBY_250;
-    case 1000: return chip.STANDBY_1000;
-    case 2000: return chip.STANDBY_2000;
-    case 4000: return chip.STANDBY_4000;
+    case true: return throwIfUndef(chip.STANDBY_MAX, 'Max');
+    case false: return throwIfUndef(chip.STANDBY_MIN, 'Min');
+    case 0.5: return throwIfUndef(chip.STANDBY_05, '0.5');
+    case 10: return throwIfUndef(chip.STANDBY_10, '10');
+    case 20: return throwIfUndef(chip.STANDBY_20, '20');
+    case 62.5: return throwIfUndef(chip.STANDBY_62, '62');
+    case 125: return throwIfUndef(chip.STANDBY_125, '125');
+    case 250: return throwIfUndef(chip.STANDBY_250, '250');
+    case 1000: return throwIfUndef(chip.STANDBY_1000, '1000');
+    case 2000: return throwIfUndef(chip.STANDBY_2000, '2000');
+    case 4000: return throwIfUndef(chip.STANDBY_4000, '4000');
     default: throw new Error('unknown standby: ' + standby);
     }
   }

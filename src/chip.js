@@ -71,7 +71,8 @@ const bme280Chip = {
   STANDBY_500:  0b100, //   500
   STANDBY_1000: 0b101, //  1000
 
-  STANDBY_MAX: 0b101 // alias
+  STANDBY_MIN: 0b000, // STANDBY_05 alias
+  STANDBY_MAX: 0b101 // STANDBY_1000 alias
 };
 
 const bmp280Chip = {
@@ -122,7 +123,8 @@ const bmp280Chip = {
   STANDBY_2000: 0b110, // 2000
   STANDBY_4000: 0b111, // 4000
 
-  STANDBY_MAX: 0b111
+  STANDBY_MIN: 0b000, // STANDBY_05 alias
+  STANDBY_MAX: 0b111 // STANDBY_4000 alias
 };
 
 module.exports = {

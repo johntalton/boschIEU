@@ -5,8 +5,10 @@
     "oversampling_t": false,
     "oversampling_h": false,
     "filter_coefficient": false,
-    "standby_time": false
+    "standby_time": true
   },
+
+
   "TEMPATURE_ONLY": {
     "mode": "NORMAL",
     "oversampling_p": false,
@@ -32,9 +34,12 @@
     "mode": "NORMAL",
     "oversampling_p": 1,
     "oversampling_t": 1,
+    "oversampling_h": 1,
     "filter_coefficient": 2,
     "standby_time": 4000
   },
+
+
 
   "HANDHELD_DEVICE_LOW_POWER": {
     "mode": "NORMAL",
