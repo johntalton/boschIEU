@@ -10,8 +10,8 @@ const Profiles = require('./profiles.js');
  * bmp280 / bme280
  */
 class BoschIEU {
-  static sensor(name, bus) {
-    return Promise.resolve(new BoschSensor(name, bus));
+  static sensor(bus) {
+    return Promise.resolve(new BoschSensor(bus));
   }
 }
 
@@ -19,8 +19,7 @@ class BoschIEU {
  *
  */
 class BoschSensor {
-  constructor(name, bus) {
-    this._name = name;
+  constructor(bus) {
     this._bus = bus;
     this._calibration;
     this._id;

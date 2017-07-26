@@ -133,7 +133,7 @@ commands.push({
       return i2cImpl.init(id, 0x77).then(i2c => {
         console.log('i2c device inited');
         state.bus = i2c;
-        return bosch.sensor('name', i2c)
+        return bosch.sensor(i2c)
           .then(s => {
             console.log('sensor inited');
             state.sensor = s;
@@ -143,7 +143,7 @@ commands.push({
       return spiImpl.init(id).then(spi => {
         console.log('spi device inited');
         state.bus = spi;
-        return bosch.sensor('name', spi)
+        return bosch.sensor(spi)
           .then(s => {
             state.sensor = s;
         });

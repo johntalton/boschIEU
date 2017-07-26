@@ -2,28 +2,45 @@ const boschLib = require('./src/boschIEU.js')
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
+const rasbus = require('rasbus');
+
 function defaultConfig() {
   console.log('default config');
-  return Promise.resolve({ devices: ['/dev/spidev0.0', '/dev/spidev0.1'] });
+  return Promise.resolve({
+    devices: [
+      { bus: 'spi', id: 1 },
+      { bus: 'i2c', address: 0x77, id: 1 }
+    ]
+  });
 }
 
-function setupDevice(application){
-  const SPI = require('./src/spi.js');
-  application.devices = application.devices.map(devicename => {
-    console.log('setup device on ', devicename);
-    return SPI.init(devicename).then(spi => {
+function selectBus(bus) {
+  if(bus === 'i2c'){ return rasbus.i2c; }
+  else if(bus === 'i2c-bus') { return rasbus.i2cbus; }
+
+  else if(bus === 'spi'){ return rasbus.spi; }
+  else if(bus === 'pi-spi') { return rasbus.pispi; }
+  else if(bus === 'spi-device') { return rasbus.spidevice; }
+
+  throw new Error('unknown bus: ' + bus);
+}
+
+function setupDevice(application) {
+  application.devices = application.devices.map(devconfig => {
+    // console.log('setup device on ', devconfig);
+    return selectBus(devconfig.bus).init(devconfig.id, devconfig.address).then(bus => {
       let device = {
-        name: devicename,
+        bus: bus,
         sensor: null,
         timer: null
       };
 
-      return bosch.sensor(devicename, spi)
+      return bosch.sensor(bus)
         .then(sensor => { device.sensor = sensor; })
         .then(() => device.sensor.id())
         .then(() => {
-          if(!device.sensor.valid()){ throw new Error('invalid device on', device.name); }
-          console.log('chip ', device.sensor.chip.name, ' found on ', device.name);
+          if(!device.sensor.valid()){ throw new Error('invalid device on', device.bus.name); }
+          console.log('chip ', device.sensor.chip.name, ' found on ', device.bus.name);
         })
         .then(() => device.sensor.calibration())
         .then(() => device.sensor.setProfile({
@@ -38,13 +55,8 @@ function setupDevice(application){
           return setInterval(poll, 1000, device);
         })
         .then(timer => { device.timer = timer; })
-        .then(() => { console.log('device poll up: ', device.sensor.chip.name, '@', device.name); return device; });
-
-    })
-    //.catch(e => {
-    //  console.log('error', e);
-    //  device = { error: e };
-    //});
+        .then(() => { console.log('device poll up: ', device.sensor.chip.name, '@', device.bus.name); return device; });
+    });
   });
   return Promise.all(application.devices);
 }
@@ -53,7 +65,7 @@ function poll(device){
   device.sensor.measurement().then(([P, T, H]) => {
     // console.log(P, T, H);
 
-    console.log(device.sensor.chip.name, '@', device.name, ':');
+    console.log(device.sensor.chip.name + ' (' + device.bus.name + '):');
     if(device.sensor.chip.supportsPressure){
       if(P === undefined || P.skip === true) {
         console.log('\tPressure: ', 'Skipped');
@@ -90,5 +102,5 @@ function poll(device){
 
 defaultConfig()
   .then(setupDevice)
-  .then(foo => { console.log('All Devices Setup'); })
+  .then(runconfig => { console.log('All Devices Setup'); })
   .catch(e => { console.log('error', e); });
