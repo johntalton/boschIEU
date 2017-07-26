@@ -137,7 +137,7 @@ class Common {
 
   static calibrationM(bus, chip) {
     return bus.read(chip.REG_CALIBRATION, 24).then(buffer => {
-      console.log(buffer);
+      // console.log(buffer);
       const dig_T1 = buffer.readUInt16LE(0);
       const dig_T2 = buffer.readInt16LE(2);
       const dig_T3 = buffer.readInt16LE(4);
