@@ -1,18 +1,19 @@
+
 const chipLib = require('./chip.js');
 const Chip = chipLib.chip;
 const chips = chipLib.chips;
 
+const Profiles = require('./profiles.js');
+
 /**
  * Bosch Integrated Environmental Unit
- * bmp280 / bmp280
- * SPI
+ * bmp280 / bme280
  */
 class BoschIEU {
   static sensor(name, bus) {
     return Promise.resolve(new BoschSensor(name, bus));
   }
 }
-
 
 /**
  *
@@ -39,7 +40,7 @@ class BoschSensor {
   }
 
   valid(){
-    return this._id !== 0;
+    return this._id !== undefined && this._id !== 0;
   }
 
   version() { return Common.version(this._bus, this._chip); }
@@ -178,7 +179,7 @@ class Common {
   }
 
   static setProfile(bus, chip, profile) {
-    // console.log(profile);
+    console.log(profile);
     const control = Converter.ctrlMeasFromSamplingMode(profile.oversampling_p, profile.oversampling_t, profile.mode);
     const config = Converter.configFromTimingFilter(profile.standby_time, profile.filter_coefficient);
     // console.log(control, config);
@@ -187,7 +188,7 @@ class Common {
   }
 
   static sleep(bus, chip) {
-    return Common.setProfile(bus, chip.profiles().SLEEP);
+    return Common.setProfile(bus, chip, Profiles.chipProfile(Profiles.profile('SLEEP'), chip));
   }
 
   static force(bus, chip, press, temp) {

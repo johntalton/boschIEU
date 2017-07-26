@@ -37,7 +37,7 @@ const bme280Chip = {
   REG_ID:          0xD0,
   REG_VERSION:     0xD1,
   REG_RESET:       0xE0,
-  REG_CTRL_HUM:    0xF2, // bme280 
+  REG_CTRL_HUM:    0xF2, // bme280
   REG_STATUS:      0xF3,
   REG_CTRL:        0xF4, // REG_CTRL_MEAS
   REG_CONFIG:      0xF5,
@@ -123,112 +123,12 @@ const bmp280Chip = {
 
 };
 
-
-const Profiles = {
-  bmp280: {
-    // Sleep
-    SLEEP: {
-      mode: this.MODE_SLEEP,
-      oversampling_p: this.OVERSAMPLE_SKIP,
-      oversampling_t: this.OVERSAMPLE_SKIP, 
-      filter_coefficient: this.COEFFICIENT_OFF,
-      standby_time: this.STANDBY_4000
-    },
-
-    // randoms
-    TEMPATURE_ONLY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_OFF,
-      oversampling_t: this.OVERSAMPLE_X16,
-      filter_coefficient: this.COEFFICIENT_OFF,
-      standby_time: this.STANDBY_05
-    },
-    TEMPATURE_MOSTLY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X16,
-      filter_coefficient: this.COEFFICIENT_2,
-      standby_time: this.STANDBY_05
-    },
-    SLOW_TEMPATURE_MOSTLY: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X16,
-      filter_coefficient: this.COEFFICIENT_2,
-      standby_time: this.STANDBY_1000
-    },
-    MAX_STANDBY: {
-      mode: bmp280Chip.MODE_NORMAL,
-      oversampling_p: bmp280Chip.OVERSAMPLE_X1,
-      oversampling_t: bmp280Chip.OVERSAMPLE_X1,
-      filter_coefficient: bmp280Chip.COEFFICIENT_OFF,
-      standby_time: bmp280Chip.STANDBY_4000
-    },
-
-    // from the spec
-    HANDHELD_DEVICE_LOW_POWER: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X16,
-      oversampling_t: this.OVERSAMPLE_X2,
-      filter_coefficient: 4,
-      standby_time: this.STANDBY_62
-    },
-    HANDHELD_DEVICE_DYNAMIC: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X4,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 16,
-      standby_time: this.STANDBY_05
-    },
-    WEATHER_MONITORING: {
-      mode: this.MODE_FORCED,
-      oversampling_p: this.OVERSAMPLE_X1,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 0,
-      standby_time: this.STANDBY_1
-    },
-    ELEVATOR_FLOOR_CHAHGE: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X4,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 4,
-      standby_time: this.STANDBY_125
-    },
-    DROP_DETECTION: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X2,
-      oversampling_t: this.OVERSAMPLE_X1,
-      filter_coefficient: 0,
-      standby_time: this.STANDBY_05
-    },
-    INDOR_NAVIGATION: {
-      mode: this.MODE_NORMAL,
-      oversampling_p: this.OVERSAMPLE_X16,
-      oversampling_t: this.OVERSAMPLE_X2,
-      filter_coefficient: 16,
-      standby_time: this.STANDBY_05
-    }
-  },
-
-  bme280: {
-    MAX_STANDBY: {
-      mode: bme280Chip.MODE_NORMAL,
-      oversampling_p: bme280Chip.OVERSAMPLE_X1,
-      oversampling_t: bme280Chip.OVERSAMPLE_X1,
-      filter_coefficient: bme280Chip.COEFFICIENT_OFF,
-      standby_time: bme280Chip.STANDBY_4000
-    }
-  }
-}
-
-
 module.exports = {
   chip: Chip,
   chips: {
     unknown: UnknownChip,
     bmp280: bmp280Chip,
     bme280: bme280Chip
-  },
-  profiles: Profiles
+  }
 };
 

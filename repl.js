@@ -5,7 +5,8 @@ const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
 const chip = require('./src/chip.js');
-const profiles = chip.profiles;
+
+const Profiles = require('./src/profiles.js');
 
 const rasbus = require('rasbus');
 const spiImpl = rasbus.spi;
@@ -20,39 +21,41 @@ const rl = readline.createInterface({
 });
 
 let commands = [
-  { name: 'exit', callback: function(state){ rl.close(); } },
-  { name: 'clear', callback: function(state) { console.log('\u001B[2J\u001B[0;0f'); } }
+  { name: 'exit', valid: () => true, callback: function(state){ rl.close(); return Promise.resolve(-1); } },
+  // { name: 'clear', valid: () => true, callback: function(state) { return Promise.resolve(rl.); } }
+  { name: 'clear', valid: () => true, callback: function(state) { console.log('\u001B[2J\u001B[0;0f'); return Promise.resolve();  } }
 ];
 
 const seaLevelPa = 1013.25;
-let state = { seaLevelPa: seaLevelPa };
+let state = { seaLevelPa: seaLevelPa, defaultValid: false };
 
 function prompt() {
   const close = '> ';
   let prompt = close;
-  if(state.sensor != undefined) {
-    prompt = state.sensor.name + close;
-    if(state.sensor.chip !== undefined) {
-      prompt = state.sensor.chip.name + '@' + state.sensor._name + close;
+  if(state.bus != undefined) {
+    prompt = state.bus.name + close;
+    if(state.sensor !== undefined) {
+      prompt = state.sensor.chip.name + '@' + state.bus.name + close;
     }
   }
   rl.question(prompt, commandHandler);
 }
 
 
-function finderPartial(partialCmd) {
+function finderPartial(partialCmd, state) {
   return function(item) {
-    return item.name.toLowerCase().startsWith(partialCmd);
+    return item.name.toLowerCase().startsWith(partialCmd) &&
+      ((item.valid === undefined) ? state.defaultValid : item.valid(state));
   };
 }
 
 function completer(line) {
   const partialCmd = line.split(' ')[0];
-  const partials = commands.filter(finderPartial(partialCmd));
+  const partials = commands.filter(finderPartial(partialCmd, state));
 
   let suggestions = partials.map(item => item.name);
 
-  const exacts = partials.filter(finderFull(partialCmd));
+  const exacts = partials.filter(finderFull(partialCmd, state));
   if(exacts.length > 1){ throw new Error(partialCmd); }
   if(exacts[0]) {
     if(exacts[0].completer) {
@@ -65,10 +68,11 @@ function completer(line) {
 }
 
 
-function finderFull(cmd) {
+function finderFull(cmd, state) {
   return function(item) {
     if(item.name.toLowerCase() === cmd.toLowerCase()) {
-      return true;
+      if(item.valid === undefined){ return state.defaultValid; } // default is enabled
+      return item.valid(state);
     }
     return false;
   };
@@ -76,12 +80,19 @@ function finderFull(cmd) {
 
 function commandHandler(line) {
   const cmd = line.split(' ')[0];
-  let item = commands.find(finderFull(cmd));
-  if(item === undefined){ item = { callback: (foo) => Promise.resolve(foo) }; }
-  
+  let item = commands.find(finderFull(cmd, state)); // todo change to filter and handle multi
+  if(item === undefined) {
+    const partials = commands.filter(finderPartial(cmd, state));
+    if(partials.length === 1) {
+      item = partials[0];
+    } else {
+      item = { callback: (state) => Promise.resolve(state) };
+    }
+  }
+
   state.line = line;
-  item.callback(state).then(() => {
-    //
+  item.callback(state).then(exitcode => {
+    if(exitcode === -1){ console.log('end of line.'); return; }
     prompt();
   }).catch(e => {
     console.log('error', e);
@@ -95,15 +106,35 @@ function commandHandler(line) {
 commands.push({
   name: 'init',
   completer: function(line) {
-    return ['spi <id>', 'i2c <id>'];
+    const bus = line.split(' ')[1];
+    if(bus === undefined || bus.trim() === '') { return ['i2c <id>', 'spi <id>']; }
+
+    const id = line.split(' ')[2];
+    if(id === undefined || id.trim() === '') {
+      if(bus.trim() === 'i2c'){ return ['0', '1']; }
+      if(bus.trim() === 'spi'){ return ['0', '1']; }
+      return [''];
+    }
+    return ['<options>'];
+  },
+  valid: function(state) {
+    return state.sensor === undefined;
   },
   callback: function(state) {
     const bus = state.line.split(' ')[1];
     const id = state.line.split(' ')[2];
+    if(id === undefined){
+      console.log('specify id for bus')
+      return Promise.resolve();
+    }
+
+    state.bus = undefined;
+    state.sensor = undefined;
 
     if(bus === 'i2c') {
       return i2cImpl.init(id).then(i2c => {
         console.log('i2c device inited');
+        state.bus = i2c;
         return bosch.sensor('name', i2c)
           .then(s => {
             console.log('sensor inited');
@@ -111,25 +142,41 @@ commands.push({
           });
       });
     } else if(bus === 'spi') {
-      return spiImpl.init(device).then(spi => {
+      return spiImpl.init(id).then(spi => {
         console.log('spi device inited');
-        return bosch.sensor(device, spi)
+        state.bus = spi;
+        return bosch.sensor('name', spi)
           .then(s => {
-            sensor = s;
+            state.sensor = s;
         });
       });
     } else {
-      throw new Error('unknown bus ' + bus);
+      console.log('unknown bus.  supported bus types: i2c spi');
+      return Promise.resolve();
     }
+  }
+});
+
+commands.push({
+  name: 'close',
+  valid: function(state) {
+    return state.sensor !== undefined
+  },
+  callback: function(state) {
+    // state.sensor.close();
+    state.bus = undefined;
+    state.sensor = undefined;
+    return Promise.resolve();
   }
 });
 
 
 
-
-
 commands.push({
   name: 'id',
+  valid: function(state) {
+    return state.sensor !== undefined && !state.sensor.valid();
+  },
   callback: function (state) {
     return state.sensor.id().then(id => {
       console.log('Chip ID (' + id + '):'  + (state.sensor.valid() ? state.sensor.chip.name : ' (invalid)'));
@@ -139,6 +186,9 @@ commands.push({
 
 commands.push({
   name: 'version',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.version().then(version => {
       console.log('Version: ' + version.toString(16));
@@ -148,6 +198,9 @@ commands.push({
 
 commands.push({
   name: 'reset',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.reset().then(noop => {
       console.log('reset');
@@ -157,6 +210,9 @@ commands.push({
 
 commands.push({
   name: 'status',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.status().then(([measuring, im_update]) => {
       console.log('Measuing: ', measuring, ' Image Update: ', im_update);
@@ -184,6 +240,9 @@ commands.push({
 
 commands.push({
   name: 'controlm',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.controlMeasurment().then(([osrs_p, osrs_t, mode]) => {
       console.log('Mode: ', Misc.mode(sensor.chip, mode));
@@ -195,6 +254,9 @@ commands.push({
 
 commands.push({
   name: 'controlh',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.controlHumidity().then(([osrs_h]) => {
       console.log('Oversample Humi: ' + Misc.oversample(sensor.chip, osrs_h));
@@ -204,6 +266,9 @@ commands.push({
 
 commands.push({
   name: 'config',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.config().then(([t_sb, filter, spi3wire_en]) => {
       console.log('Normal Mode Timing: ', Misc.standby(sensor.chip, t_sb));
@@ -214,21 +279,27 @@ commands.push({
 
 commands.push({
   name: 'profile',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.profile().then(profile => {
       // console.log(profile);
-      console.log('Mode: ', Misc.mode(sensor.chip, profile.mode));
-      console.log('Oversampling Press: ', Misc.oversample(sensor.chip, profile.oversampling_p));
-      console.log('Oversampling Temp:  ', Misc.oversample(sensor.chip, profile.oversampling_t));
-      console.log('Oversampling Humi:  ', Misc.oversample(sensor.chip, profile.oversampling_h));
-      console.log('IIR Filter Coefficient: ', Misc.coefficient(sensor.chip, profile.filter_coefficient));
-      console.log('Standby Time: ', Misc.standby(sensor.chip, profile.standby_time));
+      console.log('Mode: ', Misc.mode(state.sensor.chip, profile.mode));
+      console.log('Oversampling Press: ', Misc.oversample(state.sensor.chip, profile.oversampling_p));
+      console.log('Oversampling Temp:  ', Misc.oversample(state.sensor.chip, profile.oversampling_t));
+      console.log('Oversampling Humi:  ', Misc.oversample(state.sensor.chip, profile.oversampling_h));
+      console.log('IIR Filter Coefficient: ', Misc.coefficient(state.sensor.chip, profile.filter_coefficient));
+      console.log('Standby Time: ', Misc.standby(state.sensor.chip, profile.standby_time));
     });
   }
 });
 
 commands.push({
   name: 'calibration',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.calibration().then(data => {
       calibration_data = data;
@@ -252,6 +323,9 @@ commands.push({
 
 commands.push({
   name: 'sleep',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.sleep().then(noop => {
       console.log('sleep mode');
@@ -261,6 +335,9 @@ commands.push({
 
 commands.push({
   name: 'normal',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     // console.log('normal mode', profiles.bmp280.MAX_STANDBY);
     return state.sensor.setProfile(profiles.bme280.MAX_STANDBY).then(noop => {
@@ -271,6 +348,9 @@ commands.push({
 
 commands.push({
   name: 'forced',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.force().then(noop => {
       console.log('forced mode');
@@ -280,6 +360,9 @@ commands.push({
 
 commands.push({
   name: 'pressure',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     const [,p1, p2, p3, p4, p5, p6, p7, p8, p9] = calibration_data;
     return state.sensor.pressure(p1, p2, p3, p4, p5, p6, p7, p8, p9).then(press => {
@@ -297,6 +380,9 @@ commands.push({
 
 commands.push({
   name: 'tempature',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     const [t1, t2, t3, ...rest] = calibration_data;
     sensor.tempature(t1, t2, t3).then(temp => {
@@ -314,6 +400,9 @@ commands.push({
 
 commands.push({
   name: 'humidity',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
 
   }
@@ -322,6 +411,9 @@ commands.push({
 
 commands.push({
   name: 'altitude',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
     return state.sensor.pressure(...(calibration_data.slice(3))).then(P => {
       const alt = bmp280.altitudeFromPressure(state.seaLevelPa, P);
@@ -333,6 +425,9 @@ commands.push({
 /*
 commands.push({
   name: '',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
+  },
   callback: function(state) {
 
   }
@@ -381,6 +476,8 @@ commands.push({
   }
 */
 
-
-prompt();
-
+Profiles.load('./src/profiles.json').then(() => {
+  prompt();
+}).catch(e => {
+  console.log('error', e);
+});

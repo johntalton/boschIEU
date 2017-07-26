@@ -1,0 +1,93 @@
+const fs = require('fs');
+
+/**
+ * Profiles
+ */
+class Profiles {
+ static load(filepath) {
+    return new Promise((resolve, reject) => {
+      fs.readFile(filepath, 'utf8', function (err, data) {
+        if(err){ reject(err); }
+        //console.log('readFile', err, data);
+        const json = JSON.parse(data);
+        resolve(json);
+      });
+    }).then(json => {
+      //console.log(json);
+      Profiles._profiles = json;
+      return json;
+    });
+  }
+
+  static profile(name) {
+    //console.log('searching for profile:', name, Profiles._profiles );
+    return Profiles._profiles[name];
+  }
+
+  static chipProfile(jsonProfile, chip) {
+    console.log('chip profile from', jsonProfile);
+    const m = Profiles.chipMode(jsonProfile.mode, chip);
+    const p = Profiles.chipOversample(jsonProfile.oversampling_p, chip);
+    const t = Profiles.chipOversample(jsonProfile.oversampling_t, chip);
+    const h = Profiles.chipOversample(jsonProfile.oversampling_h, chip);
+    const f = Profiles.chipCoefficient(jsonProfile.filter_coefficeient, chip);
+    const s = Profiles.chipStandby(jsonProfile.standby_time, chip);
+
+    // console.log(m, p, t, h, f, s);
+
+    return {
+      mode: m,
+      oversampling_p: p,
+      oversampling_t: t,
+      oversampling_h: h,
+      filter_coefficient: f,
+      standby_time: s
+    };
+  }
+
+  static chipMode(mode, chip) {
+    if(mode === 'SLEEP') {
+      return chip.MODE_SLEEP;
+    } else if(mode  === 'NORMAL') {
+      return chip.MODE_NORMAL;
+    } else if(mode === 'FORCED') {
+      return chip.MODE_FORCED;
+    }
+
+    throw new Error('unknown mode: ' + mode);
+  }
+
+  static chipOversample(oversample, chip) {
+    switch(oversample){
+    case false: return chip.OVERSAMPLE_SKIP; break;
+    case 1: return chip.OVERSAMPLE_X1; break;
+    case 2: return chip.OVERSAMPLE_X2; break;
+    case 4: return chip.OVERSAMPLE_X4; break;
+    case 8: return chip.OVERSAMPLE_X8; break;
+    case 16: return chip.OVERSAMPLE_X16; break;
+    default: throw new Error('unknown oversample: ' + oversample);
+    }
+  }
+
+  static chipCoefficient(coefficient, chip) {
+    return chip.COEFFICIENT_OFF;
+  }
+
+  static chipStandby(standby, chip) {
+    switch(standby) {
+    case false: return chip.STANDBY_MAX;
+    case 0.5: return chip.STANDBY_05;
+    case 10: return chip.STANDBY_10;
+    case 20: return chip.STANDBY_20;
+    case 62.5: return chip.STANDBY_62;
+    case 125: return chip.STANDBY_125;
+    case 250: return chip.STANDBY_250;
+    case 1000: return chip.STANDBY_1000;
+    case 2000: return chip.STANDBY_2000;
+    case 4000: return chip.STANDBY_4000;
+    default: throw new Error('unknown standby: ' + standby);
+    }
+  }
+}
+
+module.exports = Profiles;

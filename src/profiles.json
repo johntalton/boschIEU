@@ -1,0 +1,82 @@
+{
+  "SLEEP": {
+    "mode": "SLEEP",
+    "oversampling_p": false,
+    "oversampling_t": false,
+    "oversampling_h": false,
+    "filter_coefficient": false,
+    "standby_time": 4000
+  },
+  "TEMPATURE_ONLY": {
+    "mode": "NORMAL",
+    "oversampling_p": false,
+    "oversampling_t": 16,
+    "filter_coefficient": "OFF",
+    "standby_time": 5
+  },
+  "TEMPATURE_MOSTLY": {
+    "mode": "NORMAL",
+    "oversampling_p": 1, 
+    "oversampling_t": 16,
+    "filter_coefficient": 2,
+    "standby_time": 5
+  },
+  "SLOW_TEMPATURE_MOSTLY": {
+    "mode": "NORMAL",
+    "oversampling_p": 1,
+    "oversampling_t": 16,
+    "filter_coefficient": 2,
+    "standby_time": 1000
+  },
+  "MAX_STANDBY": {
+    "mode": "NORMAL",
+    "oversampling_p": 1,
+    "oversampling_t": 1,
+    "filter_coefficient": false,
+    "standby_time": 4000
+  },
+
+  "HANDHELD_DEVICE_LOW_POWER": {
+    "mode": "NORMAL",
+    "oversampling_p": 16,
+    "oversampling_t": 2,
+    "filter_coefficient": 4,
+    "standby_time": 62
+  },
+  "HANDHELD_DEVICE_DYNAMIC": {
+    "mode": "NORMAL",
+    "oversampling_p": 4,
+    "oversampling_t": 1,
+    "filter_coefficient": 16,
+    "standby_time": 5
+  },
+  "WEATHER_MONITORING": {
+    "mode": "FORCED",
+    "oversampling_p": 1,
+    "oversampling_t": 1,
+    "filter_coefficient": 0,
+    "standby_time": 1
+  },
+  "ELEVATOR_FLOOR_CHAHGE": {
+    "mode": "NORMAL",
+    "oversampling_p": 4,
+    "oversampling_t": 1,
+    "filter_coefficient": 4,
+    "standby_time": 125
+  },
+  "DROP_DETECTION": {
+    "mode": "NORMAL",
+    "oversampling_p": 2,
+    "oversampling_t": 1,
+    "filter_coefficient": 0,
+    "standby_time": 5
+  },
+  "INDOR_NAVIGATION": {
+    "mode": "NORMAL",
+    "oversampling_p": 16,
+    "oversampling_t": 2,
+    "filter_coefficient": 16,
+    "standby_time": 5
+  } 
+}
+
