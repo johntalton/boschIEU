@@ -1,6 +1,7 @@
-# Bosch Integrated Environmental Unit (via spi & pi-spi)
-High level API for Bosch BMP280 BME280 tempature / pressure / humidity over SPI.
+# Bosch Integrated Environmental Unit
+High level API for Bosch BMP280 BME280 tempature / pressure / humidity 
 
+- Both SPI and I2C (multiple libs)
 - full set of lightly abstracted low level method
 - sleep / reset / fine grained profile control
 - Push / Pull interaction modes
@@ -13,19 +14,20 @@ High level API for Bosch BMP280 BME280 tempature / pressure / humidity over SPI.
 
   ```
   > node repl
-  > init /dev/spidev0.1
-  Unknown@/dev/spidev0.1> id
-  bmp280@/dev/spidev0.1> 
+  > init spi 1
+  Unknown@spi:/dev/spidev0.1> id
+  bmp280@spi:/dev/spidev0.1> 
   ...
   ```
 
 command listing:
- - ```init <arg>``` sets the spi bus device (ie: /dev/spidev0.0)
+ - ```init <bus> <id>``` sets the spi bus device (id can be simple of full path)
  - ```id``` reads and prints chip id (validates agains code value and selecting sensor chip)
  - ```version``` reads and prints version 
  - ```reset``` **soft-reset device**. returns to inital profile (mode Sleep) 
  - ```status``` reads and prints values (optional ```!``` sufix causes muliple executions)
- - ```control``` reads and prints control (prefer ```profile```)
+ - ```controlm``` reads and prints control (prefer ```profile```)
+ - ```controlh``` reads and prints control (prefer ```profile```)
  - ```config``` reads and prints config (prefer ```profile```)
  - ```calibration``` reads the static calibration data for sensor chip
  
@@ -33,9 +35,9 @@ command listing:
  - ```normal``` alias to set profile to "normal" (profile MAX_STANDBY, good for use in ```poll``` command and general test)
  - ```forced``` alias to set profile to "forced" (mode Forced, oversampling Off/Off, standby Off) 
  
- - ```pres``` reads and prints value onchip (does *not* trigger convesion)
- - ```temp``` reads and prints value onchip (does *not* trigger converstion)
- - ```humi``` reads and prints value ohchip (does *not* trigger converstion)
+ - ```pressure``` reads and prints value onchip (does *not* trigger convesion)
+ - ```tempature``` reads and prints value onchip (does *not* trigger converstion)
+ - ```humidity``` reads and prints value ohchip (does *not* trigger converstion)
  - ```altitude``` reads temp/press values onchip and prints aprox altitude
  
  - ```profile``` prints current onchip profile (config / control)
@@ -85,7 +87,7 @@ Status updates give you insight into the chips update process.
 
 Empirically running status in burst mode (!) you can see "update" occurse at the begining of each measuing cycle. Run here on a standby with 4s, thus needed to be run multiple times.
 ```
-bmp280@/dev/spidev0.1> status!
+bmp280@spi:/dev/spidev0.1> status!
 Measuring:  false  Updating:  false
 bmp280@/dev/spidev> status!
 Measuring:  false  Updating:  false
@@ -94,25 +96,18 @@ Measuring:  true  Updating:  false
 Measuring:  false  Updating:  false
 ```
 
-## SPI dependency
+## Dependency
 
-3-wire SPI not supported.
-
-both the ```pi-spi``` and the ```spi``` node modules are used in an abstration SPI layer.  User provided abstractions can be added via the ```.spi``` member varaible as seen in ```setupDevice()``` (client.js).
+This sensor uniquely can be operated in both SPI and i2c configurations.  Further there are a multitude of javascript bus implementations.  Abstracting all of these behind a "rasbus" implementation, and resulting deps are peer to your project.
 
 # API 
 ## General
 
-This API uses an abstracted SPI driver that needs to be initialized externaly.  Using the ```.sensor(name, bus)``` method this abstract bus driver is passed in.
-
-currently the ```pi-spi`` and ```spi``` node modules provide SPI abstraction.   A wrapper for both of these can be found in ```spi.js```.  User provided implementation are welcome etc. (specificly these chips also can use i2c).
-
-using these example wrappers:
-
+Simple init case:
 ```
-const SPI = require('./spi.js');
-SPI.init(device).then(spi => {
-  bosch.sensor(device, spi).then(sensor => {
+const busImpl = require('rasbus').spi;
+busImpl.init(1).then(bus => {
+  bosch.sensor(name, bus).then(sensor => {
      // ...
   })
 });
@@ -218,7 +213,7 @@ Unlike ```measurment()``` calls to ```tempature()``` require only the first temp
 ### pressure()
 
 ```
-sensor.press().then(P => {
+sensor.pressusre().then(P => {
   //
 });
 ```
