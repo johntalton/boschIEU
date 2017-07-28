@@ -1,17 +1,30 @@
 const boschLib = require('./src/boschIEU.js')
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
+const Profiles = boschLib.Profiles;
 
 const rasbus = require('rasbus');
 
 function defaultConfig() {
-  console.log('default config');
+  // console.log('default config');
   return Promise.resolve({
+    profiles: './src/profiles.json',
     devices: [
-      { bus: 'spi', id: 1 },
-      { bus: 'i2c-bus', address: 0x77, id: 1 }
+      { bus: 'spi', id: 1, profile: 'MAX_STANDBY' },
+      { bus: 'i2c-bus', address: 0x77, id: 1, profile: {
+        mode: 'NORMAL',
+        oversampling_p: 2,
+        oversampling_t: 2,
+        oversampling_h: 2,
+        filter_coefficient: false,
+        standby_time: 500
+      } }
     ]
   });
+}
+
+function loadProfiles(application) {
+  return Profiles.load(application.profiles).then(() => application);
 }
 
 function selectBus(bus) {
@@ -32,8 +45,17 @@ function setupDevice(application) {
       let device = {
         bus: bus,
         sensor: null,
-        timer: null
+        timer: null,
+        profile: undefined
       };
+
+      if(typeof devconfig.profile === 'string') {
+        console.log(devconfig.profile);
+        device.profile = Profiles.profile(devconfig.profile);
+        if(device.profile === undefined) { throw new Error('unknown profile: ' + devconfig.profile); }
+      } else {
+        device.profile = devconfig.profile;
+      }
 
       return bosch.sensor(bus)
         .then(sensor => { device.sensor = sensor; })
@@ -43,14 +65,7 @@ function setupDevice(application) {
           console.log('chip ', device.sensor.chip.name, ' found on ', device.bus.name);
         })
         .then(() => device.sensor.calibration())
-        .then(() => device.sensor.setProfile({
-          mode: device.sensor.chip.MODE_NORMAL,
-          oversampling_p: device.sensor.chip.OVERSAMPLE_X2,
-          oversampling_t: device.sensor.chip.OVERSAMPLE_X4,
-          oversampling_h: device.sensor.chip.OVERSAMPLE_X4,
-          filter_coefficient: device.sensor.chip.COEFFICIENT_OFF,
-          standby_time: device.sensor.chip.STANDBY_500
-        }))
+        .then(() => device.sensor.setProfile(Profiles.chipProfile(device.profile, device.sensor.chip)))
         .then(() => {
           return setInterval(poll, 1000, device);
         })
@@ -62,8 +77,11 @@ function setupDevice(application) {
 }
 
 function poll(device){
-  device.sensor.measurement().then(([P, T, H]) => {
+  device.sensor.measurement().then(result => {
     // console.log(P, T, H);
+    const P = result.pressure;
+    const T = result.tempature;
+    const H = result.humidity;
 
     console.log(device.sensor.chip.name + ' (' + device.bus.name + '):');
     if(device.sensor.chip.supportsPressure){
@@ -72,7 +90,12 @@ function poll(device){
       } else if(P.undef !== undefined) {
         console.log('\tPressue:', 'uncalibrated');
       } else {
-        console.log('\tPressure: ', Converter.trim(P));
+        const altitudeFt = Converter.altitudeFromPressure(Converter.seaLevelPa, P.P);
+
+        console.log('\tPressure (Pa):', Converter.trim(P.P), '(inHg):', Converter.trim(Converter.pressurePaToInHg(P.P)));
+        console.log('\tAltitude',
+          '(ft):', Converter.trim(altitudeFt),
+          '(m): ', Converter.trim(Converter.ftToMeter(altitudeFt)) );
       }
     }
     if(device.sensor.chip.supportsTempature){
@@ -81,7 +104,7 @@ function poll(device){
       } else if(T.undef !== undefined) {
         console.log('\tTempature:', 'uncalibrated');
       } else {
-        console.log('\tTempature:', Converter.trim(T.cf), Converter.trim(Converter.ctof(T.cf)));
+        console.log('\tTempature: (c)', Converter.trim(T.T), '(F)', Converter.trim(Converter.ctof(T.T)));
       }
     }
     if(device.sensor.chip.supportsHumidity){
@@ -90,7 +113,7 @@ function poll(device){
       } else if(T.undef !== undefined) {
         console.log('\tHumidity: ', 'uncalibrated');
       } else {
-        console.log('\tHumidity:', H);
+        console.log('\tHumidity:', Converter.trim(H.H));
       }
     }
     console.log();
@@ -101,6 +124,7 @@ function poll(device){
 }
 
 defaultConfig()
+  .then(loadProfiles)
   .then(setupDevice)
   .then(runconfig => { console.log('All Devices Setup'); })
   .catch(e => { console.log('error', e); });

@@ -26,8 +26,7 @@ let commands = [
   { name: 'clear', valid: () => true, callback: function(state) { console.log('\u001B[2J\u001B[0;0f'); return Promise.resolve();  } }
 ];
 
-const seaLevelPa = 1013.25;
-let state = { seaLevelPa: seaLevelPa, defaultValid: false };
+let state = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
 function prompt() {
   const close = '> ';
@@ -354,13 +353,14 @@ commands.push({
   },
   callback: function(state) {
     return state.sensor.pressure().then(press => {
-      console.log('Under pressure:', press);
       if(press.skip){
-
+        console.log('Pressure sensing disabled');
       } else if(press.undef) {
-
+        console.log('Pressure calibration unsed:', press.undef);
       } else {
-        console.log('Pressure (Pa):', press);
+        console.log('Pressure   (Pa):', Converter.trim(press.P));
+        console.log('Pressure (inHg):', Converter.trim(Converter.pressurePaToInHg(press.P)));
+        console.log('Altitude   (ft):', Converter.trim(Converter.altitudeFromPressure(state.seaLevelPa, press.P)));
       }
     });
   }
@@ -381,8 +381,8 @@ commands.push({
       }else if(temp.undef){
         console.log('Tempature calibration unset:', temp.undef);
       }else{
-        console.log('Tempature (c): ', Converter.trim(temp.cf), Converter.trim(temp.ci));
-        console.log('          (f): ', Converter.trim(Converter.ctof(temp.cf)), Converter.trim(Converter.ctof(temp.ci)));
+        console.log('Tempature (c): ', Converter.trim(temp.T));
+        console.log('          (f): ', Converter.trim(Converter.ctof(temp.T)));
       }
     });
   }
@@ -399,8 +399,11 @@ commands.push({
   callback: function(state) {
     return state.sensor.humidity().then(humi => {
       if(humi.skip){
+        console.log('Humidity sensing disabled');
+      } else if(humi.undef) {
+        console.log('Humidity calibration unset:', humi.undef);
       } else {
-        console.log('balmy', humi);
+        console.log('Humidity  (?): ' + Converter.trim(humi.H));
       }
     });
   }
@@ -417,8 +420,8 @@ commands.push({
   },
   callback: function(state) {
     return state.sensor.pressure(...(calibration_data.slice(3))).then(P => {
-      const alt = bmp280.altitudeFromPressure(state.seaLevelPa, P);
-      console.log('Altitude: ', alt);
+      const alt = Converter.altitudeFromPressure(state.seaLevelPa, P);
+      console.log('Altitude (ft): ', alt);
     });
   }
 });

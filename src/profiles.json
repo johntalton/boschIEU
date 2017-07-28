@@ -7,12 +7,21 @@
     "filter_coefficient": false,
     "standby_time": true
   },
+  "FORCED": {
+    "mode": "FORCED",
+    "oversampling_p": 1,
+    "oversampling_t": 1,
+    "oversampling_h": 1,
+    "filter_coefficient": false,
+    "standby_time": true
+  },
 
 
   "TEMPATURE_ONLY": {
     "mode": "NORMAL",
     "oversampling_p": false,
     "oversampling_t": 16,
+    "oversampling_h": false,
     "filter_coefficient": false,
     "standby_time": 0.5
   },
@@ -20,6 +29,7 @@
     "mode": "NORMAL",
     "oversampling_p": 1, 
     "oversampling_t": 16,
+    "oversampling_h": false,
     "filter_coefficient": 2,
     "standby_time": 0.5
   },
@@ -27,6 +37,7 @@
     "mode": "NORMAL",
     "oversampling_p": 1,
     "oversampling_t": 16,
+    "oversampling_h": false,
     "filter_coefficient": 2,
     "standby_time": 1000
   },
@@ -36,7 +47,7 @@
     "oversampling_t": 1,
     "oversampling_h": 1,
     "filter_coefficient": 2,
-    "standby_time": 4000
+    "standby_time": true
   },
 
 
@@ -45,6 +56,7 @@
     "mode": "NORMAL",
     "oversampling_p": 16,
     "oversampling_t": 2,
+    "oversampling_h": false,
     "filter_coefficient": 4,
     "standby_time": 62
   },
@@ -52,6 +64,7 @@
     "mode": "NORMAL",
     "oversampling_p": 4,
     "oversampling_t": 1,
+    "oversampling_h": false,
     "filter_coefficient": 16,
     "standby_time": 5
   },
@@ -59,13 +72,16 @@
     "mode": "FORCED",
     "oversampling_p": 1,
     "oversampling_t": 1,
-    "filter_coefficient": 0,
-    "standby_time": 1
+    "oversampling_h": 1,
+    "oversampling_h": false,
+    "filter_coefficient": false,
+    "standby_time": true
   },
   "ELEVATOR_FLOOR_CHAHGE": {
     "mode": "NORMAL",
     "oversampling_p": 4,
     "oversampling_t": 1,
+    "oversampling_h": false,
     "filter_coefficient": 4,
     "standby_time": 125
   },
@@ -73,6 +89,7 @@
     "mode": "NORMAL",
     "oversampling_p": 2,
     "oversampling_t": 1,
+    "oversampling_h": false,
     "filter_coefficient": 0,
     "standby_time": 5
   },
@@ -80,8 +97,26 @@
     "mode": "NORMAL",
     "oversampling_p": 16,
     "oversampling_t": 2,
+    "oversampling_h": 1,
     "filter_coefficient": 16,
-    "standby_time": 5
-  } 
+    "standby_time": 0.5
+  },
+
+  "HUMIDITY_SENSING": {
+    "mode": "FORCED",
+    "oversampling_p": false,
+    "oversampling_t": 1,
+    "oversampling_h": 1,
+    "filter_coefficient": 16,
+    "standby_time": 1000
+  },
+  "GAMING": {
+    "mode": "NORMAL",
+    "oversampling_p": 4,
+    "oversampling_t": 1,
+    "oversampling_h": false,
+    "filter_coefficient": 16,
+    "standby_time": 0.5
+  }
 }
 

@@ -26,6 +26,7 @@ class Profiles {
 
   static profile(name) {
     //console.log('searching for profile:', name, Profiles._profiles );
+    if(!Profiles._profiles.hasOwnProperty(name)) { return; }
     return Profiles._profiles[name];
   }
 
@@ -99,6 +100,7 @@ class Profiles {
     case 62.5: return throwIfUndef(chip.STANDBY_62, '62');
     case 125: return throwIfUndef(chip.STANDBY_125, '125');
     case 250: return throwIfUndef(chip.STANDBY_250, '250');
+    case 500: return throwIfUndef(chip.STANDBY_500, '500');
     case 1000: return throwIfUndef(chip.STANDBY_1000, '1000');
     case 2000: return throwIfUndef(chip.STANDBY_2000, '2000');
     case 4000: return throwIfUndef(chip.STANDBY_4000, '4000');

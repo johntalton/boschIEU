@@ -45,8 +45,7 @@ const bme280Chip = {
   REG_TEMP:        0xFA,
   REG_HUM:         0xFD,
 
-  // https://github.com/drotek/BMP280/blob/master/Software/BMP280/BMP280.h
-  REG_CAL26: 0xE1,  // R calibration stored in 0xE1-0xF0
+  REG_CALIBRATION_HUMIDITY: 0xE1,  // 
 
   OVERSAMPLE_SKIP: 0b000,
   OVERSAMPLE_X1:   0b001,
@@ -98,8 +97,6 @@ const bmp280Chip = {
   REG_CONFIG:      0xF5,
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
-
-  REG_CALIBRATION_HUMIDITY: 0xE1,
 
   OVERSAMPLE_SKIP: 0b000,
   OVERSAMPLE_X1:   0b001,
