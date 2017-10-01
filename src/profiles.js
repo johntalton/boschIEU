@@ -10,9 +10,15 @@ function throwIfUndef(obj, msg) {
  */
 class Profiles {
  static load(filepath) {
+    const guarantee = false;
     return new Promise((resolve, reject) => {
       fs.readFile(filepath, 'utf8', function (err, data) {
-        if(err){ reject(err); }
+        if(err){
+          console.log('failed to read profile:', filepath, err);
+
+          if (guarantee) reject(err); else resolve({});
+          return;
+        }
         //console.log('readFile', err, data);
         const json = JSON.parse(data);
         resolve(json);

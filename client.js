@@ -9,7 +9,7 @@ const JsonStore = require('jsonstore');
 function defaultConfig() {
   // console.log('default config');
   return Promise.resolve({
-    connection: 'http://admin:couch@192.168.1.18:5984/',
+    connection: process.env.storeurl,
     profiles: './src/profiles.json',
     devices: [
       {

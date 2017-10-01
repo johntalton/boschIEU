@@ -8,6 +8,7 @@
     "i2c-bus": "^1.2.2",
     "pi-spi": "^1.0.1",
     "rasbus": "file:../rasbus",
+    "jsonstore": "file:../jsonstore",
     "spi": "^0.2.0"
   },
   "repository": {
