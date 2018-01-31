@@ -1,4 +1,5 @@
 const Converter = require('./converter.js');
+const Profiles = require('./profiles.js');
 
 /**
  * Bosch Integrated Environmental Unit
