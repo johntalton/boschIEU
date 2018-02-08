@@ -4,7 +4,6 @@ const Converter = boschLib.Converter;
 const Profiles = boschLib.Profiles;
 
 const rasbus = require('rasbus');
-const JsonStore = require('jsonstore');
 
 function defaultConfig() {
   // console.log('default config');
@@ -112,7 +111,8 @@ function insertResults(application, device, results, polltime) {
     }
   }
 
-  return application.store.insert({
+//  return application.store.insert({
+  return ({
     type: 'result',
     properties: {
       bus: device.bus.name,
@@ -236,7 +236,7 @@ function poll(application, device){
 //
 defaultConfig()
   .then(loadProfiles)
-  .then(setupStore)
+  //.then(setupStore)
   .then(setupDevice)
   .then(runconfig => { console.log('Client UP.'); })
   .catch(e => { console.log('error', e); });
