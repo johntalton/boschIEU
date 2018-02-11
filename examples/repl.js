@@ -1,12 +1,12 @@
 var readline = require('readline');
 
-const boschLib = require('./src/boschIEU.js');
+const boschLib = require('../src/boschIEU.js');
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
-const chip = require('./src/chip.js');
+const chip = require('../src/chip.js');
 
-const Profiles = require('./src/profiles.js');
+const Profiles = require('../src/profiles.js');
 
 const rasbus = require('rasbus');
 const spiImpl = rasbus.spi;
@@ -480,7 +480,7 @@ commands.push({
   }
 */
 
-Profiles.load('./src/profiles.json').then(() => {
+Profiles.load('../src/profiles.json').then(() => {
   prompt();
 }).catch(e => {
   console.log('error', e);

@@ -1,4 +1,4 @@
-const chipLib = require('./src/chip.js');
+const chipLib = require('../src/chip.js');
 const chips = chipLib.chips;
 
 class Misc {
