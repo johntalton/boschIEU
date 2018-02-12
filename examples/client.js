@@ -9,6 +9,8 @@ const Util = require('./client-util.js');
 const Store = require('./client-store.js');
 const Device = require('./client-device.js');
 
+const State = Util.State;
+
 function defaultConfig() {
   // console.log('default config');
   return Promise.resolve({
@@ -53,24 +55,34 @@ function loadProfiles(application) {
   return Profiles.load(application.profiles).then(() => application);
 }
 
-/**
- * when polling the device(s) this is how ye be doing it
- * callback and inline console log
- */
-function poll(application, device){
-  device.sensor.measurement()
-    .then(result => { insertResults(application, device, result, new Date()); return result; })
-    .then(result => Util.log)
-    .catch(e => {
-      console.log('error measuring', e);
-      clearInterval(device.timer);
-    });
+function setupStateHandlers(application) {
+  State.on(application.machine, 'stream', () => {
+    // scans and start any valid client streams
+    Device.startStreams(application);
+  });
+
+  State.on(application.machine, 'restream', () => {
+    // scans and start any valid client streams
+    Device.startStreams(application);
+  });
+
+  State.on(application.machine, 'stopstream', () => {
+    // stops all active streams
+    Device.stopStreams(application);
+  });
+
+  State.on(application.machine, 'restopstream', () => {
+    // device is self cleaning on down 
+  });
+
+  return application;
 }
 
 //
 // kick off
 //
 defaultConfig()
+  .then(setupStateHandlers)
   .then(loadProfiles)
   .then(Store.setupStore)
   .then(Device.setupDevices)

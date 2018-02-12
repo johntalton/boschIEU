@@ -1,8 +1,10 @@
 "use strict";
 
+const boschLib = require('../src/boschIEU.js');
+const Converter = boschLib.Converter;
 
 class Util {
-  static log(result) {
+  static log(device, result) {
     // console.log(P, T, H);
     const P = result.pressure;
     const T = result.tempature;
@@ -59,22 +61,22 @@ class Util {
           'dsome': { next: '2some', event: '' },
           'all': { next: '3all', event: '' },
           'mqtt': { next: '6mqttsome', event: 'stream' },
-          'dmqtt': { next: '2some', evnet: '' } }, // we know, thanks
+          'dmqtt': { next: '2some', event: '' } }, // we know, thanks
         '3all': {
           'mqtt': { next: '4active', event: 'stream' },
           'dsome': { next: '2some', event: '' },
-          'dmqtt': { next: '3all', evnet: '' } }, // we know, thanks
-        '4active': {
-          'dsome': { next: '6mqttsome', event: '' },
-          'dmqtt': { next: '3all', evnet: 'stopstream' } },
-        '5mqtt': {
+          'dmqtt': { next: '3all', event: '' } }, // we know, thanks
+        '4active': { // streaming state
+          'dsome': { next: '6mqttsome', event: 'restopstream' },
+          'dmqtt': { next: '3all', event: 'stopstream' } },
+        '5mqtt': { 
           'some': { next: '6mqttsome', event: 'stream' },
           'dmqtt': { next: '1init', event: '' } },
-        '6mqttsome': {
+        '6mqttsome': { // streaming state
           'none': { next: '5mqtt', event: 'stopstream' },
-          'some': { next: '6mqttsome', event: '' },
-          'dsome': { next: '6mqttsome', event: '' },
-          'all': { next: '4active', event: '' },
+          'some': { next: '6mqttsome', event: 'restream' },
+          'dsome': { next: '6mqttsome', event: 'restopstream' },
+          'all': { next: '4active', event: 'restream' },
           'dmqtt': { next: '2some', event: 'stopstream' } }
       }
     };
@@ -85,8 +87,19 @@ class State {
   static to(machine, state) {
     const transition = machine.states[machine.state][state];
     console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
+
+    const on = machine.ons[transition.event];
+    if(on !== undefined) {
+      try { on(); } catch(e) { console.log('machine callback error', e); }
+    }
+
     machine.state = transition.next;
     return transition.event;
+  }
+
+  static on(machine, event, callback) {
+    if(machine.ons === undefined) { machine.ons = {}; }
+    machine.ons[event] = callback;
   }
 }
 

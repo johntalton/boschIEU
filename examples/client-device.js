@@ -6,7 +6,9 @@ const boschLib = require('../src/boschIEU.js');
 const bosch = boschLib.BoschIEU;
 const Profiles = boschLib.Profiles;
 
-const State = require('./client-util.js').State;
+const Util = require('./client-util.js');
+const Store = require('./client-store.js');
+const State = Util.State;
 
 class Device {
   /**
@@ -14,16 +16,20 @@ class Device {
    */
   static setupDevices(application) {
     return Promise.all([application.devices.filter(devcfg => devcfg.client === undefined).map(devcfg => {
-      return Device.setupDevice(application, devcfg)
-        .then(() => {
-          Device._processDevice(application);
-        })
-        .catch(e => {
-          console.log('\u001b[91mdevice setup failure', devcfg, e, '\u001b[0m');
-          devcfg.client = undefined;
-          devcfg.retrytimer = setInterval(Device._retrySetupDevice, devcfg.retryIntervalMS, application, devcfg);
-        });
+      return Device.setupDeviceWithRetry(application, devcfg);
     })]).then(results => application);
+  }
+
+  static setupDeviceWithRetry(application, devcfg) {
+    return Device.setupDevice(application, devcfg)
+      .then(() => {
+        Device._processDevice(application, true);
+      })
+      .catch(e => {
+        console.log('\u001b[91mdevice setup failure', devcfg, e, '\u001b[0m');
+        devcfg.client = undefined;
+        devcfg.retrytimer = setInterval(Device._retrySetupDevice, devcfg.retryIntervalMS, application, devcfg);
+      });
   }
 
   // top level set intervale, no return
@@ -31,9 +37,9 @@ class Device {
     console.log('retruy device', devcfg.bus, devcfg.id);
     Device.setupDevice(application, devcfg)
       .then(() => {
-        clearIntervale(devcfg.retrytimer);
+        clearInterval(devcfg.retrytimer);
         devcfg.retrytimer = undefined;
-        Device._processDevice(application);
+        Device._processDevice(application, true);
       })
       .catch(e => { console.log('reconnect failure', e); });
   }
@@ -51,9 +57,13 @@ class Device {
       })
       .then(() => client.sensor.calibration())
       .then(() => client.sensor.setProfile(Profiles.chipProfile(client.profile, client.sensor.chip)))
-      //.then(() => insertDeviceUp(application, devcfg))
 
       .then(() => { devcfg.client = client });
+  }
+
+  static reapDevice(application, devcfg) {
+    devcfg.client = undefined;
+    Device.setupDeviceWithRetry(application, devcfg);
   }
 
   /**
@@ -79,7 +89,7 @@ class Device {
     return cfgprofile;
   }
 
-  static _processDevice(application) {
+  static _processDevice(application, direction) {
     const pending = application.devices.filter(d => d.client === undefined);
     const all = pending.length === 0;
     const some = pending.length > 0 && pending.length !== application.devices.length;
@@ -88,33 +98,49 @@ class Device {
     console.log('proccess', all, some, none);
 
     if(all) { State.to(application.machine, 'all'); }
-    else if(some) { State.to(application.machine, 'some'); }
+    else if(some) { State.to(application.machine, direction ? 'some' : 'dsome'); }
     else if(none) { State.to(application.machine, 'none'); }
 
     return;
   }
 
-  static _startStream(application) {
+  static startStreams(application) {
+    console.log('starting streams...');
     const ready = application.devices
       .filter(d => d.client !== undefined)
       .filter(d => d.client.polltimer === undefined)
       .forEach(d => {
-        setInterval(Device._poll, d.pollIntervalMS, application, d);
+        console.log('start stream');
+        d.client.polltimer = setInterval(Device._poll, d.pollIntervalMS, application, d);
       });
   }
 
-  static _stopStream(application) {
+  static stopStreams(application) {
+    console.log('stoping streams...');
     const reap = application.devices
       .filter(d => d.client !== undefined)
       .filter(d => d.client.polltimer !== undefined)
       .forEach(d => {
-        clearIntervale(d.client.polltimer);
+        console.log('stop stream');
+        clearInterval(d.client.polltimer);
         d.client.polltimer = undefined;
       });
   }
 
   static _poll(application, devcfg) {
-    console.log('poll');
+    console.log('poll', devcfg.client.sensor.chip.name);
+    devcfg.client.sensor.measurement()
+      .then(result => Store.insertResults(application, devcfg.client, result, new Date()).then(() => result))
+      .then(result => Util.log(devcfg.client, result))
+      .catch(e => {
+        console.log('error measuring shutdown timer', e);
+        clearInterval(devcfg.client.polltimer);
+        devcfg.client.polltimer = undefined;
+
+        Device.reapDevice(application, devcfg);
+
+        Device._processDevice(application, false);
+      });
   }
 }
 
