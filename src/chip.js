@@ -6,6 +6,7 @@ class Chip {
   static fromId(id){
     if(id === bmp280Chip.CHIP_ID){ return bmp280Chip; }
     else if(id === bme280Chip.CHIP_ID){ return bme280Chip; }
+    else if(id === bme680Chip.CHIP_ID) { return bme680Chip; }
     return UnknownChip;
   }
 }
@@ -17,6 +18,18 @@ const UnknownChip = {
   supportsPressure: false,
   supportsTempature: false,
   supportsHumidity: false
+};
+
+const bme680Chip = {
+  name: 'bme680',
+  supportsPreassure: true,
+  supportsTempature: true,
+  supportsHumidity: true,
+  supportsGas: true,
+
+  CHIP_ID: 0x61,
+  RESET_MAGIC: 0xB6,
+  SKIPPED_SAMPLE_VALUE: 0x80000
 };
 
 const bme280Chip = {
