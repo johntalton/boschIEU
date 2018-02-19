@@ -128,8 +128,8 @@ class Device {
     let base = Promise.resolve();
     if(d.client.putToSleep) {
       d.client.putToSleep = undefined;
-      console.log('device prvious put to sleep, setProfile');
-      base = d.client.sensor.setProfile(Profiles.chipProfile(d.profile, d.client.sensor.chip));
+      console.log('device prvious put to sleep, setProfile', d.profile);
+      base = d.client.sensor.setProfile(Profiles.chipProfile(d.client.profile, d.client.sensor.chip));
     }
     
     return base.then(() => {
@@ -171,7 +171,7 @@ class Device {
   }
 
   static _houseKeepingOnPoll(devcfg) {
-    console.log('configured profile', devcfg.profile);
+    //console.log('configured profile', devcfg.profile);
     return Promise.resolve({})
       .then(config => Device._hkModeCheck(devcfg.client.sensor, { checkMode: true }))
       .then(config => Device._hkForce(devcfg.client.sensor, {
