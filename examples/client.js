@@ -1,58 +1,25 @@
 "use strict";
 
 const boschLib = require('../src/boschIEU.js');
-//const bosch = boschLib.BoschIEU;
-//const Converter = boschLib.Converter;
 const Profiles = boschLib.Profiles;
 
 const Util = require('./client-util.js');
 const Store = require('./client-store.js');
 const Device = require('./client-device.js');
+const Config = require('./client-config.js');
 
 const State = Util.State;
-
-function defaultConfig() {
-  // console.log('default config');
-  return Promise.resolve({
-    machine: Util.machine(),
-    profiles: '../src/profiles.json',
-    devices: [
-      {
-        bus: 'spi',
-        id: 1,
-        profile: 'MAX_STANDBY',
-        pollIntervalMS: 1 * 1000,
-        retryIntervalMS: 29 * 1000
-      },
-      {
-        bus: 'i2c-bus',
-        address: 0x77,
-        id: 1,
-        profile: {
-          mode: 'NORMAL',
-          oversampling_p: 2,
-          oversampling_t: 2,
-          oversampling_h: 2,
-          filter_coefficient: false,
-          standby_time: 500
-        },
-        pollIntervalMS: 1 * 1000,
-        retryIntervalMS: 31 * 1000
-      }
-    ],
-    mqtt: {
-      url: process.env.mqtturl,
-      reconnectMSecs: 30 * 1000
-    }
-  });
-}
 
 /**
  * loads the recommended configuration profiles aliass json file
  * as recommended in spec
  */
 function loadProfiles(application) {
-  return Profiles.load(application.profiles).then(() => application);
+  let first = application.profiles[0];
+  let rest = application.profiles.slice(1);
+
+  const base = Profiles.load(first).then(() => application);
+  return rest.reduce((accum, path) => accum.catch(() => Profiles.load(path).then(() => application)), base);
 }
 
 function setupStateHandlers(application) {
@@ -81,7 +48,8 @@ function setupStateHandlers(application) {
 //
 // kick off
 //
-defaultConfig()
+Config.config('./client.json')
+  //.then(config => { console.log(config); return config; })
   .then(setupStateHandlers)
   .then(loadProfiles)
   .then(Store.setupStore)

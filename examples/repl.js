@@ -1,3 +1,5 @@
+"use strict";
+
 var readline = require('readline');
 
 const boschLib = require('../src/boschIEU.js');
@@ -268,8 +270,8 @@ commands.push({
   },
   callback: function(state) {
     return state.sensor.config().then(([t_sb, filter, spi3wire_en]) => {
-      console.log('Normal Mode Timing: ', Misc.standby(sensor.chip, t_sb));
-      console.log('IIR Filter: ' + Misc.coefficient(sensor.chip, filter));
+      console.log('Normal Mode Timing: ', Misc.standby(state.sensor.chip, t_sb));
+      console.log('IIR Filter: ' + Misc.coefficient(state.sensor.chip, filter));
     });
   }
 });

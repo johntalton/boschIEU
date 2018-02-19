@@ -1,0 +1,27 @@
+{
+  "profiles": "../src/profiles.json",
+  "devices": [
+    {
+      "bus": { "driver": "spi", "id": 1 },
+      "profile": "MAX_STANDBY",
+      "pollIntervalMs": 3000,
+      "retryIntervalS": 29
+    },
+    {
+      "bus": { "driver": "i2c-bus", "id": [ 1, 119 ] },
+      "profile": {
+        "mode": "NORMAL",
+        "oversampling_p": 2,
+        "oversampling_t": 2,
+        "oversampling_h": 2,
+        "filter_coefficient": false,
+        "standby_time": 500
+      },
+      "pollIntervalS": 1,
+      "retryIntervalS": 31
+    }
+  ],
+  "mqtt": {
+    "reconnectMs": 30000
+  }
+}
