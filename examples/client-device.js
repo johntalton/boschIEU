@@ -1,5 +1,7 @@
 "use strict";
 
+const crypto = require('crypto');
+
 const rasbus = require('rasbus');
 
 const boschLib = require('../src/boschIEU.js');
@@ -10,16 +12,30 @@ const Util = require('./client-util.js');
 const Store = require('./client-store.js');
 const State = Util.State;
 
+function signature(devcfg, sensor) {
+  if(devcfg.sign === false) { return null; }
+  const algo = (devcfg.sign === true) ? 'md5' : devcfg.sign;
+
+  try {
+    const b = Buffer.from([].concat(sensor._p9, sensor._t3, sensor._h6));
+    const hash = crypto.createHash(algo);
+    hash.update(b);
+    const hex = hash.digest('hex');
+    return hex;
+  } catch(e) {
+    console.log('error setting up signature', e);
+    return undefined;
+  }
+}
+
 class Device {
   static _selectBus(bus) {
-    if(bus === 'i2c'){ return rasbus.i2c; }
-    else if(bus === 'i2c-bus') { return rasbus.i2cbus; }
-
-    else if(bus === 'spi'){ return rasbus.spi; }
-    else if(bus === 'pi-spi') { return rasbus.pispi; }
-    else if(bus === 'spi-device') { return rasbus.spidevice; }
-
-    throw new Error('unknown bus: ' + bus);
+    try {
+      return rasbus.byname(bus.replace('-', '')); // support - in names
+    } catch(e) {
+      // must return a 'valid' bus driver (duck)
+      return { init: () => { return Promise.reject(e); } };
+    }
   }
 
   static _parseProfile(cfgprofile) {
@@ -79,7 +95,12 @@ class Device {
       .then(() => client.sensor.calibration())
       .then(() => client.sensor.setProfile(Profiles.chipProfile(client.profile, client.sensor.chip)))
 
-      .then(() => { devcfg.client = client });
+      .then(() => {
+        devcfg.client = client;
+        client.name = devcfg.name;
+        client.signature = signature(devcfg, client.sensor);
+        console.log('signature', client.signature);
+      });
   }
 
   static reapDevice(application, devcfg) {
@@ -121,7 +142,7 @@ class Device {
 
     return Promise.all(reap);
   }
-  
+
   static _startStream(application, d) {
     console.log('start stream');
 
@@ -131,20 +152,20 @@ class Device {
       console.log('device prvious put to sleep, setProfile', d.profile);
       base = d.client.sensor.setProfile(Profiles.chipProfile(d.client.profile, d.client.sensor.chip));
     }
-    
+
     return base.then(() => {
       d.client.polltimer = setInterval(Device._poll, d.pollIntervalMs, application, d);
     });
   }
-  
+
   static _stopStream(application, d) {
     console.log('stop stream');
     clearInterval(d.client.polltimer);
     d.client.polltimer = undefined;
 
     if(d.sleepOnStreamStop) {
-      console.log('**************'); 
-      d.client.putToSleep = true;         
+      console.log('**************');
+      d.client.putToSleep = true;
       return d.client.sensor.sleep();
     }
     return;
@@ -165,7 +186,7 @@ class Device {
       devcfg.client.polltimer = undefined;
 
       Device.reapDevice(application, devcfg);
-  
+
       Device._processDevice(application, false);
     });
   }
@@ -192,7 +213,7 @@ class Device {
 
     return sensor.profile().then(profile => {
       //console.log('active device profile', profile);
-      const n = profile.mode === Profiles.chipMode('NORMAL', sensor.chip); 
+      const n = profile.mode === Profiles.chipMode('NORMAL', sensor.chip);
       return { normal: n };
     });
   }
@@ -212,7 +233,7 @@ class Device {
         return { measure: true };
       }
       else {
-        return sensor.force().then(() => ({ measure: true }));      
+        return sensor.force().then(() => ({ measure: true }));
       }
     }
     else {

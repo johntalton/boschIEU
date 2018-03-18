@@ -56,6 +56,7 @@ class Store {
     return new Promise((resolve, reject) => {
       application.mqtt.client.publish('boschieu/result',
       JSON.stringify({
+        signature: device.signature,
         bus: device.bus.name,
         chip: device.sensor.chip.name,
         time: polltime.toISOString(),

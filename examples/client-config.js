@@ -9,6 +9,18 @@ const defaultProfiles = [
 ];
 
 class Config {
+  static _getMs(cfg, name, defaultMs) {
+    const s = cfg[name + 'S'];
+    const ms = cfg[name + 'Ms'];
+
+    if(s === undefined && ms === undefined) { return defaultMs; }
+
+    const s_z = s !== undefined ? s : 0;
+    const ms_z = ms !== undefined ? ms : 0;
+
+    return s_z * 1000 + ms_z;
+  }
+
   static config(path) {
     return new Promise((resolve, reject) => {
       fs.readFile(path, (err, data) => {
@@ -27,6 +39,8 @@ class Config {
       let devices = rawConfig.devices.map((rawDevCfg, index) => {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
 
+        const sign = rawDevCfg.sign !== undefined ? rawDevCfg.sign : 'md5';
+
         const modeCheck = true;
         const sleepOnStreamStop = true;
 
@@ -38,20 +52,20 @@ class Config {
         if(rawDevCfg.profile === undefined) { throw Error('missing profile for device', name); }
         if(noProfileDB && (typeof profile === 'string')) { throw Error('no profile db / specified profiles only', name); }
 
-        const rS = rawDevCfg.retryIntervalS ? rawDevCfg.retryIntervalS : 0;
-        const rMs = rawDevCfg.retryIntervalMs ? rawDevCfg.retryIntervalMs : 0;
-        const retryMs = rS * 1000 + rMs;
+        const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);
 
         const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
         const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
         const pollMs = pS * 1000 + pMs;
 
         return {
+          name: name,
+          sign: sign,
           bus: {
             driver: busdriver,
             id: busid
           },
-          
+
           profile: profile,
 
           pollIntervalMs: pollMs,
@@ -69,7 +83,7 @@ class Config {
         mqttReMs = S * 1000 + Ms;
       }
 
-      return { 
+      return {
         machine: Util.machine(),
         profiles: profiles,
         devices: devices,

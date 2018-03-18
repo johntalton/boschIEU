@@ -10,7 +10,11 @@ class Util {
     const T = result.tempature;
     const H = result.humidity;
 
-    console.log(device.sensor.chip.name + ' (' + device.bus.name + '):');
+    console.log('"' + device.name + '" ' + device.sensor.chip.name + ' (' + device.bus.name + '):');
+    if(device.signature !== undefined) {
+      console.log('\tsignature:', device.signature);
+    }
+
     if(device.sensor.chip.supportsPressure){
       if(P === undefined || P.skip === true) {
         console.log('\tPressure: ', 'Skipped');
@@ -19,7 +23,7 @@ class Util {
       } else {
         const altitudeFt = Converter.altitudeFromPressure(Converter.seaLevelPa, P.P);
 
-        console.log('\tPressure (Pa):', Converter.trim(P.P), 
+        console.log('\tPressure (Pa):', Converter.trim(P.P),
           '(inHg):', Converter.trim(Converter.pressurePaToInHg(P.P)));
         console.log('\tAltitude',
           '(ft):', Converter.trim(altitudeFt),

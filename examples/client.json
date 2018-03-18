@@ -2,13 +2,14 @@
   "profiles": "../src/profiles.json",
   "devices": [
     {
+      "sign": false,
       "bus": { "driver": "spi", "id": 1 },
       "profile": "MAX_STANDBY",
-      "pollIntervalMs": 3000,
-      "retryIntervalS": 29
+      "pollIntervalMs": 71000
     },
     {
-      "bus": { "driver": "i2c-bus", "id": [ 1, 119 ] },
+      "name": "front room",
+      "bus": { "driver": "i2c-bus", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -17,8 +18,8 @@
         "filter_coefficient": false,
         "standby_time": 500
       },
-      "pollIntervalS": 1,
-      "retryIntervalS": 31
+      "pollIntervalS": 31,
+      "retryIntervalS": 60
     }
   ],
   "mqtt": {
