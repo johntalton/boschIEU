@@ -17,7 +17,9 @@ const UnknownChip = {
 
   supportsPressure: false,
   supportsTempature: false,
-  supportsHumidity: false
+  supportsHumidity: false,
+  supportsGas: false,
+  supportsNormalMode: false
 };
 
 const bme680Chip = {
@@ -26,10 +28,57 @@ const bme680Chip = {
   supportsTempature: true,
   supportsHumidity: true,
   supportsGas: true,
+  supportsNormalMode: false,
 
   CHIP_ID: 0x61,
   RESET_MAGIC: 0xB6,
-  SKIPPED_SAMPLE_VALUE: 0x80000
+  SKIPPED_SAMPLE_VALUE: 0x80000,
+
+  MODE_SLEEP: 0b00,
+  MODE_FORCED: 0b01,
+  // normal?
+
+  REG_PAR_G1:     0xED,
+  REG_PAR_G2:     0xEB,
+  REG_PAR_G2:     0xEE,
+  REG_RES_HEAT_RANGE: 0x02,
+  REG_RES_HEAT_VALUE: 0x00,
+  REG_RANGE_SW_ERR: 0x04,
+
+  REG_STATUS: 0x73,
+
+  REG_RESET:       0xE0,
+  REG_ID:          0xD0,
+  // version
+  REG_CONFIG:      0x75,
+  REG_CTRL_MEAS:   0x74, // REG_CTRL
+  REG_CTRL_HUM:    0x72,
+  REG_CTRL_GAS:    0x70,
+  REG_GAS_WAIT_X:  0x64,
+  REG_RES_HEAT_X:  0x5A,
+  REG_IDAC_HEAT_X: 0x50,
+  REG_GAS:         0x2A,
+  REG_HUM:         0x25,
+  REG_TEMP:        0x22,
+  REG_PRES:        0x1F,
+  REG_MEAS_STATUS_0: 0x1D,
+
+  OVERSAMPLE_SKIP: 0b000,
+  OVERSAMPLE_X1:   0b001,
+  OVERSAMPLE_X2:   0b010,
+  OVERSAMPLE_X4:   0b011,
+  OVERSAMPLE_X8:   0b100,
+  OVERSAMPLE_X16:  0b101,
+
+  COEFFICIENT_OFF: 0b000,
+  COEFFICIENT_1:   0b001,
+  COEFFICIENT_3:   0b010,
+  COEFFICIENT_7:   0b011,
+  COEFFICIENT_15:  0b100,
+  COEFFICIENT_31:  0b101,
+  COEFFICIENT_63:  0b110,
+  COEFFICIENT_127: 0b111
+
 };
 
 const bme280Chip = {
@@ -37,6 +86,8 @@ const bme280Chip = {
   supportsPressure: true,
   supportsTempature: true,
   supportsHumidity: true,
+  supportsGas: false,
+  supportsNormalMode: true,
 
   CHIP_ID: 0x60,
   RESET_MAGIC: 0xB6,
@@ -48,17 +99,17 @@ const bme280Chip = {
 
   REG_CALIBRATION: 0x88,
   REG_ID:          0xD0,
-  REG_VERSION:     0xD1,
+  // REG_VERSION:     0xD1,
   REG_RESET:       0xE0,
   REG_CTRL_HUM:    0xF2, // bme280
   REG_STATUS:      0xF3,
-  REG_CTRL:        0xF4, // REG_CTRL_MEAS
+  REG_CTRL_MEAS:   0xF4,
   REG_CONFIG:      0xF5,
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
   REG_HUM:         0xFD,
 
-  REG_CALIBRATION_HUMIDITY: 0xE1,  // 
+  REG_CALIBRATION_HUMIDITY: 0xE1,  //
 
   OVERSAMPLE_SKIP: 0b000,
   OVERSAMPLE_X1:   0b001,
@@ -92,6 +143,8 @@ const bmp280Chip = {
   supportsPressure: true,
   supportsTempature: true,
   supportsHumidity: false,
+  supportsGas: false,
+  supportsNormalMode: true,
 
   CHIP_ID: 0x58, // some suggest 0x56 and 0x57
   RESET_MAGIC: 0xB6,
@@ -106,7 +159,7 @@ const bmp280Chip = {
   REG_VERSION:     0xD1,
   REG_RESET:       0xE0,
   REG_STATUS:      0xF3,
-  REG_CTRL:        0xF4,
+  REG_CTRL_MEAS:   0xF4,
   REG_CONFIG:      0xF5,
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
@@ -142,7 +195,8 @@ module.exports = {
   chips: {
     unknown: UnknownChip,
     bmp280: bmp280Chip,
-    bme280: bme280Chip
+    bme280: bme280Chip,
+    bme680: bme680Chip
   }
 };
 

@@ -1,5 +1,6 @@
+"use strict";
+
 const Converter = require('./converter.js');
-const Profiles = require('./profiles.js');
 
 /**
  * Bosch Integrated Environmental Unit
@@ -10,21 +11,6 @@ class Common {
     return bus.read(chip.REG_ID).then(buffer => {
       // console.log(buffer);
       return buffer.readInt8(0);
-    });
-  }
-
-  static version(bus, chip){
-    return bus.read(chip.REG_VERSION).then(buffer => {
-      return buffer.readUInt8(0);
-    });
-  }
-
-  static calibration(bus, chip) {
-    return Promise.all([
-      Common.calibrationM(bus, chip),
-      Common.calibrationH(bus, chip)]
-    ).then(([M, H]) => {
-      return { P: M.P, T: M.T, H: H.H };
     });
   }
 
@@ -84,10 +70,6 @@ class Common {
     });
   }
 
-  static calibrationH(bus, chip) {
-
-  }
-
   static reset(bus, chip){
     return bus.write(chip.REG_RESET, chip.RESET_MAGIC);
   }
@@ -95,22 +77,8 @@ class Common {
   static status(bus, chip) {
     return bus.read(chip.REG_STATUS).then(buffer => {
       const status = buffer.readUInt8(0);
+      console.log('status raw', buffer);
       return Converter.fromStatus(status);
-    });
-  }
-
-  static controlMeasurment(bus, chip) {
-    return bus.read(chip.REG_CTRL).then(buffer => {
-      const control = buffer.readUInt8(0);
-      // console.log('ctrlM raw', buffer);
-      return Converter.fromControlMeasurment(control);
-    });
-  }
-
-  static controlHumidity(bus, chip) {
-    return bus.read(chip.REG_CTRL_HUM).then(buffer => {
-      const control = buffer.readUInt8(0);
-      return Converter.fromControlHumidity(control)
     });
   }
 
@@ -120,6 +88,31 @@ class Common {
       return Converter.fromConfig(config);
     });
   }
+
+
+  static controlMeasurment(bus, chip) {
+    return bus.read(chip.REG_CTRL_MEAS).then(buffer => {
+      const control = buffer.readUInt8(0);
+      console.log('ctrlM raw', buffer);
+      return Converter.fromControlMeasurment(control);
+    });
+  }
+
+  static controlHumidity(bus, chip) {
+    if(!chip.supportsHumidity) { throw Error('chip does not support humidity'); } // todo better return
+    return bus.read(chip.REG_CTRL_HUM).then(buffer => {
+      const control = buffer.readUInt8(0);
+      return Converter.fromControlHumidity(control)
+    });
+  }
+
+  static controlGas(bus, chip) {
+    return bus.read(chip.REG_CTRL_GAS).then(buffer => {
+      const control = buffer.readUInt8(0);
+    });
+  }
+
+
 
   static setProfile(bus, chip, profile) {
     // console.log(profile);
@@ -132,26 +125,7 @@ class Common {
 
     return first
       .then(bus.write(chip.REG_CONFIG, config))
-      .then(bus.write(chip.REG_CTRL, controlM));
-  }
-
-  static sleep(bus, chip) {
-    return Common.setProfile(bus, chip, Profiles.chipProfile(Profiles.profile('SLEEP'), chip));
-  }
-
-  static force(bus, chip, press, temp, humi) {
-    return Common.setProfile(bus, chip, Profiles.chipProfile(Profiles.profile('FORCED'), chip));
-/*
-    if(press === undefined) { press = true; }
-    if(temp === undefined) { temp = true; }
-
-    const osrs_p = press ? chip.OVERSAMPLE_X1 : chip.OVERSAMPLE_OFF;
-    const osrs_t = temp ? chip.OVERSAMPLE_X1 : chip.OVERSAMPLE_OFF;
-    const osrs_h = humi ? chip.OVERSAMPLE_X1 : chip.OVERSAMPLE_OFF;
-
-    const control = Converter.ctrlMeasFromSamplingMode(osrs_p, osrs_t, chip.MODE_FORCED);
-    return bus.write(chip.REG_CTRL, control);
-*/
+      .then(bus.write(chip.REG_CTRL_MEAS, controlM));
   }
 
   static profile(bus, chip) {

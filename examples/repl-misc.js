@@ -17,6 +17,11 @@ class Misc {
       if(chips.bme280.MODE_NORMAL === mode){ return 'normal'; }
     }
 
+    if(chip === chips.bme680) {
+      if(chips.bme680.MODE_SLEEP === mode){ return 'sleep'; }
+      if(chips.bme680.MODE_FORCED === mode){ return 'forced'; }
+    }
+
     return 'unidentified (' + mode + ')';
   }
 
@@ -41,6 +46,15 @@ class Misc {
       if(oversample === chips.bme280.OVERSAMPLE_X16){ return 'x16'; }
     }
 
+    if(chip === chips.bme680) {
+      if(oversample === chips.bme680.OVERSAMPLE_SKIP){ return 'skip'; }
+      if(oversample === chips.bme680.OVERSAMPLE_X1){ return 'x1'; }
+      if(oversample === chips.bme680.OVERSAMPLE_X2){ return 'x2'; }
+      if(oversample === chips.bme680.OVERSAMPLE_X4){ return 'x4'; }
+      if(oversample === chips.bme680.OVERSAMPLE_X8){ return 'x8'; }
+      if(oversample === chips.bme680.OVERSAMPLE_X16){ return 'x16'; }
+    }
+
     return 'unidentified';
   }
 
@@ -61,6 +75,17 @@ class Misc {
       if(coefficient === chips.bme280.COEFFICIENT_4){ return '4'; }
       if(coefficient === chips.bme280.COEFFICIENT_8){ return '8'; }
       if(coefficient === chips.bme280.COEFFICIENT_16){ return '16'; }
+    }
+
+    if(chip === chips.bme680) {
+      if(coefficient === chips.bme680.COEFFICIENT_OFF){ return 'Off'; }
+      if(coefficient === chips.bme680.COEFFICIENT_1){ return '1'; }
+      if(coefficient === chips.bme680.COEFFICIENT_3){ return '3'; }
+      if(coefficient === chips.bme680.COEFFICIENT_7){ return '7'; }
+      if(coefficient === chips.bme680.COEFFICIENT_15){ return '15'; }
+      if(coefficient === chips.bme680.COEFFICIENT_31){ return '31'; }
+      if(coefficient === chips.bme680.COEFFICIENT_63){ return '63'; }
+      if(coefficient === chips.bme680.COEFFICIENT_127){ return '127'; }
     }
 
     return 'unidentified';

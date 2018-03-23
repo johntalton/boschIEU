@@ -20,6 +20,22 @@
       },
       "pollIntervalS": 31,
       "retryIntervalS": 60
+    },
+    {
+      "nane": "cigar room (aka with gas)",
+      "bus": { "driver": "i2cbus", "id": [ 1, 119 ] },
+      "profile": {
+        "mode": "FORCED",
+        "oversampling_p": 2,
+        "oversampling_t": 2,
+        "oversampling_h": 2,
+        "filter_coefficient": false,
+
+        "gas": [
+          { tempatureC: 200, durationMs: 100 },
+          { tempatureC: 350, durationMs: 200 }
+        ]
+      }
     }
   ],
   "mqtt": {

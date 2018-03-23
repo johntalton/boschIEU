@@ -10,7 +10,7 @@ const Converter = require('./converter.js');
 
 /**
  * Bosch Integrated Environmental Unit
- * bmp280 / bme280
+ * bmp280 / bme280 / bme680
  */
 class BoschIEU {
   static sensor(bus) {
@@ -60,13 +60,14 @@ class BoschSensor {
   }
 
   reset() { return Common.reset(this._bus, this._chip); }
-  force() { return Common.force(this._bus, this._chip); }
-  sleep() { return Common.sleep(this._bus, this._chip); }
 
   config() { return Common.config(this._bus, this._chip); }
+  status() { return Common.status(this._bus, this._chip); }
+
   controlMeasurment() { return Common.controlMeasurment(this._bus, this._chip); }
   controlHumidity() { return Common.controlHumidity(this._bus, this._chip); }
-  status() { return Common.status(this._bus, this._chip); }
+  controlGas() { return Common.controlGas(this._bus, this._chip); }
+
   profile() { return Common.profile(this._bus, this._chip); }
   setProfile(profile) { return Common.setProfile(this._bus, this._chip, profile); }
 

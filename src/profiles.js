@@ -53,7 +53,9 @@ class Profiles {
       oversampling_t: t,
       oversampling_h: h,
       filter_coefficient: f,
-      standby_time: s
+      standby_time: s,
+
+      enable_gas: false,
     };
   }
 
@@ -62,7 +64,7 @@ class Profiles {
     if(mode === 'SLEEP') {
       return chip.MODE_SLEEP;
     } else if(mode  === 'NORMAL') {
-      return chip.MODE_NORMAL;
+      return throwIfUndef(chip.MODE_NORMAL, 'normal');
     } else if(mode === 'FORCED') {
       return chip.MODE_FORCED;
     }
@@ -86,11 +88,20 @@ class Profiles {
   static chipCoefficient(coefficient, chip) {
     if(coefficient === undefined){ return undefined; }
     switch(coefficient){
-    case false: return chip.COEFFICIENT_OFF; break;
-    case 2: return chip.COEFFICIENT_2; break;
-    case 4: return chip.COEFFICIENT_4; break;
-    case 8: return chip.COEFFICIENT_8; break;
-    case 16: return chip.COEFFICIENT_16; break;
+    case 0: case false: return chip.COEFFICIENT_OFF; break;
+    case 2: return throwIfUndef(chip.COEFFICIENT_2, '2'); break;
+    case 4: return throwIfUndef(chip.COEFFICIENT_4, '4'); break;
+    case 8: return throwIfUndef(chip.COEFFICIENT_8, '8'); break;
+    case 16: return throwIfUndef(chip.COEFFICIENT_16, '16'); break;
+    // bme680 addition
+    case 1: return throwIfUndef(chip.COEFFICIENT_1, '1'); break;
+    case 3: return throwIfUndef(chip.COEFFICIENT_3, '3'); break;
+    case 7: return throwIfUndef(chip.COEFFICIENT_7, '7'); break;
+    case 15: return throwIfUndef(chip.COEFFICIENT_15, '15'); break;
+    case 31: return throwIfUndef(chip.COEFFICIENT_31, '31'); break;
+    case 63: return throwIfUndef(chip.COEFFICIENT_63, '63'); break;
+    case 127: return throwIfUndef(chip.COEFFICIENT_127, '127'); break;
+
     default: throw new Error('unknown coefficient: ' + coefficient);
     }
   }

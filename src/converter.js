@@ -8,7 +8,7 @@ class Converter {
   }
 
   static configFromTimingFilter(timing, filter) {
-    const spi3wire = 0; // TODO 
+    const spi3wire = 0; // TODO
     return (timing << 5) | (filter << 2) | spi3wire;
   }
 
@@ -16,15 +16,31 @@ class Converter {
     return (osrs_t << 5) | (osrs_p << 2) | mode;
   }
 
-  static ctrlHumiFromSampling(osrs_h) {
-    return (osrs_h & 0b111);
+  static ctrlHumiFromSampling(osrs_h, spi_3w_int_en) {
+    if(spi_3w_int_en === undefined) { spi_3w_int_en = false; }
+    return (osrs_h & 0b111) | (spi_3w_int_en ? (0x01 << 6) : 0x00);
   }
 
   static fromConfig(config) {
-    const t_sb = (config >> 5) & 0b111;
+    const t_sb = (config >> 5) & 0b111; // should be Zero on bme680
     const filter = (config >> 2) & 0b111;
     const spi3w_en = config & 0b01 === 0b01;
     return [t_sb, filter, spi3w_en];
+  }
+
+  static fromStatus(status) {
+    const measuring = (status & 0b1000) === 0b1000; // Zero on bme680
+    // todo const spi_mem_page = (status & );
+    const im_update = (status & 0b0001) === 0b0001; // Zero on bme680
+    return [measuring, im_update];
+  }
+
+  static fromMeasStatus(meas_status) {
+    const new_data_0 = (meas_status & 0x80) === 0x80;
+    const gas_measuring = (meas_status & 0x40) === 0x40;
+    const measuring = (meas_status & 0x20) === 0x20;
+    const gas_meas_index = meas_status & 0x0F;
+    return [new_data_0, gas_measuring, measuring, gas_meas_index];
   }
 
   static fromControlMeasurment(control) {
@@ -35,15 +51,13 @@ class Converter {
   }
 
   static fromControlHumidity(control) {
+    const spi_3w_int_en = (control & (0x01 << 6)) === (0x01 << 6)
     const osrs_h = control & 0b111;
-    return [osrs_h];
+    return [osrs_h, spi_3w_int_en];
   }
 
-  static fromStatus(status) {
-    const measuring = (status & 0b1000) === 0b1000;
-    const im_update = (status & 0b0001) === 0b0001;
-    return [measuring, im_update];
-  }
+
+
 
   static compensateP(chip, adcP, Tfine, dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9){
     let pvar1 = Tfine / 2 - 64000;
@@ -160,6 +174,16 @@ class Converter {
       H: h
     };
   }
+
+  static tempatureCTomA(tempatureC) {
+
+  }
+
+  static fromIdacHeatTomA(idac_head) {
+    return (idac_head + 1) / 8;
+  }
+
+
 
   static altitudeFromPressure(seaLevelPa, P){
     if(P === undefined){ return { undef: 'P' }; }
