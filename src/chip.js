@@ -1,3 +1,4 @@
+"use strict";
 
 /**
  * Chip/Chips
@@ -38,12 +39,7 @@ const bme680Chip = {
   MODE_FORCED: 0b01,
   // normal?
 
-  REG_PAR_G1:     0xED,
-  REG_PAR_G2:     0xEB,
-  REG_PAR_G2:     0xEE,
-  REG_RES_HEAT_RANGE: 0x02,
-  REG_RES_HEAT_VALUE: 0x00,
-  REG_RANGE_SW_ERR: 0x04,
+  CALIBRATION_BLOCK: [[0x89, 25], [0x1E, 16], 0x00, 0x02, 0x04],
 
   REG_STATUS: 0x73,
 
@@ -97,7 +93,6 @@ const bme280Chip = {
   MODE_FORCED: 0b01, // alts 01 10
   MODE_NORMAL: 0b11,
 
-  REG_CALIBRATION: 0x88,
   REG_ID:          0xD0,
   // REG_VERSION:     0xD1,
   REG_RESET:       0xE0,
@@ -109,7 +104,7 @@ const bme280Chip = {
   REG_TEMP:        0xFA,
   REG_HUM:         0xFD,
 
-  REG_CALIBRATION_HUMIDITY: 0xE1,  //
+  CALIBRATION_BLOCK: [[0x88, 24], 0xA1, [0xE1, 7]],
 
   OVERSAMPLE_SKIP: 0b000,
   OVERSAMPLE_X1:   0b001,
@@ -154,7 +149,6 @@ const bmp280Chip = {
   MODE_FORCED: 0b01, // alts 01 10
   MODE_NORMAL: 0b11,
 
-  REG_CALIBRATION: 0x88,
   REG_ID:          0xD0,
   REG_VERSION:     0xD1,
   REG_RESET:       0xE0,
@@ -163,6 +157,8 @@ const bmp280Chip = {
   REG_CONFIG:      0xF5,
   REG_PRESS:       0xF7,
   REG_TEMP:        0xFA,
+
+  CALIBRATION_BLOCK: [[0x88, 24]],
 
   OVERSAMPLE_SKIP: 0b000,
   OVERSAMPLE_X1:   0b001,

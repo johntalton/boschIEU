@@ -1,10 +1,15 @@
 {
-  "profiles": "../src/profiles.json",
   "devices": [
     {
       "sign": false,
       "bus": { "driver": "spi", "id": 1 },
-      "profile": "MAX_STANDBY",
+      "profile": {
+        "mode": "NORMAL",
+        "oversampling_p": 2,
+        "oversampling_t": 2,
+        "filter_coefficient": false,
+        "standby_time": true
+      },
       "pollIntervalMs": 71000
     },
     {
@@ -22,19 +27,22 @@
       "retryIntervalS": 60
     },
     {
+      "sign": "md5",
       "nane": "cigar room (aka with gas)",
       "bus": { "driver": "i2cbus", "id": [ 1, 119 ] },
       "profile": {
-        "mode": "FORCED",
+        "mode": "SLEEP",
         "oversampling_p": 2,
         "oversampling_t": 2,
         "oversampling_h": 2,
-        "filter_coefficient": false,
+        "filter_coefficient": 3,
 
         "gas": [
-          { tempatureC: 200, durationMs: 100 },
-          { tempatureC: 350, durationMs: 200 }
-        ]
+          { tempatureF: 572, durationMs: 220 },
+          { tempatureC: 350, durationMs: 100, active: true }
+        ],
+
+       "pollIntervalS": undefined
       }
     }
   ],

@@ -18,7 +18,7 @@ const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 Repler.addPrompt(state => {
   const close = '> ';
   let prompt = close;
-  if(state.bus != undefined) {
+  if(state.bus !== undefined) {
     prompt = state.bus.name + close;
     if(state.sensor !== undefined) {
       prompt = state.bus.name + ':' + state.sensor.chip.name + close;

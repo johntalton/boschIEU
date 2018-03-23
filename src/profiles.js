@@ -56,6 +56,7 @@ class Profiles {
       standby_time: s,
 
       enable_gas: false,
+      gas: []
     };
   }
 

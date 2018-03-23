@@ -166,9 +166,10 @@ class Device {
     if(d.sleepOnStreamStop) {
       console.log('**************');
       d.client.putToSleep = true;
-      return d.client.sensor.sleep();
+      let sleepprofile = Profiles.chipProfile(d.client.profile);
+      return d.client.sensor.setProfile(sleepprofile);
     }
-    return;
+    return Promise.resolve();
   }
 
 
