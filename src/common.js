@@ -1,52 +1,71 @@
 "use strict";
 
-const Converter = require('./converter.js');
-
 /**
- * Bosch Integrated Environmental Unit
- * bmp280 / bme280 / bme680
+ * Binding point for bus / chip read and convert methods
  */
 class Common {
-  static id(bus, chip){
-    return bus.read(chip.REG_ID).then(buffer => {
-      // console.log(buffer);
-      return buffer.readInt8(0);
-    });
-  }
-
-  static calibration(bus, chip) {
-    const block = chip.CALIBRATION_BLOCK.map(item => {
-      console.log('fixup', item);
+  // magic read method that take in an array of address/lengh pairs
+  // (with shorthand for just address if length 1)
+  // returns promise resolving to common chip api
+  static _read(bus, config, ...params) {
+    // normalize block from shorthand
+    const blk = config.block.map(item => {
       if(Array.isArray(item)) {
-        if(item.length !== 2) { return [item[0], 1]; }
+        if(item.length !== 2) { console.log('sloppy format', item); return [item[0], 1]; }
         return item;
       }
       return [item, 1];
-    });
-    const totalLength = block.reduce((out, [reg, len]) => out += len, 0);
+    })
+    // make it all inty
+    .map(([reg, len]) => [parseInt(reg), parseInt(len)]);
 
-    return Promise.all(block.map(([reg, len]) => {
+    // and the total...
+    const totalLength = blk.reduce((out, [reg, len]) => out += len, 0);
+
+    console.log(blk, totalLength);
+
+    // go
+    return Promise.all(blk.map(([reg, len]) => {
       return bus.read(reg, len);
     }))
     .then(all => {
-      const calibuf = Buffer.concat(all, totalLength);
-      return Common.calibrationFromBuffer(calibuf);
+      const buf = Buffer.concat(all, totalLength);
+      return config.parser(buf, ...params);
     });
   }
 
-  static calibrationFromBuffer(buffer) {
-    switch(buffer.length) { // todo test for chip.calibrationMap() or supports?
-      case 24:
-      case 32:
-        return Common.classicCalibrationFromBuffer(buffer);
-        break;
-      case 44:
-        return Common.newCalibrationFromBuffer(buffer);
-        break;
-     default:
-       throw Error('unknown calibration length: ' + buffer.length);
-    }
+  // pass thoughs to _read
+  static id(bus, chip){ return Common._read(bus, chip.id);  }
+  static calibration(bus, chip) { return Common._read(bus, chip.calibration); }
+  static profile(bus, chip) { return Common._read(bus, chip.profile); }
+  static ready(bus, chip) { return Common._read(bus, chip.ready); }
+  static measurment(bus, chip, calibration) { return Common._read(bus, chip.calibration, calibration); }
+
+  // common reset
+  static reset(bus, chip) { return bus.write(chip.reset[0], chip.reset[1]); }
+
+  // todo
+  static setProfile(bus, chip, profile) {
+    // console.log(profile);
+    const controlM = Converter.ctrlMeasFromSamplingMode(profile.oversampling_p, profile.oversampling_t, profile.mode);
+    const controlH = Converter.ctrlHumiFromSampling(profile.oversampling_h);
+    const config = Converter.configFromTimingFilter(profile.standby_time, profile.filter_coefficient);
+
+    // console.log(controlM, controlH, config);
+    const first = chip.supportsHumidity ? bus.write(chip.REG_CTRL_HUM, controlH) : Promise.resolve();
+
+    return first
+      .then(bus.write(chip.REG_CONFIG, config))
+      .then(bus.write(chip.REG_CTRL_MEAS, controlM));
   }
+
+
+
+
+
+
+
+
 
   static classicCalibrationFromBuffer(buffer) {
     const dig_T1 = buffer.readUInt16LE(0);
@@ -136,122 +155,7 @@ class Common {
     return { P: P, T: T, H: H, G: G };
   }
 
-  static reset(bus, chip){
-    return bus.write(chip.REG_RESET, chip.RESET_MAGIC);
-  }
 
-  static status(bus, chip) {
-    return bus.read(chip.REG_STATUS).then(buffer => {
-      const status = buffer.readUInt8(0);
-      console.log('status raw', buffer);
-      return Converter.fromStatus(status);
-    });
-  }
-
-  static config(bus, chip) {
-    return bus.read(chip.REG_CONFIG).then(buffer => {
-      const config = buffer.readUInt8(0);
-      return Converter.fromConfig(config);
-    });
-  }
-
-
-  static controlMeasurment(bus, chip) {
-    return bus.read(chip.REG_CTRL_MEAS).then(buffer => {
-      const control = buffer.readUInt8(0);
-      console.log('ctrlM raw', buffer);
-      return Converter.fromControlMeasurment(control);
-    });
-  }
-
-  static controlHumidity(bus, chip) {
-    if(!chip.supportsHumidity) { throw Error('chip does not support humidity'); } // todo better return
-    return bus.read(chip.REG_CTRL_HUM).then(buffer => {
-      const control = buffer.readUInt8(0);
-      return Converter.fromControlHumidity(control)
-    });
-  }
-
-  static controlGas(bus, chip) {
-    return bus.read(chip.REG_CTRL_GAS).then(buffer => {
-      const control = buffer.readUInt8(0);
-    });
-  }
-
-
-
-  static setProfile(bus, chip, profile) {
-    // console.log(profile);
-    const controlM = Converter.ctrlMeasFromSamplingMode(profile.oversampling_p, profile.oversampling_t, profile.mode);
-    const controlH = Converter.ctrlHumiFromSampling(profile.oversampling_h);
-    const config = Converter.configFromTimingFilter(profile.standby_time, profile.filter_coefficient);
-
-    // console.log(controlM, controlH, config);
-    const first = chip.supportsHumidity ? bus.write(chip.REG_CTRL_HUM, controlH) : Promise.resolve();
-
-    return first
-      .then(bus.write(chip.REG_CONFIG, config))
-      .then(bus.write(chip.REG_CTRL_MEAS, controlM));
-  }
-
-  static profile(bus, chip) {
-    return Promise.all([
-      Common.controlMeasurment(bus, chip),
-      Common.controlHumidity(bus, chip),
-      Common.config(bus, chip)
-    ]).then(([ctrlM, ctrlH, cfg]) => {
-      // console.log(ctrlM, ctrlH, cfg);
-      const [osrs_p, osrs_t, mode] = ctrlM;
-      const [osrs_h] = ctrlH
-      const [sb, filter, spi3en] = cfg;
-      return {
-        mode: mode,
-        oversampling_p: osrs_p,
-        oversampling_t: osrs_t,
-        oversampling_h: osrs_h,
-        filter_coefficient: filter,
-        standby_time: sb
-      }
-    });
-  }
-
-  static measurment(bus, chip, press, temp, humi) {
-    let length = 0;
-    let reg;
-    if(chip.supportsPressure){ if(length === 0) { reg = chip.REG_PRESS; } length += 3; }
-    if(chip.supportsTempature){ if(length === 0) { reg = chip.REG_TEMP; } length += 3; }
-    if(chip.supportsHumidity){ if(length === 0) { reg = chip.REG_HUMI; } length += 2; }
-
-    if(length === 0) { return; }
-    if(reg === undefined){ return; }
-
-    return bus.read(reg, length).then(buffer => {
-      let adcP, adcT, adcH;
-
-      if(chip.supportsPressure) {
-         const msbP = buffer.readUInt8(0);
-         const lsbP = buffer.readUInt8(1);
-         const xlsbP = buffer.readUInt8(2);
-         adcP = Converter.reconstruct20bit(msbP, lsbP, xlsbP);
-      }
-
-      if(chip.supportsTempature) {
-        const msbT = buffer.readUInt8(3);
-        const lsbT = buffer.readUInt8(4);
-        const xlsbT = buffer.readUInt8(5);
-        adcT = Converter.reconstruct20bit(msbT, lsbT, xlsbT);
-      }
-
-      if(chip.supportsHumidity) {
-        const msbH = buffer.readUInt8(6);
-        const lsbH = buffer.readUInt8(7);
-        adcH = msbH << 8 | lsbH;
-      }
-
-      // console.log('measurment', adcP, adcT, adcH);
-      return { adcP: adcP, adcT: adcT, adcH: adcH };
-    });
-  }
 }
 
 module.exports = Common;
