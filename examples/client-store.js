@@ -9,7 +9,7 @@ class Store {
    * keep all this stuff, ya, put it here
    */
   static setupStore(application) {
-    console.log('setup store ', application.mqtt.url);
+    // console.log('setup store ', application.mqtt.url);
     if(application.mqtt.url === undefined) { return Promise.reject('undefined mqtt url'); }
     application.mqtt.client = mqtt.connect(application.mqtt.url, { reconnectPeriod: application.mqtt.reconnectMSecs });
     application.mqtt.client.on('connect', () => { State.to(application.machine, 'mqtt') });

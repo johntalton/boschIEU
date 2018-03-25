@@ -4,9 +4,7 @@ const crypto = require('crypto');
 
 const rasbus = require('rasbus');
 
-const boschLib = require('../src/boschIEU.js');
-const bosch = boschLib.BoschIEU;
-const Profiles = boschLib.Profiles;
+const { BoschIEU } = require('../src/boschIEU.js');
 
 const Util = require('./client-util.js');
 const Store = require('./client-store.js');
@@ -38,15 +36,6 @@ class Device {
     }
   }
 
-  static _parseProfile(cfgprofile) {
-    if(typeof cfgprofile === 'string') {
-      const p = Profiles.profile(cfgprofile);
-      if(p === undefined) { throw new Error('unknown profile: ' + cfgprofile); }
-      return p;
-    }
-    return cfgprofile;
-  }
-
   /**
    * given configruation result in running application state
    */
@@ -62,7 +51,7 @@ class Device {
         Device._processDevice(application, true);
       })
       .catch(e => {
-        console.log('\u001b[91mdevice setup failure', devcfg, e, '\u001b[0m');
+        console.log('\u001b[91mdevice setup failure', e, '\u001b[0m');
         devcfg.client = undefined;
         devcfg.retrytimer = setInterval(Device._retrySetupDevice, devcfg.retryIntervalMs, application, devcfg);
       });
@@ -70,7 +59,7 @@ class Device {
 
   // top level set intervale, no return
   static _retrySetupDevice(application, devcfg) {
-    console.log('retruy device', devcfg.bus, devcfg.id);
+    //console.log('Retry device ', devcfg.name, ' setup');
     Device.setupDevice(application, devcfg)
       .then(() => {
         clearInterval(devcfg.retrytimer);
@@ -85,21 +74,23 @@ class Device {
     const idary = Array.isArray(devcfg.bus.id) ? devcfg.bus.id : [ devcfg.bus.id ];
     return Device._selectBus(devcfg.bus.driver).init(...idary)
       .then(bus => client.bus = bus)
-      .then(() => client.profile = Device._parseProfile(devcfg.profile))
-      .then(() => bosch.sensor(client.bus).then(sensor => client.sensor = sensor))
+      .then(() => BoschIEU.sensor(client.bus).then(sensor => client.sensor = sensor))
       .then(() => client.sensor.id())
       .then(() => {
-        if(!client.sensor.valid()){ throw new Error('invalid device on', client.bus.name); }
-        console.log('chip ', client.sensor.chip.name, ' found on ', client.bus.name);
+        if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
       })
       .then(() => client.sensor.calibration())
-      .then(() => client.sensor.setProfile(Profiles.chipProfile(client.profile, client.sensor.chip)))
+      .then(() => client.sensor.setProfile(devcfg.profile))
 
       .then(() => {
         devcfg.client = client;
         client.name = devcfg.name;
         client.signature = signature(devcfg, client.sensor);
-        console.log('signature', client.signature);
+
+        console.log('Chip Up:', client.sensor.chip.name);
+        console.log(' bus ', client.bus.name);
+        console.log(' name', client.name);
+        console.log(' signature', client.signature);
       });
   }
 
@@ -114,7 +105,7 @@ class Device {
     const some = pending.length > 0 && pending.length !== application.devices.length;
     const none = pending.length === application.devices.length;
 
-    console.log('proccess', all, some, none);
+    // console.log('proccess', all, some, none);
 
     if(all) { State.to(application.machine, 'all'); }
     else if(some) { State.to(application.machine, direction ? 'some' : 'dsome'); }
@@ -144,13 +135,13 @@ class Device {
   }
 
   static _startStream(application, d) {
-    console.log('start stream');
+    console.log('start stream', d.name);
 
     let base = Promise.resolve();
     if(d.client.putToSleep) {
       d.client.putToSleep = undefined;
       console.log('device prvious put to sleep, setProfile', d.profile);
-      base = d.client.sensor.setProfile(Profiles.chipProfile(d.client.profile, d.client.sensor.chip));
+      base = d.client.sensor.setProfile(Profiles.chipProfile(d.profile, d.client.sensor.chip));
     }
 
     return base.then(() => {
@@ -166,7 +157,7 @@ class Device {
     if(d.sleepOnStreamStop) {
       console.log('**************');
       d.client.putToSleep = true;
-      let sleepprofile = Profiles.chipProfile(d.client.profile);
+      let sleepprofile = Profiles.chipProfile(d.profile);
       return d.client.sensor.setProfile(sleepprofile);
     }
     return Promise.resolve();
@@ -213,9 +204,7 @@ class Device {
     if(!config.checkMode) { console.log('modeCheck suppressed'); return { normal: true }; }
 
     return sensor.profile().then(profile => {
-      //console.log('active device profile', profile);
-      const n = profile.mode === Profiles.chipMode('NORMAL', sensor.chip);
-      return { normal: n };
+      return { normal: profile.mode === 'NORMAL' };
     });
   }
 

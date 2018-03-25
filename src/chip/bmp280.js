@@ -78,9 +78,36 @@ class bmp280 extends genericChip {
     });
   }
 
+  static setProfile(bus, profile) {
+    const ctrl_meas = Util.packbits(
+      [[7,3], [4, 3], [1, 2]],
+      profile.oversample_t, profile.oversample_p, profile.mode);
+    const config = Util.packbits(
+      [[7, 3], [4, 3], [0, 1]],
+      profile.standby_time, profile.filter_coefficient, profile.spi.enable3w);
+
+    return Promise.all([
+      bus.write(0xF4, ctrl_meas),
+      bus.write(0xF5, config)
+    ]);
+  }
+
+
   static measurment(bus, calibration) {
     return Util.readblock(bus, [[0xF7, 6]]).then(buffer => {
-      return {};
+      const pres_msb = buffer.readUInt8(0);
+      const pres_lsb = buffer.readUInt8(1);
+      const pres_xlsb = buffer.readyUInt8(2);
+      const adcP = Util.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
+
+      const temp_msb = buffer.readUInt8(3);
+      const temp_lsb = buffer.readUInt8(4);
+      const temp_xlsb = buffer.readUInt8(5);
+      const adcT = Util.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
+
+      return {
+
+      };
     });
   }
 
@@ -95,10 +122,6 @@ class bmp280 extends genericChip {
         updating: updating
       };
     });
-  }
-
-  static setProfile(bus, profile) {
-
   }
 }
 

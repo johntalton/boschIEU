@@ -28,8 +28,8 @@
     },
     {
       "sign": "md5",
-      "nane": "cigar room (aka with gas)",
-      "bus": { "driver": "i2cbus", "id": [ 1, 119 ] },
+      "name": "cigar room (aka with gas)",
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
         "mode": "SLEEP",
         "oversampling_p": 2,
@@ -37,12 +37,16 @@
         "oversampling_h": 2,
         "filter_coefficient": 3,
 
-        "gas": [
-          { tempatureF: 572, durationMs: 220 },
-          { tempatureC: 350, durationMs: 100, active: true }
-        ],
+        "gas": {
+          "enable": true,
+          "cycle": [0, 1, 1],
+          "setpoints": [
+            { "tempatureF": 572, "durationMs": 220 },
+            { "tempatureC": 350, "durationMs": 100, "active": true }
+          ]
+        },
 
-       "pollIntervalS": undefined
+       "pollIntervalS": null
       }
     }
   ],

@@ -98,7 +98,7 @@ class bme680 extends genericChip {
           heat_off: heat_off,
           enabled: run_gas,
           selected_profile_idx: nb_conv,
-          profiles: [idac_heat, res_heat, res_wait] // todo regropu as triplets
+          setpoints: [idac_heat, res_heat, res_wait] // todo regropu as triplets
         },
         spi: {
           mempage: spi_mem_page,
@@ -109,9 +109,49 @@ class bme680 extends genericChip {
     });
   }
 
+  static setProfile(bus, profile) {
+    const ctrl_gas0 = Util.packbits([], heat_off);
+    const ctrl_gas1 = Util.packbits([], run_gas, nb_conv);
+    const ctrl_hum = Util.packbits([], pi_3w_int_en, profile.oversampling_h);
+    const ctrl_meas = Util.packbits([], profile.oversampling_t, profile.oversampling_p, profile.mode);
+    const config = Util.packbits([[]], profile.filter_coeficient, profile.spi.enable3w);
+
+    return Promise.reject(Error('todo'));
+  }
+
   static measurment(bus, calibration) {
     return Util.readblock(bus, [0x1D, [0x1F, 8], [0x2A, 2]]).then(buffer => {
-      return {};
+      const meas_status = buffer.readUInt8(0);
+
+      const pres_msb = buffer.readUInt8(1);
+      const pres_lsb = buffer.readUInt8(2);
+      const pres_xlsb = buffer.readyUInt8(3);
+      const adcP = Util.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
+
+      const temp_msb = buffer.readUInt8(4);
+      const temp_lsb = buffer.readUInt8(5);
+      const temp_xlsb = buffer.readUInt8(6);
+      const adcT = Util.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
+
+      const adcH = buffer.readUInt16BE(7);
+
+      const gas_r_msb = buffer.readUInt8(9);
+      const gas_r_lsb = buffer.readUInt8(10);
+
+      const gas_valid_r = Util.mapbits(gas_r_lsb, 5, 1) === 1;
+      const heat_stab_r = Util.mapbits(gas_r_lsb, 4, 1) === 1;
+
+      return {
+        tempature: {},
+        preassure: {},
+
+        status: {
+          ready: Util.mapbits(meas_status, 7, 1) === 1,
+          measuringGas: Util.mapbits(meas_status, 6, 1) === 1,
+          measuring: Util.mapbits(meas_status, 5, 1) === 1,
+          active_profile_idx: Util.mapbits(meas_status, 3, 4)
+        }
+      };
     });
   }
 

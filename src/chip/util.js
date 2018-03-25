@@ -40,12 +40,17 @@ class Util {
   }
 
   static packbits(packmap, ...params) {
-
+    return packmap.reduce((accum, [position, length], idx) => {
+      const mask = Math.pow(2, length) - 1;
+      const value = params[idx] & mask;
+      const shift = position + 1 - length;
+      return accum | (value << shift);
+    }, 0);
   }
 
   static enumify(value, map) {
     const item = map.find(item => item.value === value);
-    if(item === undefined) { throw Error('enum mapping failed for ' + value); }
+    if(item === undefined) { console.log(map); throw Error('enum mapping failed for ' + value); }
     return item.name;
   }
 

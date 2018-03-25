@@ -1,7 +1,5 @@
 "use strict";
 
-const boschLib = require('../src/boschIEU.js');
-
 const Util = require('./client-util.js');
 const Store = require('./client-store.js');
 const Device = require('./client-device.js');
@@ -40,5 +38,5 @@ Config.config('./client.json')
   .then(setupStateHandlers)
   .then(Store.setupStore)
   .then(Device.setupDevices)
-  .then(runconfig => { console.log('Client UP.'); })
+  .then(runconfig => { console.log('Client up...'); })
   .catch(e => { console.log('error', e); });

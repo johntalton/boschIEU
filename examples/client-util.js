@@ -73,7 +73,7 @@ class Util {
         '4active': { // streaming state
           'dsome': { next: '6mqttsome', event: 'restopstream' },
           'dmqtt': { next: '3all', event: 'stopstream' } },
-        '5mqtt': { 
+        '5mqtt': {
           'some': { next: '6mqttsome', event: 'stream' },
           'dmqtt': { next: '1init', event: '' } },
         '6mqttsome': { // streaming state
@@ -90,7 +90,7 @@ class Util {
 class State {
   static to(machine, state) {
     const transition = machine.states[machine.state][state];
-    console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
+    // console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
 
     const on = machine.ons[transition.event];
     if(on !== undefined) {
