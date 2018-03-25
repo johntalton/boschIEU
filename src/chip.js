@@ -1,4 +1,24 @@
 "use strict";
+/*
+
+  static configFromTimingFilter(timing, filter) {
+    const spi3wire = 0; // TODO
+    return (timing << 5) | (filter << 2) | spi3wire;
+  }
+
+  static ctrlMeasFromSamplingMode(osrs_p, osrs_t, mode){
+    return (osrs_t << 5) | (osrs_p << 2) | mode;
+  }
+
+  static ctrlHumiFromSampling(osrs_h, spi_3w_int_en) {
+    if(spi_3w_int_en === undefined) { spi_3w_int_en = false; }
+    return (osrs_h & 0b111) | (spi_3w_int_en ? (0x01 << 6) : 0x00);
+  }
+
+
+
+*/
+
 
 /**
  * Factory for discovering chips
@@ -8,12 +28,12 @@ class Chip {
 
   static fromId(id){
     const chip = Chip._chips.find(chip => chip.chip_id === id);
-    if(chip === undefined) { return UnknownChip; }
+    if(chip === undefined) { throw Error('unknown chip id'); }
     return chip;
   }
 
   static chips() {
-    return Chips._chips.filter(chip => UnknownChip.name !== chip.name)
+    return Chips._chips.filter(chip => gernericChip.name !== chip.name)
       .map(chip => ({ name: chip.name, chip_id: chip.chip_id }));
   }
 }
@@ -23,10 +43,21 @@ class Chip {
  * this is also the place the <bus>s read gets called
  **/
 class Util {
+  static range(from, to) { return [...Array(to - from + 1).keys()].map(i => i + from); }
+
+  static reconstruct20bit(msb, lsb, xlsb) {
+    // return  msb << 12 | lsb << 4 | xlsb >> 4;
+    return ((msb << 8 | lsb) << 8 | xlsb) >> 4;
+  }
+
   static mapbits(bits, position, length) {
-    const shift = 8 - position - 1 + length;
+    const shift = position - length + 1;
     const mask = Math.pow(2, length) - 1;
     return (bits >> shift) & mask;
+  }
+
+  static packbits(packmap, ...params) {
+
   }
 
   static enumify(value, map) {
@@ -38,7 +69,7 @@ class Util {
   // magic read method that take in an array of address/lengh pairs
   // (with shorthand for just address if length 1)
   // returns promise resolving to common chip api
-  static _readblock(bus, block, ...params) {
+  static readblock(bus, block, ...params) {
     // normalize block from shorthand
     const blk = block.map(item => {
       if(Array.isArray(item)) {
@@ -65,7 +96,7 @@ class Util {
 
 
 const enumMap = {
-  oversamples = [ //
+  oversamples: [ //
     { name: false, value: 0 },
     { name: 1,     value: 1 },
     { name: 2,     value: 2 },
@@ -134,7 +165,7 @@ class genericChip {
   }
 
   static get name() { return 'generic'; }
-  static get chip_id() { throw Error('generic has no id'); }
+  static get chip_id() { return undefined; }
   static get skip_value() { return 0x80000; }
   static id(bus) { return Util.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); }
   static reset(bus) { return bus.write(0xE0, 0xB6); }
@@ -204,17 +235,61 @@ class bme680 extends genericChip {
 
   static profile(bus) {
     return Util.readblock(bus, [[0x50, 30], [0x70, 6]]).then(buffer => {
-      return {};
+      const idac_heat = Util.range(0, 9).map(idx => buffer.readUInt8(idx));
+      const res_heat = Util.range(10, 19).map(idx => buffer.readUInt8(idx));
+      const res_wait = Util.range(20, 29).map(idx => buffer.readUInt8(idx));
+      const ctrl_gas0 = buffer.readUInt8(30);
+      const ctrl_gas1 = buffer.readUInt8(31);
+      const ctrl_hum = buffer.readUInt8(32);
+      const status = buffer.readUInt8(33);
+      const ctrl_meas = buffer.readUInt8(34);
+      const config = buffer.readUInt8(35);
+
+      const heat_off = Util.mapbits(ctrl_gas0, 3, 1) === 1;
+      const run_gas = Util.mapbits(ctrl_gas1, 4, 1) === 1;
+      const nb_conv = Util.mapbits(ctrl_gas1, 3, 4);
+
+      const spi_3w_int_en = Util.mapbits(ctrl_hum, 6, 1) === 1;
+
+      const osrs_h = Util.mapbits(ctrl_hum, 2, 3);
+      const osrs_t = Util.mapbits(ctrl_meas, 7, 3);
+      const osrs_p = Util.mapbits(ctrl_meas, 4, 3);
+
+      const mode = Util.mapbits(ctrl_meas, 1, 2);
+
+      const filter = Util.mapbits(config, 4, 3);
+      const spi_3w_en = Util.mapbits(config, 0, 1) === 1;
+      const spi_mem_page = Util.mapbits(status, 4, 1);
+
+      return {
+        mode: Util.enumify(mode, enumMap.modes_sans_normal),
+        oversampling_p: Util.enumify(osrs_p, enumMap.oversamples),
+        oversampling_t: Util.enumify(osrs_t, enumMap.oversamples),
+        oversampling_h: Util.enumify(osrs_h, enumMap.oversamples),
+        filter_coefficient: Util.enumify(filter, enumMap.filters_more),
+
+        gas: {
+          heat_off: heat_off,
+          enabled: run_gas,
+          active_profile_idx: nb_conv,
+          profiles: [idac_heat, res_heat, res_wait] // todo regropu as triplets
+        },
+        spi: {
+          mempage: spi_mem_page,
+          enable3w: spi_3w_en,
+          interrupt: spi_3w_int_en
+        }
+      };
     });
   }
 
-  static measurment() {
+  static measurment(bus, calibration) {
     return Util.readblock(bus, [0x1D, [0x1F, 8], [0x2A, 2]]).then(buffer => {
       return {};
     });
   }
 
-  static ready() {
+  static ready(bus) {
     return Util.readblock(bus, [0x1D]).then(buffer => {
       const meas_status = buf.readUInt8(0);
       return {
@@ -286,10 +361,10 @@ class bme280 extends genericChip {
       const ctrl_meas = buffer.readUInt8(2);
       const config =    buffer.readUInt8(3);
 
-      const osrs_h = Util.mapbits(ctr_hum, 2, 3);
+      const osrs_h = Util.mapbits(ctrl_hum, 2, 3);
 
-      const measuring = Util.mapbits(status, 3, 1);
-      const updating = Util.mapbits(status, 0, 1);
+      const measuring = Util.mapbits(status, 3, 1) === 1;
+      const updating = Util.mapbits(status, 0, 1) === 1;
 
       const osrs_t = Util.mapbits(ctrl_meas, 7, 3);
       const osrs_p = Util.mapbits(ctrl_meas, 4, 3);
@@ -297,7 +372,7 @@ class bme280 extends genericChip {
 
       const t_sb = Util.mapbits(config, 7, 3);
       const filter = Util.mapbits(config, 4, 3);
-      const spi3wen = Util.mapbits(config, 0, 1) === 1;
+      const spi_3w_en = Util.mapbits(config, 0, 1) === 1;
 
       return {
         mode: Util.enumify(mode, enumMap.modes),
@@ -305,25 +380,35 @@ class bme280 extends genericChip {
         oversampling_t: Util.enumify(osrs_t, enumMap.oversamples),
         oversampling_h: Util.enumify(osrs_h, enumMap.oversamples),
         filter_coefficient: Util.enumify(filter, enumMap.filters),
-        standby_time: Util.enumify(t_sb, enumMap.standbys),
-        spi3wen: spi3wen
+        standby_time: Util.enumify(t_sb, enumMap.standbys_hires),
+
+        spi: {
+          enable3w: spi_3w_en,
+        },
+        ready: {
+          ready: !measuring,
+          measuring: measuring,
+          updating: updating
+        }
       };
     });
   }
 
-  static measurment() {
+  static measurment(bus, calibration) {
     return Util.readblock(bus, [[0xF7, 8]]).then(buffer => {
       return {};
     });
   }
 
-  static ready() {
+  static ready(bus) {
     return Util.readblock(bus, [0xF3]).then(buffer => {
       const status = buffer.readUInt8(0);
-      const measuring = Util.mapbits(status, 3, 1);
-      const updating = Util.mapbits(status, 0, 1);
+      const measuring = Util.mapbits(status, 3, 1) === 1;
+      const updating = Util.mapbits(status, 0, 1) === 1;
       return {
-        //ready: 
+        ready: !measuring,
+        measuring: measuring,
+        updating: updating
       };
     });
   }
@@ -376,8 +461,8 @@ class bmp280 extends genericChip {
       const ctrl_meas = buffer.readUInt8(1);
       const config =    buffer.readUInt8(2);
 
-      const measuring = Util.mapbits(status, 3, 1);
-      const updating = Util.mapbits(status, 0, 1);
+      const measuring = Util.mapbits(status, 3, 1) === 1;
+      const updating = Util.mapbits(status, 0, 1) === 1;
 
       const osrs_t = Util.mapbits(ctrl_meas, 7, 3);
       const osrs_p = Util.mapbits(ctrl_meas, 4, 3);
@@ -385,31 +470,41 @@ class bmp280 extends genericChip {
 
       const t_sb = Util.mapbits(config, 7, 3);
       const filter = Util.mapbits(config, 4, 3);
-      const spi3wen = Util.mapbits(config, 0, 1);
+      const spi_3w_en = Util.mapbits(config, 0, 1) === 1;
 
       return {
         mode: Util.enumify(mode, enumMap.modes),
         oversampling_p: Util.enumify(osrs_p, enumMap.oversamples),
         oversampling_t: Util.enumify(osrs_t, enumMap.oversamples),
         filter_coefficient: Util.enumify(filter, enumMap.filters),
-        standby_time: Util.enumify(t_sb, enumMap.standbys)
+        standby_time: Util.enumify(t_sb, enumMap.standbys),
+        spi: {
+          enable3w: spi_3w_en
+        },
+        ready: {
+          ready: !measuring,
+          measuring: measuring,
+          updating: updating
+        }
       };
     });
   }
 
-  static measurment() {
+  static measurment(bus, calibration) {
     return Util.readblock(bus, [[0xF7, 6]]).then(buffer => {
       return {};
     });
   }
 
-  static ready() {
+  static ready(bus) {
     return Util.readblock(bus, [0xF3]).then(buffer => {
       const status = buffer.readUInt8(0);
       const measuring = Util.mapbits(status, 3, 1);
       const updating = Util.mapbits(status, 0, 1);
       return {
-        //ready: 
+        ready: !measuring,
+        measuring: measuring,
+        updating: updating
       };
     });
   }

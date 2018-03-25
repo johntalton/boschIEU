@@ -122,13 +122,14 @@ Repler.addCommand({
 });
 
 Repler.addCommand({
-  name: 'status',
+  name: 'ready',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return (state.sensor !== undefined) && state.sensor.valid();
   },
   callback: function(state) {
-    return state.sensor.status().then(([measuring, im_update]) => {
-      console.log('Measuing: ', measuring, ' Image Update: ', im_update);
+    return state.sensor.ready().then(ready => {
+    //  console.log('Ready:', ready.ready);
+    //  console.log('Measuing: ', ready.measuring, ' Image Update: ', ready.updating);
     });
   }
 });
@@ -140,7 +141,7 @@ Repler.addCommand({
   },
   callback: function(state) {
     return state.sensor.profile().then(profile => {
-      // console.log(profile);
+       console.log(profile);
       console.log('Mode: ', Misc.mode(state.sensor.chip, profile.mode));
       console.log('Oversampling Press: ', Misc.oversample(state.sensor.chip, profile.oversampling_p));
       console.log('Oversampling Temp:  ', Misc.oversample(state.sensor.chip, profile.oversampling_t));

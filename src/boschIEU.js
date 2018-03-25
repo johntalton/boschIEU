@@ -3,7 +3,6 @@
 const Chip = require('./chip.js');
 const Profiles = require('./profiles.js');
 
-const Common = require('./common.js');
 const Converter = require('./converter.js');
 
 /**
@@ -17,18 +16,18 @@ class BoschIEU {
 }
 
 /**
- * Acts as a cache around the Common / Chip implmentation
+ * Acts as a cache around the Chip implmentation
  */
 class BoschSensor {
   constructor(bus) {
     this._bus = bus;
-    this._chip = Chip.unknown();
+    this._chip = Chip.generic();
     this._calibration = [];
   }
 
   get chip(){ return this._chip; }
 
-  valid(){
+  valid() {
     return this._chip.chip_id !== undefined;
   }
 
@@ -36,32 +35,29 @@ class BoschSensor {
     return this.valid() && (this._calibration.length !== 0);
   }
 
-  id(){
-    return Common.id(this._bus, this._chip)
-      .then(id => {
-        this._id = id;
-        this._chip = Chip.fromId(this._id);
-        return id;
-      });
+  id() {
+    return this._chip.id(this._bus).then(id => {
+      this._chip = Chip.fromId(id);
+      return id;
+    });
   }
 
-  reset() { return Common.reset(this._bus, this._chip); }
+  reset() { return this._chip.reset(this._bus); }
 
   calibration() {
-    return Common.calibration(this._bus, this._chip)
-      .then(cali => {
-        this._calibration = cali;
-        return cali;
-      });
+    return this._chip.calibration(this._bus).then(cali => {
+      this._calibration = cali;
+      return cali;
+    });
   }
 
-  profile() { return Common.profile(this._bus, this._chip); }
-  setProfile(profile) { return Common.setProfile(this._bus, this._chip, profile); }
+  profile() { return this._chip.profile(this._bus); }
+  //setProfile(profile) { return Common.setProfile(this._bus, this._chip, profile); }
 
-  ready() { return Common.ready(this._bus, this._chip); }
+  ready() { return this._chip.ready(this._bus); }
 
   measurement() {
-    return Common.measurment(this._bus, this._chip, this._calibration);
+    return this._chip.measurment(this._bus, this._calibration);
   }
 }
 
