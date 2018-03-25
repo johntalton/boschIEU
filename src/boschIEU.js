@@ -1,9 +1,7 @@
 "use strict";
 
-const Chip = require('./chip.js');
-const Profiles = require('./profiles.js');
-
-const Converter = require('./converter.js');
+const { Chip } = require('./chip/chip.js');
+const { Converter } = require('./converter.js');
 
 /**
  * Bosch Integrated Environmental Unit
@@ -22,18 +20,14 @@ class BoschSensor {
   constructor(bus) {
     this._bus = bus;
     this._chip = Chip.generic();
-    this._calibration = [];
+    this._calibration = undefined;
   }
 
   get chip(){ return this._chip; }
 
-  valid() {
-    return this._chip.chip_id !== undefined;
-  }
+  valid() { return this._chip.chip_id !== undefined; }
 
-  calibrated() {
-    return this.valid() && (this._calibration.length !== 0);
-  }
+  calibrated() { return this.valid() && (this._calibration !== undefined); }
 
   id() {
     return this._chip.id(this._bus).then(id => {
@@ -52,16 +46,13 @@ class BoschSensor {
   }
 
   profile() { return this._chip.profile(this._bus); }
-  //setProfile(profile) { return Common.setProfile(this._bus, this._chip, profile); }
+  setProfile(profile) { return this._chip.setProfile(this._bus, profile); }
 
   ready() { return this._chip.ready(this._bus); }
 
-  measurement() {
-    return this._chip.measurment(this._bus, this._calibration);
-  }
+  measurement() { return this._chip.measurment(this._bus, this._calibration); }
 }
 
 module.exports.BoschIEU = BoschIEU;
 module.exports.BoschSensor = BoschSensor;
 module.exports.Converter = Converter;
-module.exports.Profiles = Profiles;

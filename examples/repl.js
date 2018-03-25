@@ -6,11 +6,7 @@ const boschLib = require('../src/boschIEU.js');
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
-const chip = require('../src/chip.js');
-
 const rasbus = require('rasbus');
-
-const Misc = require('./repl-misc.js');
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
@@ -128,8 +124,8 @@ Repler.addCommand({
   },
   callback: function(state) {
     return state.sensor.ready().then(ready => {
-    //  console.log('Ready:', ready.ready);
-    //  console.log('Measuing: ', ready.measuring, ' Image Update: ', ready.updating);
+      console.log('Ready:', ready.ready);
+      console.log('Measuing: ', ready.measuring, ' Image Update: ', ready.updating);
     });
   }
 });
@@ -141,20 +137,7 @@ Repler.addCommand({
   },
   callback: function(state) {
     return state.sensor.profile().then(profile => {
-       console.log(profile);
-      console.log('Mode: ', Misc.mode(state.sensor.chip, profile.mode));
-      console.log('Oversampling Press: ', Misc.oversample(state.sensor.chip, profile.oversampling_p));
-      console.log('Oversampling Temp:  ', Misc.oversample(state.sensor.chip, profile.oversampling_t));
-      if(state.sensor.chip.supportsHumidity) {
-        console.log('Oversampling Humi:  ', Misc.oversample(state.sensor.chip, profile.oversampling_h));
-      }
-      console.log('IIR Filter Coefficient: ', Misc.coefficient(state.sensor.chip, profile.filter_coefficient));
-      if(state.sensor.chip.supportsNormalMode) {
-        console.log('Standby Time: ', Misc.standby(state.sensor.chip, profile.standby_time));
-      }
-      if(state.sensor.chip.supportsGas) {
-        // todo
-      }
+      console.log(profile);
     });
   }
 });

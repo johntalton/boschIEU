@@ -40,4 +40,4 @@ class Converter {
 
 Converter.seaLevelPa = 101325.0; // a normal guess
 
-module.exports = Converter;
+module.exports.Converter = Converter;
