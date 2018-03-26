@@ -1,6 +1,6 @@
 "use strict";
 
-const { genericChip, enumMap } = require('./generic.js');
+const { genericChip, enumMap, Compensate } = require('./generic.js');
 const { Util } = require('./util.js');
 
 class bme280 extends genericChip {
@@ -95,13 +95,17 @@ class bme280 extends genericChip {
   }
 
   static setProfile(bus, profile) {
-    const ctrl_hum = Util.packbits([[2, 3]], profile.oversampling_h);
-    const ctrl_meas = Util.packbits(
-      [[7,3], [4, 3], [1, 2]],
-      profile.oversampling_t, profile.oversampling_p, profile.mode);
-    const config = Util.packbits(
-      [[7, 3], [4, 3], [0, 1]],
-      profile.standby_time, profile.filter_coefficient, profile.spi.enable3w);
+    const mode = Util.deenumify(profile.mode, enumMap.modes);
+    const os_p = Util.deenumify(profile.oversampling_p, enumMap.oversamples);
+    const os_t = Util.deenumify(profile.oversampling_t, enumMap.oversamples);
+    const os_h = Util.deenumify(profile.oversampling_h, enumMap.oversamples);
+    const sb_t = Util.deenumify(profile.standby_time, enumMap.standbys_hires);
+    const filter = Util.deenumify(profile.filter_coefficient, enumMap.filters);
+    const en3w = profile.spi.enable3w;
+
+    const ctrl_hum = Util.packbits([[2, 3]], os_h);
+    const ctrl_meas = Util.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
+    const config = Util.packbits([[7, 3], [4, 3], [0, 1]], sb_t, filter, en3w);
 
     return Promise.all([
       bus.write(0xF2, ctrl_hum),
@@ -114,7 +118,7 @@ class bme280 extends genericChip {
     return Util.readblock(bus, [[0xF7, 8]]).then(buffer => {
       const pres_msb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
-      const pres_xlsb = buffer.readyUInt8(2);
+      const pres_xlsb = buffer.readUInt8(2);
       const adcP = Util.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
 
       const temp_msb = buffer.readUInt8(3);
@@ -124,9 +128,11 @@ class bme280 extends genericChip {
 
       const adcH = buffer.readUInt16BE(6);
 
-      return {
+      const P = (bme280.skip_value === adcP) ? false : adcP;
+      const T = (bme280.skip_value === adcT) ? false : adcT;
+      const H = (bme280.skip_value === adcH) ? false : adcH;
 
-      };
+      return Compensate.from({ adcP: P, adcT: T, adcH: H, type: '2xy' }, calibration);
     });
   }
 

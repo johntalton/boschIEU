@@ -169,6 +169,7 @@ class Device {
     Device._houseKeepingOnPoll(devcfg).then(housekeeping => {
       if(!housekeeping.measure) { console.log('skip measurement on housekeeping request'); return; }
       return devcfg.client.sensor.measurement()
+        .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
         .then(result => Store.insertResults(application, devcfg.client, result, new Date()).then(() => result))
         .then(result => Util.log(devcfg.client, result));
     })

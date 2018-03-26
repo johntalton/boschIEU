@@ -54,6 +54,12 @@ class Util {
     return item.name;
   }
 
+  static deenumify(name, map) {
+    const item = map.find(item => item.name === name);
+    if(item === undefined) { console.log(map); throw Error('unknonw enum name: ' + name); }
+    return item.value;
+  }
+
   // magic read method that take in an array of address/lengh pairs
   // (with shorthand for just address if length 1)
   // returns promise resolving to common chip api

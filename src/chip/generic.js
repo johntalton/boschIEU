@@ -6,9 +6,101 @@ const { Util } = require('./util.js');
  *
  **/
 class Compensate {
+  static from(measurment, calibration) {
+    switch(measurment.type) {
+    case '2xy': return Compensate.from_2xy(measurment, calibration); break;
+    case '6xy': return Compensate.from_6xy(measurment, calibration); break;
+    default: throw Error('unknonw measurment type: ' + measurment.type); break;
+    }
+  }
+
+  static from_6xy(mesurment, calibration) {
+    throw Error('todo');
+  }
+
+
+  static from_2xy(measurment, calibration) {
+    const ct = Compensate.tempature(measurment.adcT, calibration.T);
+    const Tfine = ct.skip ? false : ct.Tfine;
+    const cp = Compensate.pressure(measurment.adcP, Tfine, calibration.P);
+    const ch = Compensate.humidity(measurment.adcH, Tfine, calibration.H);
+
+    return {
+      tempature: ct,
+      pressure: cp,
+      humidity: ch
+    }
+  }
+
+  static tempature(adcT, caliT) {
+    if(adcT === false) { return { adc: false, skip: true }; }
+
+    if(caliT.length !== 3) { return { skip: true, calibration: caliT.length } }
+    const [dig_T1, dig_T2, dig_T3] = caliT;
+
+    // console.log(T, dig_T1, dig_T2, dig_T3);
+    if(dig_T1 === undefined){ return { undef: 't1' }; }
+    if(dig_T2 === undefined){ return { undef: 't2' }; }
+    if(dig_T3 === undefined){ return { undef: 't3' }; }
+
+    const var1f = (adcT / 16384.0 - dig_T1 / 1024.0) * dig_T2;
+    const var2f = (adcT / 131072.0 - dig_T1 / 8192.0) * (adcT / 131072.0 - dig_T1 / 8192.0) * dig_T3;
+    const finef = var1f + var2f;
+    const cf = finef / 5120.0;
+
+/*
+    const var1i = (((T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11;
+    const var2i = ( (( ((T >> 4) - dig_T1) * ((T >> 4) - dig_T1) ) >> 12) * dig_T3 ) >> 14;
+    const finei = var1i + var2i;
+    const ci = ((finei * 5 + 128) >> 8) / 100;
+*/
+
+    // console.log(var1f, var2f, finef, cf);
+    // console.log(var1i, var2i, finei, ci);
+
+    return {
+      skip: false,
+      adc: adcT,
+      Tfine: finef,
+      C: cf
+    };
+  }
+
+
+  static pressure(adcP, Tfine, caliP) {
+    if(adcP === false) { return { skip: true, adc: false }; }
+    if(Tfine === false) { return { skip: true, Tfine: false }; }
+
+    if(caliP.length !== 9) { return { skip: true, calibration: caliP.length } }
+    const [ dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9 ] = caliP;
+
+    let pvar1 = Tfine / 2 - 64000;
+    let pvar2 = pvar1 * pvar1 * dig_P6 / 32768;
+    pvar2 = pvar2 + pvar1 * dig_P5 * 2;
+    pvar2 = pvar2 / 4 + dig_P4 * 65536;
+    pvar1 = (dig_P3 * pvar1 * pvar1 / 524288 + dig_P2 * pvar1) / 524288;
+    pvar1 = (1 + pvar1 / 32768) * dig_P1;
+
+    let pressure_hPa = 0;
+
+    if(pvar1 !== 0) {
+      let p = 1048576 - adcP;
+      p = ((p - pvar2 / 4096) * 6250) / pvar1;
+      pvar1 = dig_P9 * p * p / 2147483648;
+      pvar2 = p * dig_P8 / 32768;
+      p = p + (pvar1 + pvar2 + dig_P7) / 16;
+      pressure_hPa = p / 100;
+    }
+    return { adc: adcP, Pa: pressure_hPa * 100 };
+  }
+
   static humidity(adcH, Tfine, caliH) {
-    if(adcH === chip.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
-    if(Tfine === chip.SKIPPED_SAMPLE_VALUE) { return { skip: true, proxy: true }; }
+    if(adcH === false) { return { skip: true, adc: false }; }
+    if(Tfine === false) { return { skip: true, Tfine: false }; }
+
+    if(caliH.length !== 6) { return { skip: true, calibration: caliH.length } }
+    const [ dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6 ] = caliH;
+
     if(Tfine === undefined) { return { undef: 'Tfine' }; }
     if(dig_H1 === undefined) { return { undef: 'h1' }; }
     if(dig_H2 === undefined) { return { undef: 'h2' }; }
@@ -31,60 +123,10 @@ class Compensate {
     // console.log('compH', adcH, Tfine, var3, h);
 
     return {
+      adc: adcH,
       Hunclamped: var3,
-      H: h
+      percent: h
     };
-  }
-
-
-  static tempature(adcT, caliT) {
-    // console.log(T, dig_T1, dig_T2, dig_T3);
-    if(T === chip.SKIPPED_SAMPLE_VALUE) { return { skip: true }; }
-    if(dig_T1 === undefined){ return { undef: 't1' }; }
-    if(dig_T2 === undefined){ return { undef: 't2' }; }
-    if(dig_T3 === undefined){ return { undef: 't3' }; }
-
-    const var1f = (T/16384.0 - dig_T1/1024.0) * dig_T2;
-    const var2f = (T/131072.0 - dig_T1/8192.0) * (T/131072.0 - dig_T1/8192.0) * dig_T3;
-    const finef = var1f + var2f;
-    const cf = finef / 5120.0;
-
-/*
-    const var1i = (((T >> 3) - (dig_T1 << 1)) * dig_T2) >> 11;
-    const var2i = ( (( ((T >> 4) - dig_T1) * ((T >> 4) - dig_T1) ) >> 12) * dig_T3 ) >> 14;
-    const finei = var1i + var2i;
-    const ci = ((finei * 5 + 128) >> 8) / 100;
-*/
-
-    // console.log(var1f, var2f, finef, cf);
-    // console.log(var1i, var2i, finei, ci);
-
-    return {
-      Tfine: finef,
-      T: cf
-    };
-  }
-
-
-  static pressure(adcP, Tfine, caliP) {
-    let pvar1 = Tfine / 2 - 64000;
-    let pvar2 = pvar1 * pvar1 * dig_P6 / 32768;
-    pvar2 = pvar2 + pvar1 * dig_P5 * 2;
-    pvar2 = pvar2 / 4 + dig_P4 * 65536;
-    pvar1 = (dig_P3 * pvar1 * pvar1 / 524288 + dig_P2 * pvar1) / 524288;
-    pvar1 = (1 + pvar1 / 32768) * dig_P1;
-
-    let pressure_hPa = 0;
-
-    if(pvar1 !== 0) {
-      let p = 1048576 - adcP;
-      p = ((p - pvar2 / 4096) * 6250) / pvar1;
-      pvar1 = dig_P9 * p * p / 2147483648;
-      pvar2 = p * dig_P8 / 32768;
-      p = p + (pvar1 + pvar2 + dig_P7) / 16;
-      pressure_hPa = p / 100;
-    }
-    return { P: pressure_hPa * 100 };
   }
 }
 
@@ -117,13 +159,13 @@ const enumMap = {
     { name: 127,   value: 7 }
   ],
   modes: [ // bmp280 / bme280
-    { name: 'sleep',  value: 0 },
-    { name: 'forced', value: 1 },
-    { name: 'normal', value: 3 }
+    { name: 'SLEEP',  value: 0 },
+    { name: 'FORCED', value: 1 },
+    { name: 'NORMAL', value: 3 }
   ],
   modes_sans_normal: [ // bme680
-    { name: 'sleep',  value: 0 },
-    { name: 'forced', value: 1 }
+    { name: 'SLEEP',  value: 0 },
+    { name: 'FORCED', value: 1 }
   ],
   standbys: [ // bmp280
     { name:  0.5, value: 0 }, //    0.5 ms
@@ -133,17 +175,21 @@ const enumMap = {
     { name:  500, value: 4 }, //  500
     { name: 1000, value: 5 }, // 1000
     { name: 2000, value: 6 }, // 2000
-    { name: 4000, value: 7 }  // 4000
+    { name: 4000, value: 7 }, // 4000
+    // alias
+    { name: true, value: 7 } // MAX
   ],
   standbys_hires: [ // bme280
-    { name:  0.5, value: 0 }, //     0.5 ms
-    { name:   10, value: 6 }, //    10
-    { name:   20, value: 7 }, //    20
-    { name: 62.5, value: 1 }, //    62.5
-    { name:  125, value: 2 }, //   125
-    { name:  250, value: 3 }, //   250
-    { name:  500, value: 4 }, //   500
-    { name: 1000, value: 5 }  //  1000
+    { name:  0.5, value: 0 }, //    0.5 ms
+    { name:   10, value: 6 }, //   10
+    { name:   20, value: 7 }, //   20
+    { name: 62.5, value: 1 }, //   62.5
+    { name:  125, value: 2 }, //  125
+    { name:  250, value: 3 }, //  250
+    { name:  500, value: 4 }, //  500
+    { name: 1000, value: 5 }, // 1000
+    // alias
+    { name: true, value: 5 }  // MAX
   ]
 }
 

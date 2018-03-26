@@ -10,7 +10,7 @@
         "filter_coefficient": false,
         "standby_time": true
       },
-      "pollIntervalMs": 71000
+      "pollIntervalMs": 7000
     },
     {
       "name": "front room",
@@ -23,7 +23,7 @@
         "filter_coefficient": false,
         "standby_time": 500
       },
-      "pollIntervalS": 31,
+      "pollIntervalS": 5,
       "retryIntervalS": 60
     },
     {

@@ -1,6 +1,6 @@
 "use strict";
 
-const { genericChip, enumMap } = require('./generic.js');
+const { genericChip, enumMap, Compensate } = require('./generic.js');
 const { Util } = require('./util.js');
 
 class bmp280 extends genericChip {
@@ -79,12 +79,15 @@ class bmp280 extends genericChip {
   }
 
   static setProfile(bus, profile) {
-    const ctrl_meas = Util.packbits(
-      [[7,3], [4, 3], [1, 2]],
-      profile.oversample_t, profile.oversample_p, profile.mode);
-    const config = Util.packbits(
-      [[7, 3], [4, 3], [0, 1]],
-      profile.standby_time, profile.filter_coefficient, profile.spi.enable3w);
+    const mode = Util.deenumify(profile.mode, enumMap.modes);
+    const os_p = Util.deenumify(profile.oversampling_p, enumMap.oversamples);
+    const os_t = Util.deenumify(profile.oversampling_t, enumMap.oversamples);
+    const sb_t = Util.deenumify(profile.standby_time, enumMap.standbys);
+    const filter = Util.deenumify(profile.filter_coefficient, enumMap.filters);
+    const en3w = profile.spi.enable3w;
+
+    const ctrl_meas = Util.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
+    const config = Util.packbits([[7, 3], [4, 3], [0, 1]], sb_t, filter, en3w);
 
     return Promise.all([
       bus.write(0xF4, ctrl_meas),
@@ -97,7 +100,7 @@ class bmp280 extends genericChip {
     return Util.readblock(bus, [[0xF7, 6]]).then(buffer => {
       const pres_msb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
-      const pres_xlsb = buffer.readyUInt8(2);
+      const pres_xlsb = buffer.readUInt8(2);
       const adcP = Util.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
 
       const temp_msb = buffer.readUInt8(3);
@@ -105,9 +108,10 @@ class bmp280 extends genericChip {
       const temp_xlsb = buffer.readUInt8(5);
       const adcT = Util.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
 
-      return {
+      const P = (bmp280.skip_value === adcP) ? false : adcP;
+      const T = (bmp280.skip_value === adcT) ? false : adcT;
 
-      };
+      return Compensate.from({ adcP: P, adcT: T, adcH: false, type: '2xy' }, calibration);
     });
   }
 
