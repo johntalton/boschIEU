@@ -15,10 +15,11 @@ class Compensate {
   }
 
   static from_6xy(measurment, calibration) {
+    const t = Compensate.tempature_6xy(measurment.adcT, calibration.T);
     return {
-      tempature: Compensate.tempature_6xy(measurment.adcT, calibration.T),
-      pressure: Compensate.pressure_6xy(measurment.adcP, calibration.P),
-      humidity: Compensate.humidity_6xy(measurment.adcH, calibration.H),
+      tempature: t,
+      pressure: Compensate.pressure_6xy(measurment.adcP, t.Tfine, calibration.P),
+      humidity: Compensate.humidity_6xy(measurment.adcH, t.Tfine, calibration.H),
       gas: Compensate.gas_6xy(measurment.adcG, calibration.G)
     };
   }
@@ -26,57 +27,128 @@ class Compensate {
   static tempature_6xy(adcT, caliT) {
     if(adcT === false) { return { adc: false, skip: true }; }
 
-    if(caliT.length !== 1) { return { skip: true, calibration: caliT.length }; }
-    //const [range_sw_err] = calibration;
+    if(caliT.length !== 3) { return { adc: adcT, skip: true, calibration: caliT.length }; }
+    const [T1, T2, T3] = caliT;
 
-    return { adc: adcT, skip: true };
+    function tfloat() {
+      const var1f = (adcT / 16384.0 - T1 / 1024.0) * T2;
+      const var2f = (adcT / 131072.0 - T1 / 8192.0) * (adcT / 131072.0 - T1 / 8192.0) * T3;
+      const Tfinef = var1f + var2f;
+      const cf = Tfinef / 5120.0;
+
+      return [cf, Tfinef];
+    }
+    function tint() {
+      const var1i = (adcT >> 3) - (T1 << 1);
+      const var2i = (var1i * T2) >> 11;
+      const tmpi =  ((var1i >> 1) * (var1i >> 1)) >> 12;
+      const var3i = (tmpi * (T3 << 4)) >> 14;
+      const Tfinei = var2i + var3i;
+      const ci = (Tfinei * 5 + 128) >> 8;
+
+      return [ci, Tfinei];
+    }
+
+    const [iC, iTfine] = tint();
+    const [fC, fTfine] = tfloat();
+
+    //console.log(iC, iTfine, fC, fTfine);
+
+    return { adc: adcT, C: fC, Tfine: fTfine };
   }
 
-  static pressure_6xy(adcP, caliP) {
+  static pressure_6xy(adcP, Tfine, caliP) {
     if(adcP === false) { return { adc: false, skip: true }; }
 
-    if(caliP.length !== 1) { return { skip: true, calibration: caliP.length }; }
-    //const [range_sw_err] = calibration;
+    if(caliP.length !== 10) { return { skip: true, calibration: caliP.length }; }
+    const [ P1, P2, P3, P4, P5, P6, P7, P8, P9, P10 ] = caliP;
 
-    return { adc: adcP, skip: true };
+    function pfloat() {
+      let var1 = (Tfine / 2.0) - 64000.0;
+      let var2 = var1 * var1 * (P6 / 131072.0);
+      var2 = var2 + (var1 * P5 * 2.0);
+      var2 = (var2 / 4.0) + (P4 * 65536.0);
+      var1 = (((P3 * var1 * var1) / 16384.0) + (P2 * var1)) / 524288.0;
+      var1 = (1.0 + (var1 / 32768.0)) * P1;
+
+      let pressure_hPa = 0;
+
+      if(var1 !== 0) {
+        let p = 1048576.0 - adcP;
+        p = ((p - (var2 / 4096.0)) * 6250.0) / var1;
+        var1 = (P9 * p * p) / 2147483648.0;
+        var2 = p * (P8 / 32768.0);
+        let var3 = ((p / 256.0) * (p / 256.0) * (p / 256.0) * (P10 / 131072.0));
+        p = p + (var1 + var2 + var3 + (P7 * 128.0)) / 16;
+        pressure_hPa = p / 100;
+      }
+      return pressure_hPa * 100;
+    }
+
+    const fPa = pfloat();
+
+    return { adc: adcP, Pa: fPa, Tfine: Tfine };
   }
 
-  static humidity_6xy(adcH, caliH) {
+  static humidity_6xy(adcH, Tfine, caliH) {
     if(adcH === false) { return { adc: false, skip: true }; }
 
-    if(caliH.length !== 1) { return { skip: true, calibration: caliH.length }; }
-    //const [range_sw_err] = calibration;
+    if(caliH.length !== 7) { return { skip: true, calibration: caliH.length }; }
+    const [H1, H2, H3, H4, H5, H6, H7] = caliH;
 
-    return { adc: adcH, skip: true };
+    function hfloat() {
+      const temp_comp = Tfine / 5120.0;
+      const var1 = adcH - ((H1 * 16.0) + ((H3 / 2.0) * temp_comp));
+      const var2 = var1 * (((H2 / 262144.0) * (1.0 + ((H4 / 16384.0) * temp_comp) + ((H5 / 1048576.0) * temp_comp * temp_comp))));
+      const var3 = H6 / 16384.0;
+      const var4 = H7 / 2097152.0;
+      const unclamped = var2 + ((var3 + (var4 * temp_comp)) * var2 * var2);
+      const hum = Math.min(Math.max(unclamped, 0), 100); // clamp(0, 100)
+      return [hum, unclamped];
+    }
+
+    const [hum, raw] = hfloat();
+
+    return { adc: adcH, percent: hum, Hunclamped: raw, skip: false };
   }
 
   static gas_6xy(adcG, caliG) {
     if(adcG === false) { return { adc: false, skip: true }; }
 
-    if(caliG.length !== 1) { return { skip: true, calibration: caliG.length }; }
-    const [range_sw_err] = calibration;
+    const Gg = caliG.G;
+    if(Gg.length !== 3) { return { skip: true, calibration: Gg.length }; }
+    const [g1, g2, g3] = Gg;
 
+    function gfloat() {
+      const lookup1 = [ 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -0.8, 0.0, 0.0, -0.2, -0.5, 0.0, -1.0, 0.0, 0.0 ];
+      const lookup2 = [ 0.0, 0.0, 0.0, 0.0, 0.1, 0.7, 0.0, -0.8, -0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ];
 
+      const var1 = (1340.0 + (5.0 * caliG.range_switching_error));
+      const var2 = var1 * (1.0 + (lookup1[adcG.range] / 100.0));
+      const var3 = 1.0 + (lookup2[adcG.range] / 100.0);
+      const calc_gas_res = 1.0 / (var3 * (0.000000125) * (1 << adcG.range) * ((((adcG.resistance) - 512.0) / var2) + 1.0));
+      return calc_gas_res;
+    }
+
+    function gint() {
+    
+    }
+
+    /*
     const const_array1 = [1, 1, 1, 1, 1, 0.99, 1, 0.992, 1, 1, 0.998, 0.995, 1, 0.99, 1, 1];
     const const_array2 = [ 8000000, 4000000, 2000000, 1000000, 499500.4995,
       248262.1648, 125000, 63004.03226, 31281.28128, 15625,7812.5, 3906.25,
       1953.125, 976.5625, 488.28125, 244.140625 ];
 
-    const var1 = (1340.0 + 5.0 * range_sw_err) * const_array1[gas_range];
+    const var1 = (1340.0 + 5.0 * caliG.range_sw_err) * const_array1[gas_range];
     const gas_res = var1 * const_array2[gas_range] / (gas_r - 512.0 + var1);
     return gas_res;
+    */
 
-    /*
-    const lookup1 = [ 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -0.8, 0.0, 0.0, -0.2, -0.5, 0.0, -1.0, 0.0, 0.0 ];
-    const lookup2 = [ 0.0, 0.0, 0.0, 0.0, 0.1, 0.7, 0.0, -0.8, -0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ];
 
-    const var1 = (1340.0 + (5.0 * range_sw_err));
-    const var2 = var1 * (1.0 + lookup1[gas_range] / 100.0);
-    const var3 = 1.0 + (lookup2[gas_range] / 100.0);
-
-    const calc_gas_res = 1.0 / (var3 * (0.000000125) * (1 << gas_range) * ((((gas_res_adc) - 512.0) / var2) + 1.0));
-    return calc_gas_res;
-  */
+    const ohms = gfloat();
+    
+    return { adc: adcG, ohm: ohms };
   }
 
 

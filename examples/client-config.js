@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 
+const { Converter } = require('../src/boschIEU.js');
 const Util = require('./client-util.js');
 
 const defaultProfiles = [
@@ -48,6 +49,15 @@ class Config {
         profile.spi = { enable3w: false };
         if(profile.mode === 'SLEEP') {
           console.log(' ** mode SLEEP, will poll but not measure (good for use with repl');
+        }
+        if(profile.gas !== undefined) {
+          profile.gas.setpoints = profile.gas.setpoints.map(sp => {
+            const ms = Config._getMs(sp, 'duration', 0);
+            const f = sp.tempatureF !== undefined ? Converter.ftoc(sp.tempatureF) : 0;
+            const c = sp.tempatureC !== undefined ? sp.tempatureC : f;
+            const active = sp.active;
+            return { tempatureC: c, durationMs: ms, active: active };
+          });
         }
 
         const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);

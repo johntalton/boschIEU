@@ -6,48 +6,75 @@ const rasbus = require('rasbus');
 
 const profile = {
   mode: 'FORCED',
-  oversampling_p: 16,
+  oversampling_p: 2,
   oversampling_t: 2,
-  oversampling_h: 1,
-  filter_coefficient: false,
-
-  standby_time: 20,
+  oversampling_h: 2,
+  filter_coefficient: 7,
 
   gas: {
     enabled: true,
     setpoints: [
       { tempatureC: 350, durationMs: 2000 }, // high value
-      { active: false },
+      { skip: true }, // skip index when setting profile
       { tempatureC: 150, durationMs: 2000 }, // low value
-
-      { active: true, tempatureC: 200, durationMs: 100, }
+      { tempatureC: 320, durationMs: 150, active: true } // default
     ]
   },
 
   spi: { enable3w: false }
 };
 
-function test(sensor, idx) {
+function force(sensor, idx) {
+  console.log();
+  console.log('FORCE');
   const p = JSON.parse(JSON.stringify(profile));
-  p.gas.setpoints[idx].active = true;
-  console.log('using setpoint', p.gas.setpoints[idx]);
-  return sensor.setProfile(p).then(() => {
-    console.log('... and measure');
-  });
-}
+  p.oversample_p = 16;
+  p.oversample_t = 2;
+  p.oversample_h = 1;
+  p.filter_coefficient = false;
 
+  p.gas.setpoints = p.gas.setpoints.map((sp, spidx) => {
+    sp.active = spidx === idx;
+    return sp;
+  });
+  return sensor.setProfile(p).then(() => new Promise((resolve, reject) => {
+    console.log('profile set, sleep');
+    setTimeout(resolve, 5000);
+  }));
+}
 
 rasbus.byname('i2cbus').init(1, 119).then(bus => {
   return BoschIEU.sensor(bus).then(s => {
     return s.id().then(() => s.calibration()).then(cali => {
       console.log(s.chip.name, 'running self-test');
 
-      function high() { return test(s, 0); }
-      function low() { return test(s, 2); }
+      const h_results = [];
+      const l_results = [];
+      function high() { return force(s, 0).then(() => s.measurement()).then(r => h_results.push(r)); } // run high temp test
+      function low() { return force(s, 2).then(() => s.measurement()).then(r => l_results.push(r)); } // run low temp test
 
-      return high().then(low)
-        .then(high).then(low)
-        .then(high).then(low);
+      return Promise.resolve()
+      //return force(s, 3).then(() => s.measurement().then(console.log))
+        .then(high).then(low) // h1 / l1
+        .then(high).then(low) // h2 / l2
+        .then(high).then(low) // h3 / l3
+        .then(() => {
+          console.log('analyze');
+          // console.log(h_results, l_results);
+          // centroid gas ratio = 2*HT3 / (LT2+LT3) < 0.5
+          const ht3 = h_results[2];
+          const lt2 = l_results[1];
+          const lt3 = l_results[2];
+
+          // console.log(ht3.gas, lt2.gas, lt3.gas);
+
+          if(!ht3.gas.adc.stable || !lt2.gas.adc.stable || !lt3.gas.adc.stable) { throw Error('unstable'); }
+
+          const cent_res = (lt2.gas.ohm + lt3.gas.ohm) / (2 * ht3.gas.ohm);
+          if(cent_res < 2) { throw Error('centroid no good'); }
+
+          console.log('good to go', cent_res);
+        })
     });
   });
 });

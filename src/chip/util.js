@@ -19,6 +19,10 @@ class Util {
     return (msb << 2) | lsb_2bit;
   }
 
+  static reconstruct12bit(msb, lsb_4bit) {
+    return (msb << 4) | lsb_4bit;
+  }
+
   static reconstruct20bit(msb, lsb, xlsb) {
     // return  msb << 12 | lsb << 4 | xlsb >> 4;
     return ((msb << 8 | lsb) << 8 | xlsb) >> 4;

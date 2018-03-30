@@ -137,7 +137,9 @@ Repler.addCommand({
   },
   callback: function(state) {
     return state.sensor.profile().then(profile => {
+      const sp = profile.gas !== undefined ? profile.gas.setpoints : [];
       console.log(profile);
+      console.log(sp)
     });
   }
 });

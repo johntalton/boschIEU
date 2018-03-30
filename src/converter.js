@@ -28,7 +28,12 @@ class Converter {
 
   static ctof(c) {
     if(c === undefined){ return undefined; }
-    return c * (9/5.0) + 32;
+    return c * (9 / 5.0) + 32;
+  }
+
+  static ftoc(f) {
+    if(f === undefined) { return undefined; }
+    return (f - 32) * (5 / 9.0);
   }
 
   static trim(f, p) {

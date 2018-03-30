@@ -40,12 +40,11 @@
 
         "gas": {
           "enable": true,
-          "cycle": [0, 1, 3, 4, 0, 1],
           "setpoints": [
             { "tempatureF": 572, "durationMs": 1000 },
             { "tempatureC": 350, "durationS": 2, "active": true },
             { "active": false },
-            { "tempatureC": 100, "durationMs": 300, "active": true }
+            { "tempatureC": 100, "durationMs": 300, "active": true },
             { "tempatureC": 400, "durationMs": 300, "active": false }
           ]
         },

@@ -37,7 +37,7 @@ class Util {
       if(H.skip !== undefined && H.skip) {
         result.humidity = { skip: true };
       } else {
-        result.humidity = { percent: H.percent };
+        result.humidity = { percent: H.percent, Hunclamped: H.Hunclamped };
       }
     }
 

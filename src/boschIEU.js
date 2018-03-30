@@ -46,7 +46,7 @@ class BoschSensor {
   }
 
   profile() { return this._chip.profile(this._bus); }
-  setProfile(profile) { return this._chip.setProfile(this._bus, profile); }
+  setProfile(profile) { return this._chip.setProfile(this._bus, profile, this._calibration); }
 
   ready() { return this._chip.ready(this._bus); }
 
