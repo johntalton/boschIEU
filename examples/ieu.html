@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<style>
+			body {
+				margin: 0;
+				padding: 0;
+
+				display: flex;
+
+				flex-wrap: nowrap;
+				justify-content: center;
+				align-items: center;
+			}
+			div.pad {
+				flex: 0;
+			}
+			svg {
+				margin-top: 2em;
+				height: 500px;
+				width: 90%;
+				background-color: beige;
+			}
+			.axis > line {
+				stroke: slateblue;
+				stroke-width: 1;
+			}
+
+			.points > circle {
+				transition: cx 60s;
+				fill: slateblue;
+			}
+
+			.A { stroke: red; }
+			.B { stroke: green; }
+			.C { stroke: purple; }
+		</style>
+
+		<script src="https://unpkg.com/mqtt/dist/mqtt.min.js" async="true" onload="mqttloaded(this);"></script>
+		<script>
+			function zip(a,b){ return a.map((e,i) => [e, b[i]]); }
+		</script>
+		<script type="text/javascript">
+			const HTML5NS = '';
+			const SVGNS = 'http://www.w3.org/2000/svg';
+
+			function addJoint(name, point) {
+				const g = document.createElementNS(SVGNS, 'g');
+				g.id = name;
+				g.style.transform = 'translate(' + point[0] + 'px, ' + point[1] + 'px)';
+
+				const circle = document.createElementNS(SVGNS, 'circle');
+
+				const text = document.createElementNS(SVGNS, 'text');
+				text.appendChild(document.createTextNode(name));
+
+				g.appendChild(circle);
+				g.appendChild(text);
+
+				svgJoints.appendChild(g);
+			}
+
+			function updateJoint(name, point) {
+				const g = document.querySelector('#' + name);
+				g.style.transform = 'translate(' + point[0] + 'px, ' + point[1] + 'px)';
+			}
+
+			function addBone(name, from, to) {
+				const line = document.createElementNS(SVGNS, 'line');
+				line.id = name;
+				line.setAttribute('x1', from[0]);
+				line.setAttribute('y1', from[1]);
+				line.setAttribute('x2', to[0]);
+				line.setAttribute('y2', to[1]);
+				svgBones.appendChild(line);
+			}
+
+			function updateBone(name, from, to) {
+				const line = document.querySelector('#' + name);
+				if(from !== undefined) {
+					line.setAttribute('x1', from[0]);
+					line.setAttribute('y1', from[1]);
+				}
+				if(to !== undefined) {
+					line.setAttribute('x2', to[0]);
+					line.setAttribute('y2', to[1]);
+				}
+			}
+
+			function addEffector(name, point) {
+				const g = document.createElementNS(SVGNS,'g');
+
+				g.setAttribute('draggable', 'true');
+
+				g.id = name;
+				g.style.transform = 'translate(' + point[0] + 'px, ' + point[1] + 'px)';
+
+				const circle = document.createElementNS(SVGNS, 'circle');
+
+				const text = document.createElementNS(SVGNS, 'text');
+				text.appendChild(document.createTextNode(name));
+
+				g.appendChild(circle);
+				g.appendChild(text);
+
+				svgEffectors.appendChild(g);
+			}
+		</script>
+		<script type="text/javascript">
+
+			class Graph {
+				static stable(state) {
+					return true;
+				}
+				static add(state, timestamp, value) {
+
+				}
+			}
+		</script>
+		<script>
+			const state = {
+				duration: 'hour',
+				samples: []
+			};
+
+			var min;
+			var max;
+
+			function scale(value, from, to) {
+				if(min == undefined) { min = value; }
+				if(max == undefined) { max = value; }
+				min = Math.min(min, value);
+				max = Math.max(max, value);
+
+				const fromMag = from[1] - from[0];
+				const toMag = to[1] - to[0];
+				//console.log(fromMag, toMag);
+				return (value - from[0]) * (toMag / (fromMag * 1.0)) + to[0];
+			}
+
+			function add(value, group) {
+				console.log('adding value', value);
+				const points = svg.querySelector('.points');
+
+				const y = scale(value, [min, max], [95, 5])
+				//console.log('scale', value, [min, max], [95, 5], y);
+				console.log('Y', y);
+
+				const point = document.createElementNS(SVGNS, 'circle');
+				point.setAttribute('class', group);
+				point.setAttribute('cx', 195);
+				point.setAttribute('cy', y);
+				point.setAttribute('r', 1);
+				point.setAttribute('transition', 'cx 60s');
+				points.appendChild(point);
+
+				setTimeout(() => { point.setAttribute('cx', 5); }, 0);
+				setTimeout(() => { points.removeChild(point); }, 58 * 1000);
+			}
+
+
+			function setup() {
+				console.log('setup');
+				// snap global element
+				svg = document.querySelector('SVG');
+				// setupEffectorCallback(state);
+			}
+
+			function update(state) {
+				console.log('update');
+
+
+			}
+
+			function step(timestamp) {
+				//console.log('step?');
+				if(Graph.stable(state)) {
+					//console.log('no need');
+					return;
+				}
+
+				update(state);
+
+				if(!Graph.stable(state)){ window.requestAnimationFrame(step); }
+			}
+
+			const availC = ['A', 'B', 'C'];
+			const usedC = {};
+			function groupForName(result) {
+				const group = result.signature ? result.signature : result.name;
+				if(usedC[group] !== undefined) { return usedC[group]; }
+
+				const nextC = availC.shift();
+				usedC[group] = nextC;
+				return nextC;
+			}
+
+			function handleIUE(result) {
+				console.log(result);
+				add(result.tempature.C, groupForName(result));
+			}
+
+			function mqttloaded(script) {
+				console.log('mqtt loaded');
+				const client = mqtt.connect('mqtt://10.0.1.1:1884', { reconnectPeriod: 30 * 1000});
+				client.on('connect', () => { console.log('mqtt connected'); client.subscribe('boschieu/#') });
+				client.on('disconnect', () => { console.log('mqtt disconnected'); });
+				client.on('message', (topic, message) => {
+					try {
+						const json = JSON.parse(message);
+						handleIUE(json);
+					}
+					catch(e) {
+						console.log('failed to parse message', e);
+					}
+				});
+
+			}
+
+			window.addEventListener('load', event => {
+				setup();
+				// and kick off natural animation
+				window.requestAnimationFrame(step);
+			});
+		</script>
+	</head>
+	<body>
+			<div class="pad"></div>
+			<svg viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet">
+				<defs>
+					<marker id='head' orient="auto"
+						markerWidth="4" markerHeight="4"
+						refX='4' refY='2'>
+						<!-- triangle pointing right (+x) -->
+						<path d='M0,0 V4 L2,2 Z' class="marker"/>
+					</marker>
+					<marker id="marker-arrow" markerWidth="12" markerHeight="12" refx="6" refy="4" orient="auto">
+						<path d="M 1 1 7 4 1 7 Z" class="marker"/>
+					</marker>
+				</defs>
+				<g class="points">
+				</g>
+				<g class="axis">
+					<line class="time" x1="4.5" y1="95" x2="195" y2="95" />
+					<line class="value" x1="5" y1="5" x2="5" y2="95" />
+				</g>
+			</svg>
+			<div class="pad"></div>
+	</body>
+</html>
+
