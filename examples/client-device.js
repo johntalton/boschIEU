@@ -183,9 +183,10 @@ class Device {
       }
 
       return base.then(() => {
+        const timestamp = new Date(); // todo use forcedAt time
         return devcfg.client.sensor.measurement()
           .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
-          .then(result => Store.insertResults(application, devcfg.client, result, new Date()).then(() => result))
+          .then(result => Store.insertResults(application, devcfg.client, result, timestamp).then(() => result))
           .then(result => Util.log(devcfg.client, result));
       });
     })
@@ -244,7 +245,7 @@ class Device {
         return { measure: true };
       }
       else {
-        return sensor.setProfile(config.profile).then(() => ({ measure: true, delayMs: 5000 }));
+        return sensor.setProfile(config.profile).then(() => ({ measure: true, delayMs: 5000, forcedAt: new Date() }));
       }
     }
     else {

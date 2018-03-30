@@ -51,6 +51,11 @@ class Config {
           console.log(' ** mode SLEEP, will poll but not measure (good for use with repl');
         }
         if(profile.gas !== undefined) {
+          if(profile.gas.enabled === undefined) {
+            console.log('gas enabled undefined, assume disabled');
+            profile.gas.enabled = false;
+          }
+
           profile.gas.setpoints = profile.gas.setpoints.map(sp => {
             const ms = Config._getMs(sp, 'duration', 0);
             const f = sp.tempatureF !== undefined ? Converter.ftoc(sp.tempatureF) : 0;
