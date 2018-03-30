@@ -167,7 +167,7 @@ class bme680 extends genericChip {
 
   static setProfile(bus, profile, calibration) {
     function durationToGasWait(durationMs) {
-      if(durationMs < 30) { console.log('low wait duration not recomended'); }
+      if(durationMs < 30) { console.log('low wait duration not recomended', durationMs); }
 
       function foo(ms, mult) {
         const intMs = Math.trunc(ms / mult);
@@ -338,11 +338,12 @@ class bme680 extends genericChip {
 
       const G = gas_valid_r ? { resistance: gas_r, range: gas_range_r, stable: heat_stab_r } : false;
 
-      //console.log('\tgas valid?', gas_valid_r);
-      //console.log('\theater stable?', heat_stab_r);
+      console.log('\tgas valid?', gas_valid_r);
+      console.log('\theater stable?', heat_stab_r);
 
       //console.log(calibration);
-      //console.log(P, T, H, G);
+      //console.log(P, T, H);
+      // console.log(G);
       //console.log(ready, meas_index, gas_valid_r, heat_stab_r, gas_r, gas_range_r);
 
       return Compensate.from({ adcP: P, adcT: T, adcH: H, adcG: G, type: '6xy' }, calibration);

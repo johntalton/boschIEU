@@ -113,6 +113,7 @@ class Compensate {
   }
 
   static gas_6xy(adcG, caliG) {
+    // console.log(adcG, caliG);
     if(adcG === false) { return { adc: false, skip: true }; }
 
     const Gg = caliG.G;
@@ -148,7 +149,7 @@ class Compensate {
 
     const ohms = gfloat();
     
-    return { adc: adcG, ohm: ohms };
+    return { adc: adcG, ohm: ohms, skip: !adcG.stable, stable: adcG.stable };
   }
 
 

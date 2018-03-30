@@ -10,12 +10,12 @@
         "filter_coefficient": false,
         "standby_time": true
       },
-      "pollIntervalS": 10
+      "pollIntervalS": 13
     },
     {
       "name": "front room",
       "active": true,
-      "bus": { "driver": "i2c-bus", "id": [ 1, 118 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -24,33 +24,28 @@
         "filter_coefficient": false,
         "standby_time": 500
       },
-      "pollIntervalS": 5,
+      "pollIntervalMs": 4100,
       "retryIntervalS": 60
     },
     {
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
-      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+      "bus": { "driver": "i2c-bus", "id": [ 1, 119 ] },
       "profile": {
         "mode": "FORCED",
         "oversampling_p": 2,
         "oversampling_t": 2,
         "oversampling_h": 2,
-        "filter_coefficient": 3,
+        "filter_coefficient": 7,
 
         "gas": {
-          "enable": true,
+          "enabled": true,
           "setpoints": [
-            { "tempatureF": 572, "durationMs": 1000 },
-            { "tempatureC": 350, "durationS": 2, "active": true },
-            { "active": false },
-            { "tempatureC": 100, "durationMs": 300, "active": true },
-            { "tempatureC": 400, "durationMs": 300, "active": false }
+            { "tempatureC": 320, "durationMs": 150, "active": true }
           ]
-        },
-
-       "pollIntervalS": null
-      }
+        }
+      },
+      "pollIntervalS": 7
     }
   ],
   "mqtt": {

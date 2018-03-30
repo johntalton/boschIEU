@@ -176,10 +176,18 @@ class Device {
         return;
       }
 
-      return devcfg.client.sensor.measurement()
-        .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
-        .then(result => Store.insertResults(application, devcfg.client, result, new Date()).then(() => result))
-        .then(result => Util.log(devcfg.client, result));
+      let base = Promise.resolve();
+      if(housekeeping.delayMs !== undefined) {
+        console.log('introduct delay before read', housekeeping.delayMs)
+        base = new Promise((resolve, reject) => { setTimeout(resolve, housekeeping.delayMs); });
+      }
+
+      return base.then(() => {
+        return devcfg.client.sensor.measurement()
+          .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
+          .then(result => Store.insertResults(application, devcfg.client, result, new Date()).then(() => result))
+          .then(result => Util.log(devcfg.client, result));
+      });
     })
     .catch(e => {
       console.log('error measuring shutdown timer', e);
@@ -236,7 +244,7 @@ class Device {
         return { measure: true };
       }
       else {
-        return sensor.setProfile(config.profile).then(() => ({ measure: true }));
+        return sensor.setProfile(config.profile).then(() => ({ measure: true, delayMs: 5000 }));
       }
     }
     else {

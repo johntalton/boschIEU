@@ -45,7 +45,7 @@ class Util {
       if(G.skip !== undefined && G.skip) {
         result.gas = { skip: true };
       } else {
-        result.gas = { Ohm: ohm };
+        result.gas = { Ohm: G.ohm };
       }
     }
 
