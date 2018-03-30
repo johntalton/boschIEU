@@ -52,9 +52,11 @@ class Config {
 
         const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);
 
-        const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
-        const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
-        const pollMs = pS * 1000 + pMs;
+        const pollMs = Config._getMs(rawDevCfg, 'pollInterval', 17 * 1000);
+        //const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
+        //const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
+        //const pollMs = pS * 1000 + pMs;
+
 
         return {
           name: name,

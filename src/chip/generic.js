@@ -14,9 +14,72 @@ class Compensate {
     }
   }
 
-  static from_6xy(mesurment, calibration) {
-    throw Error('todo');
+  static from_6xy(measurment, calibration) {
+    return {
+      tempature: Compensate.tempature_6xy(measurment.adcT, calibration.T),
+      pressure: Compensate.pressure_6xy(measurment.adcP, calibration.P),
+      humidity: Compensate.humidity_6xy(measurment.adcH, calibration.H),
+      gas: Compensate.gas_6xy(measurment.adcG, calibration.G)
+    };
   }
+
+  static tempature_6xy(adcT, caliT) {
+    if(adcT === false) { return { adc: false, skip: true }; }
+
+    if(caliT.length !== 1) { return { skip: true, calibration: caliT.length }; }
+    //const [range_sw_err] = calibration;
+
+    return { adc: adcT, skip: true };
+  }
+
+  static pressure_6xy(adcP, caliP) {
+    if(adcP === false) { return { adc: false, skip: true }; }
+
+    if(caliP.length !== 1) { return { skip: true, calibration: caliP.length }; }
+    //const [range_sw_err] = calibration;
+
+    return { adc: adcP, skip: true };
+  }
+
+  static humidity_6xy(adcH, caliH) {
+    if(adcH === false) { return { adc: false, skip: true }; }
+
+    if(caliH.length !== 1) { return { skip: true, calibration: caliH.length }; }
+    //const [range_sw_err] = calibration;
+
+    return { adc: adcH, skip: true };
+  }
+
+  static gas_6xy(adcG, caliG) {
+    if(adcG === false) { return { adc: false, skip: true }; }
+
+    if(caliG.length !== 1) { return { skip: true, calibration: caliG.length }; }
+    const [range_sw_err] = calibration;
+
+
+    const const_array1 = [1, 1, 1, 1, 1, 0.99, 1, 0.992, 1, 1, 0.998, 0.995, 1, 0.99, 1, 1];
+    const const_array2 = [ 8000000, 4000000, 2000000, 1000000, 499500.4995,
+      248262.1648, 125000, 63004.03226, 31281.28128, 15625,7812.5, 3906.25,
+      1953.125, 976.5625, 488.28125, 244.140625 ];
+
+    const var1 = (1340.0 + 5.0 * range_sw_err) * const_array1[gas_range];
+    const gas_res = var1 * const_array2[gas_range] / (gas_r - 512.0 + var1);
+    return gas_res;
+
+    /*
+    const lookup1 = [ 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -0.8, 0.0, 0.0, -0.2, -0.5, 0.0, -1.0, 0.0, 0.0 ];
+    const lookup2 = [ 0.0, 0.0, 0.0, 0.0, 0.1, 0.7, 0.0, -0.8, -0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ];
+
+    const var1 = (1340.0 + (5.0 * range_sw_err));
+    const var2 = var1 * (1.0 + lookup1[gas_range] / 100.0);
+    const var3 = 1.0 + (lookup2[gas_range] / 100.0);
+
+    const calc_gas_res = 1.0 / (var3 * (0.000000125) * (1 << gas_range) * ((((gas_res_adc) - 512.0) / var2) + 1.0));
+    return calc_gas_res;
+  */
+  }
+
+
 
 
   static from_2xy(measurment, calibration) {
@@ -35,7 +98,7 @@ class Compensate {
   static tempature(adcT, caliT) {
     if(adcT === false) { return { adc: false, skip: true }; }
 
-    if(caliT.length !== 3) { return { skip: true, calibration: caliT.length } }
+    if(caliT.length !== 3) { return { skip: true, calibration: caliT.length }; }
     const [dig_T1, dig_T2, dig_T3] = caliT;
 
     // console.log(T, dig_T1, dig_T2, dig_T3);
@@ -216,6 +279,15 @@ class genericChip {
   // measure
   // ready
   // setProfile
+
+
+  get ranges() {
+    return {
+      tempatureC: [0, 60],
+      pressurehP: [900, 1100],
+      humidityPercent: [20, 80]
+    };
+  }
 }
 
 module.exports.genericChip = genericChip;

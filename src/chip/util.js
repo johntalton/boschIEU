@@ -1,32 +1,23 @@
 "use strict";
 
-/*
-
-  static configFromTimingFilter(timing, filter) {
-    const spi3wire = 0; // TODO
-    return (timing << 5) | (filter << 2) | spi3wire;
-  }
-
-  static ctrlMeasFromSamplingMode(osrs_p, osrs_t, mode){
-    return (osrs_t << 5) | (osrs_p << 2) | mode;
-  }
-
-  static ctrlHumiFromSampling(osrs_h, spi_3w_int_en) {
-    if(spi_3w_int_en === undefined) { spi_3w_int_en = false; }
-    return (osrs_h & 0b111) | (spi_3w_int_en ? (0x01 << 6) : 0x00);
-  }
-
-
-
-*/
-
-
 /**
  * Magic util to simplify interface based on address/length read
  * this is also the place the <bus>s read gets called
  **/
 class Util {
   static range(from, to) { return [...Array(to - from + 1).keys()].map(i => i + from); }
+
+  static decodeTwos(twos, length) {
+    const smask = 1 << (length - 1);
+    if((twos & smask) !== smask) { return twos; }
+    // this is a subtle way to coerce trunceated twos
+    // into sign extented js integer (without parseInt)
+    return -1 << length - 1 | twos;
+  }
+
+  static reconstruct10bit(msb, lsb_2bit) {
+    return (msb << 2) | lsb_2bit;
+  }
 
   static reconstruct20bit(msb, lsb, xlsb) {
     // return  msb << 12 | lsb << 4 | xlsb >> 4;
@@ -90,3 +81,18 @@ class Util {
 
 module.exports.Util = Util;
 
+if(module.parent === null) {
+  function foo (success) { if(!success) { throw Error('nope'); } }
+  foo(Util.decodeTwos(0b1001, 4) === -7);
+
+  foo(Util.decodeTwos(0b010, 3) === 2);
+  foo(Util.decodeTwos(0b100, 3) === -4);
+  foo(Util.decodeTwos(0b111, 3) === -1);
+
+  foo(Util.decodeTwos(0b00000000, 8) === 0);
+  foo(Util.decodeTwos(0b01111110, 8) === 126);
+  foo(Util.decodeTwos(0b10000001, 8) === -127);
+  foo(Util.decodeTwos(0b11111111, 8) === -1);
+
+  console.log('util self-test looks good.');
+}

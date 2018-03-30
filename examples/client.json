@@ -10,10 +10,11 @@
         "filter_coefficient": false,
         "standby_time": true
       },
-      "pollIntervalMs": 7000
+      "pollIntervalS": 10
     },
     {
       "name": "front room",
+      "active": true,
       "bus": { "driver": "i2c-bus", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
@@ -27,11 +28,11 @@
       "retryIntervalS": 60
     },
     {
-      "sign": "md5",
-      "name": "cigar room (aka with gas)",
+      "sign": "sha1",
+      "name": "cigar room (aka w/ gas)",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
-        "mode": "SLEEP",
+        "mode": "FORCED",
         "oversampling_p": 2,
         "oversampling_t": 2,
         "oversampling_h": 2,
@@ -39,10 +40,13 @@
 
         "gas": {
           "enable": true,
-          "cycle": [0, 1, 1],
+          "cycle": [0, 1, 3, 4, 0, 1],
           "setpoints": [
-            { "tempatureF": 572, "durationMs": 220 },
-            { "tempatureC": 350, "durationMs": 100, "active": true }
+            { "tempatureF": 572, "durationMs": 1000 },
+            { "tempatureC": 350, "durationS": 2, "active": true },
+            { "active": false },
+            { "tempatureC": 100, "durationMs": 300, "active": true }
+            { "tempatureC": 400, "durationMs": 300, "active": false }
           ]
         },
 

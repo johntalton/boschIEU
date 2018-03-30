@@ -80,17 +80,19 @@ class Device {
         if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
       })
       .then(() => client.sensor.calibration())
-      .then(() => client.sensor.setProfile(devcfg.profile))
+      .then(() => client.sensor.setProfile(devcfg.profile)) // todo skip if forced?
 
       .then(() => {
         devcfg.client = client;
         client.name = devcfg.name;
         client.signature = signature(devcfg, client.sensor);
 
+        console.log();
         console.log('Chip Up:', client.sensor.chip.name);
         console.log(' bus ', client.bus.name);
         console.log(' name', client.name);
         console.log(' signature', client.signature);
+        console.log();
       });
   }
 
@@ -165,9 +167,15 @@ class Device {
 
 
   static _poll(application, devcfg) {
-    console.log('poll', devcfg.client.sensor.chip.name);
+    //console.log('poll', devcfg.client.sensor.chip.name);
     Device._houseKeepingOnPoll(devcfg).then(housekeeping => {
-      if(!housekeeping.measure) { console.log('skip measurement on housekeeping request'); return; }
+      if(!housekeeping.measure) {
+        console.log('\"' + devcfg.client.name + '\"');
+        console.log('\tskip on housekeeping request', housekeeping.sleep ? '(in sleep mode)' : '');
+        console.log();
+        return;
+      }
+
       return devcfg.client.sensor.measurement()
         .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
         .then(result => Store.insertResults(application, devcfg.client, result, new Date()).then(() => result))
@@ -187,10 +195,13 @@ class Device {
   static _houseKeepingOnPoll(devcfg) {
     //console.log('configured profile', devcfg.profile);
     return Promise.resolve({})
-      .then(config => Device._hkModeCheck(devcfg.client.sensor, { checkMode: true }))
+      .then(config => Device._hkModeCheck(devcfg.client.sensor, {
+        checkMode: true,
+        name: devcfg.client.name
+      }))
       .then(config => Device._hkForce(devcfg.client.sensor, {
         normal: config.normal,
-        expectForce: devcfg.profile.mode === 'FORCED',
+        profile: devcfg.profile,
         followAlong: false
       }))
       .catch(e => {
@@ -205,11 +216,12 @@ class Device {
     if(!config.checkMode) { console.log('modeCheck suppressed'); return { normal: true }; }
 
     return sensor.profile().then(profile => {
+      // console.log('\"' + config.name + '\"', 'chip profile on modeCheck', profile);
       return { normal: profile.mode === 'NORMAL' };
     });
   }
 
-  // static _hkMathProfile() // TODO only continue if profile is 1:1
+  // static _hkMatchProfile() // TODO only continue if profile is 1:1
 
   // static _hkTimingSuggestions() // TODO validate config.profile / running profile with poll time
 
@@ -217,14 +229,14 @@ class Device {
 
   static _hkForce(sensor, config) {
 
-    if(config.expectForce) {
+    if(config.profile.mode === 'FORCED') {
       // we expected to force
       if(config.normal) {
         // skip force, either by checkMode suppression or 3rd party chip state update
         return { measure: true };
       }
       else {
-        return sensor.force().then(() => ({ measure: true }));
+        return sensor.setProfile(config.profile).then(() => ({ measure: true }));
       }
     }
     else {
@@ -234,8 +246,8 @@ class Device {
         return { measure: true };
       }
       else {
-        console.log('sleep state');
-        return { measure: false };
+        // console.log('sleep state');
+        return { measure: false, sleep: true };
       }
     }
   }

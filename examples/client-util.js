@@ -7,6 +7,7 @@ class Util {
     const P = raw.pressure;
     const T = raw.tempature;
     const H = raw.humidity;
+    const G = raw.gas;
 
     const result = {};
 
@@ -40,6 +41,14 @@ class Util {
       }
     }
 
+    if(chip.features.gas) {
+      if(G.skip !== undefined && G.skip) {
+        result.gas = { skip: true };
+      } else {
+        result.gas = { Ohm: ohm };
+      }
+    }
+
     return result;
   }
 
@@ -49,6 +58,7 @@ class Util {
     const T = result.tempature;
     const H = result.humidity;
     const A = result.altitude;
+    const G = result.gas;
 
     console.log('"' + device.name + '" (' + device.sensor.chip.name + ' @ ' + device.bus.name + '):');
     if(device.signature !== undefined) {
@@ -75,6 +85,13 @@ class Util {
         console.log('\tHumidity: skipped');
       } else {
         console.log('\tHumidity:', Converter.trim(H.percent), '%');
+      }
+    }
+    if(device.sensor.chip.features.gas){
+      if(G.skip) {
+        console.log('\tGas: skipped');
+      } else {
+        console.log('\tGas:', Converter.trim(G.Ohm), '(Ohm)');
       }
     }
     console.log();
