@@ -6,31 +6,35 @@ Simplified interface for common interaction, but includes full support for some 
 This also wraps all three modules, allowing for better reuse and api encapsulation.
 
 Tested with these products:
+
 [Adafruit BMP280](https://www.adafruit.com/product/2651)
+
 [Adafruid BME280](https://www.adafruit.com/product/2652)
-[Adafruid BME2680](https://www.adafruit.com/product/3660)
 
-# Examples
+[Adafruid BME680](https://www.adafruit.com/product/3660)
 
-## Test
+
+
+# :triangular_ruler: Examples
+
+## :electric_plug: Test
 
 A hardcoded one off test that mimics the self-test example from bosch.
 It can be used a a simple validation of the sensor.
 
-## Repl
+## :flashlight: Repl
 
 Provides a command line interaction to the sensor / api.  Allowing for testing different chip bus and addressing configurations.
 Also provides are more raw view without directly debuging.
 
-## Client
+## :satellite: Client
 
 A light wieght MQTT client that can manage and stream results from several devices (of any type supported by the lib).
 
 It exercises most of the features and functionality of each chip, and provides a good base for app interaction use case.
 
 
-# API 
-## General
+# :wrench: API
 
 Simple init case:
 ```
@@ -42,17 +46,25 @@ busImpl.init(1, 0x77).then(bus => {
 });
 ```
 
-## BoschIEU
 
-### sensor
+
+## :blue_book: BoschIEU
+### :page_facing_up: sensor
+
+Static factory class for returning a new sensor then ... (thats up to you)
 
 ```
 const { BoeschIEU } = requre('./boschIEU.js');
 BoscIEU.sensor(name, bus).then( ... )
 ``` 
-## BoschIEU Sensor
 
-### id()
+
+
+
+
+## :blue_book: BoschIEU Sensor
+
+### :page_facing_up: id()
 
 ```
 sensor.id()
@@ -61,7 +73,7 @@ sensor.id()
 
 ---
 
-### calibration()
+### :page_facing_up: calibration()
 
 ```
 sensor.calibration().then(calibration_data => {
@@ -74,17 +86,17 @@ sensor.calibration().then(calibration_data => {
 ---
 
 
-### profile()
+### :page_facing_up: profile()
 
 Returns current chip profile from the device.
 
 ---
 
-### setProfile()
+### :page_facing_up: setProfile()
 
 Sets the profile for the chip.
 
-### reset()
+### :page_facing_up: reset()
 
 ```
 sensor.reset().then( ... )
@@ -94,7 +106,7 @@ Write a soft-reset to the chip.  Returning it to power-on state.
 
 ---
 
-### measurement(...)
+### :page_facing_up: measurement(...)
 
 ```
 sensor.measurement().then(results => {
@@ -105,6 +117,8 @@ sensor.measurement().then(results => {
 Read pressure, tempature and hunidity register in a single pass.
 
 
-## Converter
+
+
+## :blue_book: Converter
 
 Converter class of common helps are included (ft to meters, alttitude from Pa, etc)
