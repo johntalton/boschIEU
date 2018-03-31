@@ -106,6 +106,48 @@
 				svgEffectors.appendChild(g);
 			}
 		</script>
+		<script>
+			class Bucket extends EventTarget {
+				static conjure() { return new Bucket(); }
+
+				static from(source) {
+					const b = new Bucket();
+					source.addEventListener('add', event => { b.add(event.detail.slot, event.detail); })
+					return b;
+				}
+
+				constructor() {
+					super();
+					this._bucket = []; // todo could be a {}
+					this._total = 0;
+					this._sum = 0;
+				}
+
+				add(slot, detail) {
+					if(this._bucket[slot] === undefined) { this._bucket[slot] = []; }
+					this._bucket[slot].push(detail.sum); // todo { value: value, insertedAt: new Date() }
+
+					// update
+					this._total += detail.total;
+					this._sum += detail.sum;
+
+					// fake async
+					const event = new CustomEvent('add', { detail: { slot: 0, total: this._total, sum: this._sum }});
+					const preventD = this.dispatchEvent(event);
+				}
+
+
+			}
+
+			const Bs = Bucket.conjure(60);
+			const Bm = Bucket.from(Bs, 60);
+			const Bh = Bucket.from(Bm, 24);
+
+			Bs.add(2, { total: 1, sum: 37 });
+			Bs.add(3, { total: 1, sum: 42 });
+
+
+		</script>
 		<script type="text/javascript">
 
 			class Graph {
@@ -202,8 +244,8 @@
 
 			function mqttloaded(script) {
 				console.log('mqtt loaded');
-				const client = mqtt.connect('mqtt://10.0.1.1:1884', { reconnectPeriod: 30 * 1000});
-				client.on('connect', () => { console.log('mqtt connected'); client.subscribe('boschieu/#') });
+				const client = mqtt.connect('mqtt://192.168.1.14:1884', { reconnectPeriod: 30 * 1000});
+				//client.on('connect', () => { console.log('mqtt connected'); client.subscribe('boschieu/#') });
 				client.on('disconnect', () => { console.log('mqtt disconnected'); });
 				client.on('message', (topic, message) => {
 					try {
@@ -248,4 +290,3 @@
 			<div class="pad"></div>
 	</body>
 </html>
-
