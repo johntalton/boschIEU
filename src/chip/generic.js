@@ -10,7 +10,7 @@ class Compensate {
     switch(measurment.type) {
     case '2xy': return Compensate.from_2xy(measurment, calibration); break;
     case '6xy': return Compensate.from_6xy(measurment, calibration); break;
-    default: throw Error('unknonw measurment type: ' + measurment.type); break;
+    default: throw Error('unknown measurement type: ' + measurment.type); break;
     }
   }
 
@@ -132,7 +132,7 @@ class Compensate {
     }
 
     function gint() {
-    
+
     }
 
     /*
@@ -148,7 +148,7 @@ class Compensate {
 
 
     const ohms = gfloat();
-    
+
     return { adc: adcG, ohm: ohms, skip: !adcG.stable, stable: adcG.stable };
   }
 

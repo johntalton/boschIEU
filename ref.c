@@ -19,7 +19,7 @@ int8_t user_i2c_read(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint16
 {
 	int8_t rslt = 0;
 	//printf("read\n");
-	if(dev_id != g_address) { printf("missmatch address\n"); return -1; }
+	if(dev_id != g_address) { printf("mismatch address\n"); return -1; }
 
 	for(int i = 0; i < len; i++) {
 		char buf[1];
@@ -35,7 +35,7 @@ int8_t user_i2c_write(uint8_t dev_id, uint8_t reg_addr, uint8_t *reg_data, uint1
 {
 	int8_t rslt = 0;
 	printf("write\n");
-	if(dev_id != g_address) { printf("missmatch address\n"); return -1; }
+	if(dev_id != g_address) { printf("mismatch address\n"); return -1; }
 
         char buf[2];
 	buf[0] = reg_addr;

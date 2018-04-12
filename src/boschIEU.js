@@ -14,7 +14,7 @@ class BoschIEU {
 }
 
 /**
- * Acts as a cache around the Chip implmentation
+ * Acts as a cache around the Chip implementation
  */
 class BoschSensor {
   constructor(bus) {

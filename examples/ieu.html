@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<link rel="subresource" href="https://unpkg.com/mqtt/dist/mqtt.min.js" />
+		<link rel="import" href="graph.html" crossorigin="anonymous" />
+
 		<style>
 			@keyframes foo {
 				0% { background-color: lavender; }
@@ -22,7 +25,7 @@
 
 				background-color:  lavender;
 				animation-name: foo;
-				animation-duration: 120s;
+				animation-duration: 123s;
 
 			}
 			div.pad {
@@ -33,7 +36,7 @@
 				to { filter: inherit; }
 			}
 
-			svg {
+			.graph {
 				margin-top: 2em;
 				height: 500px;
 				width: 90%;
@@ -43,32 +46,10 @@
 				animation-name: bar;
 				animation-duration: 37s;
 			}
-			.axis > line {
-				stroke: rgba(20, 20, 20, 0.35);
-				stroke-width: 1;
-			}
 
-			.points > circle {
-				transition: cx 60s;
-				stroke-width: 0;
-			}
-			.lastPointLabels > text {
-				stroke-width: 0;
-				fill: green;
-				font-size: .25em;
-				transform: translateY(-.5em);
-			}
-
-			.points .A { fill: red; }
-			.points .B { fill: green; }
-			.points .C { fill: purple; }
-
-			.lastPointLabels .A { fill: firebrick; }
-			.lastPointLabels .B { fill: olivedrab; }
-			.lastPointLabels .C { fill: indigo; }
 		</style>
 
-		<script src="https://unpkg.com/mqtt/dist/mqtt.min.js" async="true" onload="mqttloaded(this);"></script>
+		<script src="https://unpkg.com/mqtt/dist/mqtt.min.js" async onload="mqttloaded();"></script>
 		<script>
 			function zip(a,b){ return a.map((e,i) => [e, b[i]]); }
 		</script>
@@ -183,7 +164,7 @@
 
 			function setup() {
 				// snap global element
-				svg = document.querySelector('SVG');
+				//svg = document.querySelector('SVG');
 				// setupEffectorCallback(state);
 			}
 
@@ -240,15 +221,15 @@
 				//blob[]
 			}
 
-			function mqttloaded(script) {
+			function mqttloaded() {
 				console.log('mqtt loaded');
-				const client = mqtt.connect('ws://192.168.1.14:1884', { reconnectPeriod: 30 * 1000});
+				const client = mqtt.connect('mqtt://192.168.1.14:1884', { reconnectPeriod: 30 * 1000});
 				client.on('connect', () => { console.log('mqtt connected'); client.subscribe('boschieu/#') });
 				client.on('disconnect', () => { console.log('mqtt disconnected'); });
 				client.on('message', (topic, message) => {
 					try {
 						const json = JSON.parse(message);
-						handleIUE(client, json);
+						//setTimeout(() => handleIUE(client, json), 100);
 					}
 					catch(e) {
 						console.log('failed to parse message', e);
@@ -257,36 +238,22 @@
 
 			}
 
+			document.addEventListener('DOMContentLoaded', event => {
+				console.log('dom content loaded ... wait for async mqtt lib');
+				svg = document.querySelector('SVG');
+
+			});
+
 			window.addEventListener('load', event => {
-				setup();
+				//setup();
 				// and kick off natural animation
-				window.requestAnimationFrame(step);
+				//setTimeout(() => window.requestAnimationFrame(step), 1);
 			});
 		</script>
 	</head>
 	<body>
 			<div class="pad"></div>
-			<svg viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet">
-				<defs>
-					<marker id='head' orient="auto"
-						markerWidth="4" markerHeight="4"
-						refX='4' refY='2'>
-						<!-- triangle pointing right (+x) -->
-						<path d='M0,0 V4 L2,2 Z' class="marker"/>
-					</marker>
-					<marker id="marker-arrow" markerWidth="12" markerHeight="12" refx="6" refy="4" orient="auto">
-						<path d="M 1 1 7 4 1 7 Z" class="marker"/>
-					</marker>
-				</defs>
-				<g class="lastPointLabels">
-				</g>
-				<g class="points">
-				</g>
-				<g class="axis">
-					<line class="time" x1="5.5" y1="95" x2="195" y2="95" />
-					<line class="value" x1="5" y1="5" x2="5" y2="95.5" />
-				</g>
-			</svg>
+
 			<div class="pad"></div>
 	</body>
 </html>

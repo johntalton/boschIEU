@@ -167,13 +167,13 @@ class bme680 extends genericChip {
 
   static setProfile(bus, profile, calibration) {
     function durationToGasWait(durationMs) {
-      if(durationMs < 30) { console.log('low wait duration not recomended', durationMs); }
+      if(durationMs < 30) { console.log('low wait duration not recommended', durationMs); }
 
       function foo(ms, mult) {
         const intMs = Math.trunc(ms / mult);
         const actual = intMs * mult;
         const err = actual - ms;
-        if(err !== 0) { console.log('aproximating gas wait', actual, 'delta', err); }
+        if(err !== 0) { console.log('approximating gas wait', actual, 'delta', err); }
         return {
           base: intMs,
           multiplyer: mult,
@@ -181,7 +181,7 @@ class bme680 extends genericChip {
         };
       }
 
-      // 6bit with 2bit multiplyer in 4x step (1, 4, 16, 64)
+      // 6bit with 2bit multiplier in 4x step (1, 4, 16, 64)
       const base = Math.pow(2, 6) - 1;
       // 0 - 63 @ 1ms
       if(durationMs <= base) { return foo(durationMs, 1); }
@@ -192,12 +192,12 @@ class bme680 extends genericChip {
       // 0 - 4032 @ 64ms
       if(durationMs <= (base * 64)) { return foo(durationMs, 64); }
 
-      throw Error('max duration exceded: ' + durationMs);
+      throw Error('max duration exceeded: ' + durationMs);
     }
 
     // 320 25 -> 0x74
     function tempatureToHeaterRes(tempatureC, ambientTempatureC, caliG) {
-      if(tempatureC > 400) { throw Error('max tempature 400 C'); }
+      if(tempatureC > 400) { throw Error('max temperature 400 C'); }
       if(caliG.G.length !== 3){ throw Error('calibration mismatch'); }
       const [gh1, gh2, gh3] = caliG.G;
 
@@ -243,7 +243,7 @@ class bme680 extends genericChip {
     const ctrl_meas = Util.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
     const config = Util.packbits([[4, 3], [0 ,1]], filter, en3w);
 
-    const status = 0; // todo, we need to refactor all this page stuff Util.packbits([[4, 1]], spi_mem_page);
+    const status = 0; // todo, we need to redactor all this page stuff Util.packbits([[4, 1]], spi_mem_page);
 
     //console.log('ctrl gas', ctrl_gas0, ctrl_gas1, profile.gas.enabled);
 
@@ -271,7 +271,7 @@ class bme680 extends genericChip {
 
     //console.log(res_heat, gas_wait);
 
-    // we nolonger bulk write,
+    // we no longer bulk write,
     return bus.write(0x74, ctrl_meas & ~0b11) // sleeep
       .then(() => Promise.all([
         bus.write(0x72, ctrl_hum),
@@ -298,8 +298,8 @@ class bme680 extends genericChip {
       const active_profile_idx = Util.mapbits(meas_status, 3, 4);
       const ready = {
         ready: newdata,
-        measuringGas: measuringGas, // active gas measurment
-        mesuring: measuring,        // active TPH measurment
+        measuringGas: measuringGas, // active gas measurement
+        mesuring: measuring,        // active TPH measurement
         active_profile_idx: active_profile_idx
       };
 

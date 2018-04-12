@@ -29,7 +29,7 @@ Also provides are more raw view without directly debuging.
 
 ## :satellite: Client
 
-A light wieght MQTT client that can manage and stream results from several devices (of any type supported by the lib).
+A light weight MQTT client that can manage and stream results from several devices (of any type supported by the lib).
 
 It exercises most of the features and functionality of each chip, and provides a good base for app interaction use case.
 
@@ -56,7 +56,7 @@ Static factory class for returning a new sensor then ... (thats up to you)
 ```
 const { BoeschIEU } = requre('./boschIEU.js');
 BoscIEU.sensor(name, bus).then( ... )
-``` 
+```
 
 
 
@@ -79,7 +79,7 @@ sensor.id()
 sensor.calibration().then(calibration_data => {
   // ...
   // and then, later on at the bat cave ...
-  sensor.measurement().then(() => {}); // not passing calibration data 
+  sensor.measurement().then(() => {}); // not passing calibration data
 });
 ```
 
@@ -114,11 +114,11 @@ sensor.measurement().then(results => {
 });
 ```
 
-Read pressure, tempature and hunidity register in a single pass.
+Read pressure, temperature and humidity register in a single pass.
 
 
 
 
 ## :blue_book: Converter
 
-Converter class of common helps are included (ft to meters, alttitude from Pa, etc)
+Converter class of common helps are included (ft to meters, altitude from Pa, etc)

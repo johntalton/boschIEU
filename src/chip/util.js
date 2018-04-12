@@ -55,7 +55,7 @@ class Util {
     return item.value;
   }
 
-  // magic read method that take in an array of address/lengh pairs
+  // magic read method that take in an array of address/length pairs
   // (with shorthand for just address if length 1)
   // returns promise resolving to common chip api
   static readblock(bus, block, ...params) {
