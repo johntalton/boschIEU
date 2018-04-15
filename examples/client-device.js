@@ -40,9 +40,10 @@ class Device {
    * given configruation result in running application state
    */
   static setupDevices(application) {
-    return Promise.all([application.devices.filter(devcfg => devcfg.client === undefined).map(devcfg => {
-      return Device.setupDeviceWithRetry(application, devcfg);
-    })]).then(results => application);
+    const clients = application.devices.filter(devcfg => devcfg.client === undefined);
+    //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
+    return Promise.all(clients.map(devcfg => Device.setupDeviceWithRetry(application, devcfg)))
+      .then(results => application);
   }
 
   static setupDeviceWithRetry(application, devcfg) {
@@ -51,8 +52,19 @@ class Device {
         Device._processDevice(application, true);
       })
       .catch(e => {
-        console.log('\u001b[91mdevice setup failure', e, '\u001b[0m');
+        console.log('\u001b[91mdevice (', devcfg.name, ') setup failure', '\u001b[0m');
         devcfg.client = undefined;
+
+        // on initial setup failure we should do a little extra digging
+        // befor we go into a retry mode. such as, if the path / device
+        // does not exist, or if permission denied we have no need to retry
+        // and we should verbosly inform the logs as to the issue.
+        if(e.code !== undefined) {
+          if(e.code === 'EACCES') { console.log('Permission denied to device, no-retry'); return; }
+          if(e.code === 'ENOENT') { console.log('No such device, no-retry'); return;  }
+        }
+
+        console.log(e);
         devcfg.retrytimer = setInterval(Device._retrySetupDevice, devcfg.retryIntervalMs, application, devcfg);
       });
   }
@@ -72,6 +84,7 @@ class Device {
   static setupDevice(application, devcfg) {
     let client = {};
     const idary = Array.isArray(devcfg.bus.id) ? devcfg.bus.id : [ devcfg.bus.id ];
+    //console.log(' > ', idary);
     return Device._selectBus(devcfg.bus.driver).init(...idary)
       .then(bus => client.bus = bus)
       .then(() => BoschIEU.sensor(client.bus).then(sensor => client.sensor = sensor))

@@ -39,4 +39,4 @@ Config.config('./client.json')
   .then(Store.setupStore)
   .then(Device.setupDevices)
   .then(runconfig => { console.log('Client up...'); })
-  .catch(e => { console.log('error', e); });
+  .catch(e => { console.log('top-level error', e); });

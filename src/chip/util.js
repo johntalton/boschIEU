@@ -15,18 +15,21 @@ class Util {
     return -1 << length - 1 | twos;
   }
 
-  static reconstruct10bit(msb, lsb_2bit) {
-    return (msb << 2) | lsb_2bit;
+  static reconstructNbit(nbit, ...parts) {
+    if(nbit < 8) { throw Error('what?'); }
+    //console.log('nbit', nbit, parts);
+
+    const [msb, lsb, xlsb] = parts;
+    if(nbit === 10) return (msb << 2) | lsb;
+    if(nbit === 12) return (msb << 4) | lsb;
+    if(nbit === 20) return ((msb << 8 | lsb) << 8 | xlsb) >> 4;
+
+    throw Error('nbit not supported');
   }
 
-  static reconstruct12bit(msb, lsb_4bit) {
-    return (msb << 4) | lsb_4bit;
-  }
-
-  static reconstruct20bit(msb, lsb, xlsb) {
-    // return  msb << 12 | lsb << 4 | xlsb >> 4;
-    return ((msb << 8 | lsb) << 8 | xlsb) >> 4;
-  }
+  static reconstruct10bit(msb, lsb_2bit) { return Util.reconstructNbit(10, msb, lsb_2bit); }
+  static reconstruct12bit(msb, lsb_4bit) { return Util.reconstructNbit(12, msb, lsb_4bit); }
+  static reconstruct20bit(msb, lsb, xlsb) { return Util.reconstructNbit(20, msb, lsb, xlsb); }
 
   static mapbits(bits, position, length) {
     const shift = position - length + 1;
@@ -87,16 +90,32 @@ module.exports.Util = Util;
 
 if(module.parent === null) {
   function foo (success) { if(!success) { throw Error('nope'); } }
-  foo(Util.decodeTwos(0b1001, 4) === -7);
 
-  foo(Util.decodeTwos(0b010, 3) === 2);
-  foo(Util.decodeTwos(0b100, 3) === -4);
-  foo(Util.decodeTwos(0b111, 3) === -1);
+  function test_decodeTwos() {
+    foo(Util.decodeTwos(0b1001, 4) === -7);
 
-  foo(Util.decodeTwos(0b00000000, 8) === 0);
-  foo(Util.decodeTwos(0b01111110, 8) === 126);
-  foo(Util.decodeTwos(0b10000001, 8) === -127);
-  foo(Util.decodeTwos(0b11111111, 8) === -1);
+    foo(Util.decodeTwos(0b010, 3) === 2);
+    foo(Util.decodeTwos(0b100, 3) === -4);
+    foo(Util.decodeTwos(0b111, 3) === -1);
+
+    foo(Util.decodeTwos(0b00000000, 8) === 0);
+    foo(Util.decodeTwos(0b01111110, 8) === 126);
+    foo(Util.decodeTwos(0b10000001, 8) === -127);
+    foo(Util.decodeTwos(0b11111111, 8) === -1);
+  }
+
+  function test_reconstruct() {
+    //foo(Util.reconstructNbit(10, 0x00, 0x00) === 0);
+
+    foo(Util.reconstructNbit(12, 0x34, 0x0E) === 846);
+    foo(Util.reconstructNbit(12, 0x3E, 0x05) === 997);
+
+    foo(Util.reconstructNbit(20, 0x55, 0x47, 0x00) === 349296);
+    foo(Util.reconstructNbit(20, 0x7E, 0x8B, 0x80) === 518328);
+  }
+
+  test_decodeTwos();
+  test_reconstruct();
 
   console.log('util self-test looks good.');
 }
