@@ -148,6 +148,10 @@ class bme280 extends genericChip {
       };
     });
   }
+
+  static estimateMeasurementWait(profile) {
+    return Promise.reject();
+  }
 }
 
 module.exports.bme280 = bme280;

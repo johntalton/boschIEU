@@ -196,7 +196,11 @@ class Device {
       }
 
       return base.then(() => {
-        const timestamp = new Date(); // todo use forcedAt time
+        const timestamp = new Date(); // todo use forcedAt time also as well as delay etc
+        const meta = {
+          timestamp: timestamp,
+          housekeeping: housekeeping
+        };
         return devcfg.client.sensor.measurement()
           .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
           .then(result => Store.insertResults(application, devcfg.client, result, timestamp).then(() => result))
@@ -258,7 +262,14 @@ class Device {
         return { measure: true };
       }
       else {
-        return sensor.setProfile(config.profile).then(() => ({ measure: true, delayMs: 5000, forcedAt: new Date() }));
+        const estDelay = sensor.estimateMeasurementWait(config.profile);
+        const delayMs = estDelay.totalWaitMs;
+        return sensor.setProfile(config.profile)
+          .then(() => ({
+            measure: true,
+            delayMs: delayMs,
+            forcedAt: new Date()
+          }));
       }
     }
     else {

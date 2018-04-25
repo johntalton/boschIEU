@@ -350,9 +350,9 @@ class genericChip {
   // calibrate
   // profile
   // measure
+  // estimateMeasurementWait
   // ready
   // setProfile
-
 
   get ranges() {
     return {

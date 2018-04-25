@@ -127,6 +127,10 @@ class bmp280 extends genericChip {
       };
     });
   }
+
+  static estimateMeasurementWait(profile) {
+    return Promise.reject();
+  }
 }
 
 module.exports.bmp280 = bmp280;

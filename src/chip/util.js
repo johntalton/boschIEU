@@ -1,8 +1,7 @@
 "use strict";
 
 /**
- * Magic util to simplify interface based on address/length read
- * this is also the place the <bus>s read gets called
+ *
  **/
 class Util {
   static range(from, to) { return [...Array(to - from + 1).keys()].map(i => i + from); }
@@ -59,10 +58,8 @@ class Util {
   }
 
   // magic read method that take in an array of address/lengh pairs
-  // (with shorthand for just address if length 1)
-  // returns promise resolving to common chip api
   static readblock(bus, block, ...params) {
-    // normalize block from shorthand
+    // normalize block from shorthand (aka [[37, 1], [37], 37] are all the same)
     const blk = block.map(item => {
       if(Array.isArray(item)) {
         if(item.length !== 2) { console.log('sloppy format', item); return [item[0], 1]; }
@@ -81,6 +78,7 @@ class Util {
       return bus.read(reg, len);
     }))
     .then(all => {
+      //console.log(all);
       return Buffer.concat(all, totalLength);
     });
   }

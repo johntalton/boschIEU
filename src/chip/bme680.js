@@ -361,6 +361,44 @@ class bme680 extends genericChip {
       };
     });
   }
+
+  static estimateMeasurementWait(profile) {
+    // converts enum oversample from profile into
+    // a known cycles - currently uses the side effect
+    // of the enum layout to map to known cycles (aka 1:1).
+    function oversampleToCycles(os) {
+      if(os === false) { return 0; }
+      const cycles = [0, 1, 2, 4, 8, 16];
+      if(!cycles.includes(os)) { throw Error('unknown oversample enum'); }
+      return os;
+    }
+
+    const BASE_PER_CYCLES_US = 1963;
+
+    const cycles = oversampleToCycles(profile.oversampling_t) +
+      oversampleToCycles(profile.oversampling_p) +
+      oversampleToCycles(profile.oversampling_h);
+
+    const tph_durUs = (BASE_PER_CYCLES_US * cycles) +
+      1000 +      // Wake up duration of 1ms
+      (477 * 4) + // TPH switching duration
+      (477 * 5);  // Gas measurement duration (todo gas enabled?)
+
+    // it takes a while
+    let gasWaitMs = 0;
+    if(profile.gas.enabled) {
+      const active = profile.gas.setpoints.find(sp => sp.active);
+      if(active) { gasWaitMs = active.durationMs; }
+    }
+
+    const totalMs = ((tph_durUs + 500) / 1000) + gasWaitMs;
+
+    return {
+      totalWaitMs: totalMs,
+      tphDurationUs: tph_durUs,
+      gasDurationMs: gasWaitMs
+    };
+  }
 }
 
 module.exports.bme680 = bme680;
