@@ -129,7 +129,7 @@ class bmp280 extends genericChip {
   }
 
   static estimateMeasurementWait(profile) {
-    return Promise.reject();
+    return { totalWaitMs: 0 };
   }
 }
 
