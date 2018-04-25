@@ -1,51 +1,97 @@
 "use strict";
 
-const boschLib = require('../src/boschIEU.js');
-const Converter = boschLib.Converter;
+const { Converter } = require('../src/boschIEU.js');
 
 class Util {
+  static bulkup(chip, raw) {
+    const P = raw.pressure;
+    const T = raw.tempature;
+    const H = raw.humidity;
+    const G = raw.gas;
+
+    const result = {};
+
+    if(chip.features.pressure) {
+      if(P.skip !== undefined && P.skip) {
+        result.pressure = { skip: true };
+      } else {
+        const inHg = Converter.pressurePaToInHg(P.Pa);
+        const altFt = Converter.altitudeFromPressure(Converter.seaLevelPa, P.Pa);
+        const altM = Converter.ftToMeter(altFt);
+
+        result.pressure = { Pa: P.Pa, inHg: inHg };
+        result.altitude = { Ft: altFt, M: altM };
+      }
+    }
+
+    if(chip.features.tempature) {
+      if(T.skip !== undefined && T.skip) {
+        result.tempature = { skip: true };
+      } else {
+        const f = Converter.ctof(T.C);
+        result.tempature = { C: T.C, F: f };
+      }
+    }
+
+    if(chip.features.humidity) {
+      if(H.skip !== undefined && H.skip) {
+        result.humidity = { skip: true };
+      } else {
+        result.humidity = { percent: H.percent, Hunclamped: H.Hunclamped };
+      }
+    }
+
+    if(chip.features.gas) {
+      if(G.skip !== undefined && G.skip) {
+        result.gas = { skip: true };
+      } else {
+        result.gas = { Ohm: G.ohm };
+      }
+    }
+
+    return result;
+  }
+
+
   static log(device, result) {
-    // console.log(P, T, H);
     const P = result.pressure;
     const T = result.tempature;
     const H = result.humidity;
+    const A = result.altitude;
+    const G = result.gas;
 
-    console.log('"' + device.name + '" ' + device.sensor.chip.name + ' (' + device.bus.name + '):');
+    console.log('"' + device.name + '" (' + device.sensor.chip.name + ' @ ' + device.bus.name + '):');
     if(device.signature !== undefined) {
-      console.log('\tsignature:', device.signature);
+      console.log('\tsignature:', (device.signature !== null) ? device.signature : '(disabled)' );
     }
 
-    if(device.sensor.chip.supportsPressure){
-      if(P === undefined || P.skip === true) {
-        console.log('\tPressure: ', 'Skipped');
-      } else if(P.undef !== undefined) {
-        console.log('\tPressue:', 'uncalibrated');
+    if(device.sensor.chip.features.pressure){
+      if(P.skip) {
+        console.log('\tPreassure: skipped');
       } else {
-        const altitudeFt = Converter.altitudeFromPressure(Converter.seaLevelPa, P.P);
-
-        console.log('\tPressure (Pa):', Converter.trim(P.P),
-          '(inHg):', Converter.trim(Converter.pressurePaToInHg(P.P)));
-        console.log('\tAltitude',
-          '(ft):', Converter.trim(altitudeFt),
-          '(m): ', Converter.trim(Converter.ftToMeter(altitudeFt)) );
+        console.log('\tPressure (Pa):', Converter.trim(P.Pa), '(inHg):', Converter.trim(P.inHg));
+        console.log('\tAltitude','(ft):', Converter.trim(A.Ft), '(m): ', Converter.trim(A.M));
       }
     }
-    if(device.sensor.chip.supportsTempature){
-      if(T === undefined || T.skip === true) {
-        console.log('\tTempature:', 'Skipped');
-      } else if(T.undef !== undefined) {
-        console.log('\tTempature:', 'uncalibrated');
+    if(device.sensor.chip.features.tempature){
+      if(T.skip) {
+        console.log('\tTempature: skipped');
       } else {
-        console.log('\tTempature: (c)', Converter.trim(T.T), '(F)', Converter.trim(Converter.ctof(T.T)));
+        console.log('\tTempature: (c)', Converter.trim(T.C), '(F)', Converter.trim(T.F));
       }
     }
-    if(device.sensor.chip.supportsHumidity){
-      if(H === undefined || H.skip === true) {
-        console.log('\tHumidity: ', 'Skipped');
-      } else if(T.undef !== undefined) {
-        console.log('\tHumidity: ', 'uncalibrated');
+    if(device.sensor.chip.features.humidity){
+      if(H.skip) {
+        console.log('\tHumidity: skipped');
       } else {
-        console.log('\tHumidity:', Converter.trim(H.H));
+        console.log('\tHumidity:', Converter.trim(H.percent), '%');
+      }
+    }
+    if(device.sensor.chip.features.gas){
+      if(G.skip) {
+        console.log('\tGas: skipped');
+      } else {
+        console.log('\tGas:', Converter.trim(G.Ohm), '(Ohm)');
       }
     }
     console.log();
@@ -73,7 +119,7 @@ class Util {
         '4active': { // streaming state
           'dsome': { next: '6mqttsome', event: 'restopstream' },
           'dmqtt': { next: '3all', event: 'stopstream' } },
-        '5mqtt': { 
+        '5mqtt': {
           'some': { next: '6mqttsome', event: 'stream' },
           'dmqtt': { next: '1init', event: '' } },
         '6mqttsome': { // streaming state
@@ -90,7 +136,7 @@ class Util {
 class State {
   static to(machine, state) {
     const transition = machine.states[machine.state][state];
-    console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
+    // console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
 
     const on = machine.ons[transition.event];
     if(on !== undefined) {

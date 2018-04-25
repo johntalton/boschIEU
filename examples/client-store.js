@@ -9,7 +9,7 @@ class Store {
    * keep all this stuff, ya, put it here
    */
   static setupStore(application) {
-    console.log('setup store ', application.mqtt.url);
+    // console.log('setup store ', application.mqtt.url);
     if(application.mqtt.url === undefined) { return Promise.reject('undefined mqtt url'); }
     application.mqtt.client = mqtt.connect(application.mqtt.url, { reconnectPeriod: application.mqtt.reconnectMSecs });
     application.mqtt.client.on('connect', () => { State.to(application.machine, 'mqtt') });
@@ -25,45 +25,20 @@ class Store {
    * results callback / etc
    */
   static insertResults(application, device, results, polltime) {
-    let P;
-    let C;
-    let H;
-
-    if(device.sensor.chip.supportsPressure) {
-      if(results.pressure.skip) {}
-      else if(results.pressure.undef) {}
-      else {
-        P = results.pressure.P;
-      }
-    }
-
-    if(device.sensor.chip.supportsTempature) {
-      if(results.tempature.skip) {}
-      else if(results.tempature.undef) {}
-      else {
-        C = results.tempature.T;
-      }
-    }
-
-    if(device.sensor.chip.supportsHumidity) {
-      if(results.humidity.skip) {}
-      else if(results.humidity.undef) {}
-      else {
-        H = results.humidity.H;
-      }
-    }
-
     return new Promise((resolve, reject) => {
-      application.mqtt.client.publish('boschieu/result',
-      JSON.stringify({
+      const msg = {
         signature: device.signature,
         bus: device.bus.name,
         chip: device.sensor.chip.name,
         time: polltime.toISOString(),
-        pressurePa: P,
-        tempatureC: C,
-        humidity: H
-      }), {}, err => {
+
+        pressure: results.pressure,
+        altitude: results.altitude,
+        tempature: results.tempature,
+        humidity: results.humidity
+      };
+      // console.log('publish boschieu/result', msg);
+      application.mqtt.client.publish('boschieu/result', JSON.stringify(msg), {}, err => {
         if(err) { reject(err); }
         resolve();
       });

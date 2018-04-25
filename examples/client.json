@@ -1,15 +1,21 @@
 {
-  "profiles": "../src/profiles.json",
   "devices": [
     {
       "sign": false,
-      "bus": { "driver": "spi", "id": 1 },
-      "profile": "MAX_STANDBY",
-      "pollIntervalMs": 71000
+      "bus": { "driver": "spi-device", "id": [ 0, 42 ] },
+      "profile": {
+        "mode": "NORMAL",
+        "oversampling_p": 2,
+        "oversampling_t": 2,
+        "filter_coefficient": false,
+        "standby_time": true
+      },
+      "pollIntervalS": 13
     },
     {
       "name": "front room",
-      "bus": { "driver": "i2c-bus", "id": [ 1, 118 ] },
+      "active": true,
+      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -18,8 +24,28 @@
         "filter_coefficient": false,
         "standby_time": 500
       },
-      "pollIntervalS": 31,
+      "pollIntervalMs": 4100,
       "retryIntervalS": 60
+    },
+    {
+      "sign": "sha1",
+      "name": "cigar room (aka w/ gas)",
+      "bus": { "driver": "i2c-bus", "id": [ 1, 119 ] },
+      "profile": {
+        "mode": "FORCED",
+        "oversampling_p": 2,
+        "oversampling_t": 2,
+        "oversampling_h": 2,
+        "filter_coefficient": 7,
+
+        "gas": {
+          "enabled": true,
+          "setpoints": [
+            { "tempatureC": 320, "durationMs": 150, "active": true }
+          ]
+        }
+      },
+      "pollIntervalS": 7
     }
   ],
   "mqtt": {

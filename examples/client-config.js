@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 
+const { Converter } = require('../src/boschIEU.js');
 const Util = require('./client-util.js');
 
 const defaultProfiles = [
@@ -29,12 +30,6 @@ class Config {
       });
     })
     .then(rawConfig => {
-      let noProfileDB = false;
-      let profiles = rawConfig.profiles;
-      if(rawConfig.profiles === undefined) { console.log('using default profiles path'); profiles = defaultProfiles; }
-      if(!Array.isArray(profiles)) { profiles = [ profiles ]; }
-      if(profiles.length === 0) { console.log('no external profiles listed / specified only'); noProfileDB = true; }
-
       if(rawConfig.devices === undefined) { throw Error('no devices specified'); }
       let devices = rawConfig.devices.map((rawDevCfg, index) => {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
@@ -49,14 +44,35 @@ class Config {
         let busid = rawDevCfg.bus.id;
 
         let profile = rawDevCfg.profile;
-        if(rawDevCfg.profile === undefined) { throw Error('missing profile for device', name); }
-        if(noProfileDB && (typeof profile === 'string')) { throw Error('no profile db / specified profiles only', name); }
+        if(rawDevCfg.profile === undefined) { throw Error('missing profile for device: ' + name); }
+        profile.mode = profile.mode.toUpperCase();
+        profile.spi = { enable3w: false };
+        if(profile.mode === 'SLEEP') {
+          console.log(' ** mode SLEEP, will poll but not measure (good for use with repl');
+        }
+        if(profile.gas !== undefined) {
+          if(profile.gas.enabled === undefined) {
+            console.log('gas enabled undefined, assume disabled');
+            profile.gas.enabled = false;
+          }
+
+          profile.gas.setpoints = profile.gas.setpoints.map(sp => {
+            const ms = Config._getMs(sp, 'duration', 0);
+            const f = sp.tempatureF !== undefined ? Converter.ftoc(sp.tempatureF) : 0;
+            const c = sp.tempatureC !== undefined ? sp.tempatureC : f;
+            const active = sp.active;
+            return { tempatureC: c, durationMs: ms, active: active };
+          });
+        }
 
         const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);
 
-        const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
-        const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
-        const pollMs = pS * 1000 + pMs;
+        const pollMs = Config._getMs(rawDevCfg, 'pollInterval', 37 * 1000);
+        console.log('poll interval', name, pollMs);
+        //const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
+        //const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
+        //const pollMs = pS * 1000 + pMs;
+
 
         return {
           name: name,
@@ -85,7 +101,6 @@ class Config {
 
       return {
         machine: Util.machine(),
-        profiles: profiles,
         devices: devices,
         mqtt: {
           url: (rawConfig.mqtt && rawConfig.mqtt.url) ? rawConfig.mqtt.url : process.env.mqtturl,

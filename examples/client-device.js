@@ -4,9 +4,7 @@ const crypto = require('crypto');
 
 const rasbus = require('rasbus');
 
-const boschLib = require('../src/boschIEU.js');
-const bosch = boschLib.BoschIEU;
-const Profiles = boschLib.Profiles;
+const { BoschIEU } = require('../src/boschIEU.js');
 
 const Util = require('./client-util.js');
 const Store = require('./client-store.js');
@@ -38,22 +36,14 @@ class Device {
     }
   }
 
-  static _parseProfile(cfgprofile) {
-    if(typeof cfgprofile === 'string') {
-      const p = Profiles.profile(cfgprofile);
-      if(p === undefined) { throw new Error('unknown profile: ' + cfgprofile); }
-      return p;
-    }
-    return cfgprofile;
-  }
-
   /**
    * given configruation result in running application state
    */
   static setupDevices(application) {
-    return Promise.all([application.devices.filter(devcfg => devcfg.client === undefined).map(devcfg => {
-      return Device.setupDeviceWithRetry(application, devcfg);
-    })]).then(results => application);
+    const clients = application.devices.filter(devcfg => devcfg.client === undefined);
+    //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
+    return Promise.all(clients.map(devcfg => Device.setupDeviceWithRetry(application, devcfg)))
+      .then(results => application);
   }
 
   static setupDeviceWithRetry(application, devcfg) {
@@ -62,15 +52,26 @@ class Device {
         Device._processDevice(application, true);
       })
       .catch(e => {
-        console.log('\u001b[91mdevice setup failure', devcfg, e, '\u001b[0m');
+        console.log('\u001b[91mdevice (', devcfg.name, ') setup failure', '\u001b[0m');
         devcfg.client = undefined;
+
+        // on initial setup failure we should do a little extra digging
+        // befor we go into a retry mode. such as, if the path / device
+        // does not exist, or if permission denied we have no need to retry
+        // and we should verbosly inform the logs as to the issue.
+        if(e.code !== undefined) {
+          if(e.code === 'EACCES') { console.log('Permission denied to device, no-retry'); return; }
+          if(e.code === 'ENOENT') { console.log('No such device, no-retry'); return;  }
+        }
+
+        console.log(e);
         devcfg.retrytimer = setInterval(Device._retrySetupDevice, devcfg.retryIntervalMs, application, devcfg);
       });
   }
 
   // top level set intervale, no return
   static _retrySetupDevice(application, devcfg) {
-    console.log('retruy device', devcfg.bus, devcfg.id);
+    //console.log('Retry device ', devcfg.name, ' setup');
     Device.setupDevice(application, devcfg)
       .then(() => {
         clearInterval(devcfg.retrytimer);
@@ -83,23 +84,28 @@ class Device {
   static setupDevice(application, devcfg) {
     let client = {};
     const idary = Array.isArray(devcfg.bus.id) ? devcfg.bus.id : [ devcfg.bus.id ];
+    //console.log(' > ', idary);
     return Device._selectBus(devcfg.bus.driver).init(...idary)
       .then(bus => client.bus = bus)
-      .then(() => client.profile = Device._parseProfile(devcfg.profile))
-      .then(() => bosch.sensor(client.bus).then(sensor => client.sensor = sensor))
+      .then(() => BoschIEU.sensor(client.bus).then(sensor => client.sensor = sensor))
       .then(() => client.sensor.id())
       .then(() => {
-        if(!client.sensor.valid()){ throw new Error('invalid device on', client.bus.name); }
-        console.log('chip ', client.sensor.chip.name, ' found on ', client.bus.name);
+        if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
       })
       .then(() => client.sensor.calibration())
-      .then(() => client.sensor.setProfile(Profiles.chipProfile(client.profile, client.sensor.chip)))
+      .then(() => client.sensor.setProfile(devcfg.profile)) // todo skip if forced?
 
       .then(() => {
         devcfg.client = client;
         client.name = devcfg.name;
         client.signature = signature(devcfg, client.sensor);
-        console.log('signature', client.signature);
+
+        console.log();
+        console.log('Chip Up:', client.sensor.chip.name);
+        console.log(' bus ', client.bus.name);
+        console.log(' name', client.name);
+        console.log(' signature', client.signature);
+        console.log();
       });
   }
 
@@ -114,7 +120,7 @@ class Device {
     const some = pending.length > 0 && pending.length !== application.devices.length;
     const none = pending.length === application.devices.length;
 
-    console.log('proccess', all, some, none);
+    // console.log('proccess', all, some, none);
 
     if(all) { State.to(application.machine, 'all'); }
     else if(some) { State.to(application.machine, direction ? 'some' : 'dsome'); }
@@ -144,13 +150,13 @@ class Device {
   }
 
   static _startStream(application, d) {
-    console.log('start stream');
+    console.log('start stream', d.name);
 
     let base = Promise.resolve();
     if(d.client.putToSleep) {
       d.client.putToSleep = undefined;
       console.log('device prvious put to sleep, setProfile', d.profile);
-      base = d.client.sensor.setProfile(Profiles.chipProfile(d.client.profile, d.client.sensor.chip));
+      base = d.client.sensor.setProfile(Profiles.chipProfile(d.profile, d.client.sensor.chip));
     }
 
     return base.then(() => {
@@ -166,19 +172,40 @@ class Device {
     if(d.sleepOnStreamStop) {
       console.log('**************');
       d.client.putToSleep = true;
-      return d.client.sensor.sleep();
+      let sleepprofile = Profiles.chipProfile(d.profile);
+      return d.client.sensor.setProfile(sleepprofile);
     }
-    return;
+    return Promise.resolve();
   }
 
 
   static _poll(application, devcfg) {
-    console.log('poll', devcfg.client.sensor.chip.name);
+    //console.log('poll', devcfg.client.sensor.chip.name);
     Device._houseKeepingOnPoll(devcfg).then(housekeeping => {
-      if(!housekeeping.measure) { console.log('skip measurement on housekeeping request'); return; }
-      return devcfg.client.sensor.measurement()
-        .then(result => Store.insertResults(application, devcfg.client, result, new Date()).then(() => result))
-        .then(result => Util.log(devcfg.client, result));
+      if(!housekeeping.measure) {
+        console.log('\"' + devcfg.client.name + '\"');
+        console.log('\tskip on housekeeping request', housekeeping.sleep ? '(in sleep mode)' : '');
+        console.log();
+        return;
+      }
+
+      let base = Promise.resolve();
+      if(housekeeping.delayMs !== undefined) {
+        console.log('introduct delay before read', housekeeping.delayMs)
+        base = new Promise((resolve, reject) => { setTimeout(resolve, housekeeping.delayMs); });
+      }
+
+      return base.then(() => {
+        const timestamp = new Date(); // todo use forcedAt time also as well as delay etc
+        const meta = {
+          timestamp: timestamp,
+          housekeeping: housekeeping
+        };
+        return devcfg.client.sensor.measurement()
+          .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
+          .then(result => Store.insertResults(application, devcfg.client, result, timestamp).then(() => result))
+          .then(result => Util.log(devcfg.client, result));
+      });
     })
     .catch(e => {
       console.log('error measuring shutdown timer', e);
@@ -194,10 +221,13 @@ class Device {
   static _houseKeepingOnPoll(devcfg) {
     //console.log('configured profile', devcfg.profile);
     return Promise.resolve({})
-      .then(config => Device._hkModeCheck(devcfg.client.sensor, { checkMode: true }))
+      .then(config => Device._hkModeCheck(devcfg.client.sensor, {
+        checkMode: true,
+        name: devcfg.client.name
+      }))
       .then(config => Device._hkForce(devcfg.client.sensor, {
         normal: config.normal,
-        expectForce: devcfg.profile.mode === 'FORCED',
+        profile: devcfg.profile,
         followAlong: false
       }))
       .catch(e => {
@@ -212,13 +242,12 @@ class Device {
     if(!config.checkMode) { console.log('modeCheck suppressed'); return { normal: true }; }
 
     return sensor.profile().then(profile => {
-      //console.log('active device profile', profile);
-      const n = profile.mode === Profiles.chipMode('NORMAL', sensor.chip);
-      return { normal: n };
+      // console.log('\"' + config.name + '\"', 'chip profile on modeCheck', profile);
+      return { normal: profile.mode === 'NORMAL' };
     });
   }
 
-  // static _hkMathProfile() // TODO only continue if profile is 1:1
+  // static _hkMatchProfile() // TODO only continue if profile is 1:1
 
   // static _hkTimingSuggestions() // TODO validate config.profile / running profile with poll time
 
@@ -226,14 +255,21 @@ class Device {
 
   static _hkForce(sensor, config) {
 
-    if(config.expectForce) {
+    if(config.profile.mode === 'FORCED') {
       // we expected to force
       if(config.normal) {
         // skip force, either by checkMode suppression or 3rd party chip state update
         return { measure: true };
       }
       else {
-        return sensor.force().then(() => ({ measure: true }));
+        const estDelay = sensor.estimateMeasurementWait(config.profile);
+        const delayMs = estDelay.totalWaitMs;
+        return sensor.setProfile(config.profile)
+          .then(() => ({
+            measure: true,
+            delayMs: delayMs,
+            forcedAt: new Date()
+          }));
       }
     }
     else {
@@ -243,8 +279,8 @@ class Device {
         return { measure: true };
       }
       else {
-        console.log('sleep state');
-        return { measure: false };
+        // console.log('sleep state');
+        return { measure: false, sleep: true };
       }
     }
   }
