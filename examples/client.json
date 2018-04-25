@@ -2,7 +2,7 @@
   "devices": [
     {
       "sign": false,
-      "bus": { "driver": "spi", "id": 1 },
+      "bus": { "driver": "spi-device", "id": [ 0, 42 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
