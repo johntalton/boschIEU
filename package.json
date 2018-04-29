@@ -5,7 +5,7 @@
   "main": "example/repl.js",
   "dependencies": {
     "i2c": "^0.2.3",
-    "i2c-bus": "^1.2.2",
+    "i2c-bus": "^3.2.0",
     "pi-spi": "^1.0.1",
     "rasbus": "file:../rasbus",
     "spi": "^0.2.0"
