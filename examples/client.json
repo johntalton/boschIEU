@@ -15,7 +15,7 @@
     {
       "name": "front room",
       "active": true,
-      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
+      "bus": { "driver": "i2c-bus", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
