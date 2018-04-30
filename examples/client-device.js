@@ -155,8 +155,8 @@ class Device {
     let base = Promise.resolve();
     if(d.client.putToSleep) {
       d.client.putToSleep = undefined;
-      console.log('device prvious put to sleep, setProfile', d.profile);
-      base = d.client.sensor.setProfile(Profiles.chipProfile(d.profile, d.client.sensor.chip));
+      console.log('device previously put to sleep, setProfile', d.profile);
+      base = d.client.sensor.setProfile(d.profile);
     }
 
     return base.then(() => {
@@ -172,8 +172,9 @@ class Device {
     if(d.sleepOnStreamStop) {
       console.log('**************');
       d.client.putToSleep = true;
-      let sleepprofile = Profiles.chipProfile(d.profile);
-      return d.client.sensor.setProfile(sleepprofile);
+      //let sleepprofile = Profiles.chipProfile(d.profile);
+      //return d.client.sensor.setProfile(sleepprofile);
+      return Promise.resolve(); // TODO re-add sleep setting
     }
     return Promise.resolve();
   }
@@ -279,7 +280,7 @@ class Device {
         return { measure: true };
       }
       else {
-        // console.log('sleep state');
+        //console.log('sleep state');
         return { measure: false, sleep: true };
       }
     }
