@@ -9,9 +9,9 @@ Tested with these products:
 
 [Adafruit BMP280](https://www.adafruit.com/product/2651)
 
-[Adafruid BME280](https://www.adafruit.com/product/2652)
+[Adafruit BME280](https://www.adafruit.com/product/2652)
 
-[Adafruid BME680](https://www.adafruit.com/product/3660)
+[Adafruit BME680](https://www.adafruit.com/product/3660)
 
 
 
