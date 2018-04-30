@@ -35,7 +35,8 @@ class Store {
         pressure: results.pressure,
         altitude: results.altitude,
         tempature: results.tempature,
-        humidity: results.humidity
+        humidity: results.humidity,
+        gas: results.gas
       };
       // console.log('publish boschieu/result', msg);
       application.mqtt.client.publish('boschieu/result', JSON.stringify(msg), {}, err => {
