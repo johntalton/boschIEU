@@ -203,9 +203,17 @@ class Device {
           housekeeping: housekeeping
         };
         return devcfg.client.sensor.measurement()
-          .then(result => Util.bulkup(devcfg.client.sensor.chip, result))
-          .then(result => Store.insertResults(application, devcfg.client, result, timestamp).then(() => result))
-          .then(result => Util.log(devcfg.client, result));
+          .then(result => {
+            if(result.skip !== undefined && result.skip) {
+              console.log('measurment skiped', result);
+              return;
+            }
+
+            const full = Util.bulkup(devcfg.client.sensor.chip, result);
+            if(true) { Util.log(devcfg.client, full); }
+
+            return Store.insertResults(application, devcfg.client, result, timestamp);
+          });
       });
     })
     .catch(e => {

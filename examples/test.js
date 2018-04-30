@@ -43,7 +43,7 @@ function force(sensor, idx) {
   }));
 }
 
-rasbus.byname('i2cbus').init(1, 119).then(bus => {
+rasbus.byname('i2cbus').init(42, 119).then(bus => {
   return BoschIEU.sensor(bus).then(s => {
     return s.id().then(() => s.calibration()).then(cali => {
       console.log(s.chip.name, 'running self-test');
@@ -60,23 +60,28 @@ rasbus.byname('i2cbus').init(1, 119).then(bus => {
         .then(high).then(low) // h3 / l3
         .then(() => {
           console.log('analyze');
-          // console.log(h_results, l_results);
+          //console.log(h_results, l_results);
           // centroid gas ratio = 2*HT3 / (LT2+LT3) < 0.5
           const ht3 = h_results[2];
           const lt2 = l_results[1];
           const lt3 = l_results[2];
 
+          if(ht3.skip !== undefined && ht3.skip) { throw Error('ht3 result skipped'); }
+          if(lt2.skip !== undefined && lt2.skip) { throw Error('lt2 result skipped'); }
+          if(lt3.skip !== undefined && lt3.skip) { throw Error('lt3 result skipped'); }
+
           // console.log(ht3.gas, lt2.gas, lt3.gas);
 
           if(!ht3.gas.adc.stable || !lt2.gas.adc.stable || !lt3.gas.adc.stable) { throw Error('unstable'); }
 
-          const cent_res = (lt2.gas.ohm + lt3.gas.ohm) / (2 * ht3.gas.ohm);
+          const cent_res = (lt2.gas.Ohm + lt3.gas.Ohm) / (2 * ht3.gas.Ohm);
           if(cent_res < 2) { throw Error('centroid no good'); }
 
           console.log('good to go', cent_res);
         })
     });
   });
-});
+})
+.catch(e => console.log('top level error', e));
 
 

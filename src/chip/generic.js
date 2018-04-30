@@ -149,7 +149,7 @@ class Compensate {
 
     const ohms = gfloat();
     
-    return { adc: adcG, ohm: ohms, skip: !adcG.stable, stable: adcG.stable };
+    return { adc: adcG, Ohm: ohms, skip: !adcG.stable, stable: adcG.stable };
   }
 
 

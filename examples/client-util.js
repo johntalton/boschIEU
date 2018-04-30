@@ -9,6 +9,9 @@ class Util {
     const H = raw.humidity;
     const G = raw.gas;
 
+    if(P === undefined) { console.log('odd P', raw); throw Error('no P'); }
+    if(T === undefined) { console.log('odd T', raw); throw Error('no T'); }
+
     const result = {};
 
     if(chip.features.pressure) {
@@ -19,7 +22,7 @@ class Util {
         const altFt = Converter.altitudeFromPressure(Converter.seaLevelPa, P.Pa);
         const altM = Converter.ftToMeter(altFt);
 
-        result.pressure = { Pa: P.Pa, inHg: inHg };
+        result.pressure = { ...P, inHg: inHg };
         result.altitude = { Ft: altFt, M: altM };
       }
     }
@@ -29,7 +32,7 @@ class Util {
         result.tempature = { skip: true };
       } else {
         const f = Converter.ctof(T.C);
-        result.tempature = { C: T.C, F: f };
+        result.tempature = { ...T, F: f };
       }
     }
 
@@ -37,7 +40,7 @@ class Util {
       if(H.skip !== undefined && H.skip) {
         result.humidity = { skip: true };
       } else {
-        result.humidity = { percent: H.percent, Hunclamped: H.Hunclamped };
+        result.humidity = { ...H };
       }
     }
 
@@ -45,7 +48,7 @@ class Util {
       if(G.skip !== undefined && G.skip) {
         result.gas = { skip: true };
       } else {
-        result.gas = { Ohm: G.ohm };
+        result.gas = { ...G };
       }
     }
 
