@@ -80,6 +80,16 @@ Repler.addCommand({
 });
 
 Repler.addCommand({
+  name: 'features',
+  valid: function(state) {
+    return state.sensor !== undefined
+  },
+  callback: function(state) {
+    console.log(state.sensor.chip.features);
+  }
+});
+
+Repler.addCommand({
   name: 'close',
   valid: function(state) {
     return state.sensor !== undefined
@@ -175,18 +185,19 @@ Repler.addCommand({
   valid: function(state) {
     if(state.sensor === undefined) { return false; }
     if(!state.sensor.valid()) { return false; }
-    return state.sensor.chip.supportsNormalMode;
+    return state.sensor.chip.features.normalMode;
   },
   callback: function(state) {
-    return state.sensor.setProfile(Profiles.chipProfile({
-      mode: 'NORMAL',
-      oversampling_p: 1,
-      oversampling_t: 1,
-      oversampling_h: 1,
-      filter_coefficient: 2,
-      standby_time: true
-      }, state.sensor.chip)).then(noop => {
-      console.log('normal mode');
+    console.log('setting profile to normal');
+    return state.sensor.setProfile({
+        mode: 'NORMAL',
+        oversampling_p: 1,
+        oversampling_t: 1,
+        oversampling_h: 1,
+        filter_coefficient: 2,
+        standby_time: true
+      }).then(noop => {
+        console.log('normal mode');
     });
   }
 });

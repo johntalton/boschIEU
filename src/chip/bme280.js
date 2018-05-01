@@ -101,7 +101,7 @@ class bme280 extends genericChip {
     const os_h = Util.deenumify(profile.oversampling_h, enumMap.oversamples);
     const sb_t = Util.deenumify(profile.standby_time, enumMap.standbys_hires);
     const filter = Util.deenumify(profile.filter_coefficient, enumMap.filters);
-    const en3w = profile.spi.enable3w;
+    const en3w = profile.spi !== undefined ? profile.spi.enable3w : false;
 
     const ctrl_hum = Util.packbits([[2, 3]], os_h);
     const ctrl_meas = Util.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
