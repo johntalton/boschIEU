@@ -36,7 +36,7 @@ class Converter {
     return (f - 32) * (5 / 9.0);
   }
 
-  static trim(f, p) {
+  static trim(f) {
     if(f === undefined){ return undefined; }
     return Math.round(f * 10000) / 10000;
   }

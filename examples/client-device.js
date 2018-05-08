@@ -1,4 +1,3 @@
-"use strict";
 
 const crypto = require('crypto');
 
@@ -6,9 +5,8 @@ const rasbus = require('rasbus');
 
 const { BoschIEU } = require('../src/boschIEU.js');
 
-const Util = require('./client-util.js');
+const { Util, State } = require('./client-util.js');
 const Store = require('./client-store.js');
-const State = Util.State;
 
 function signature(devcfg, sensor) {
   if(devcfg.sign === false) { return null; }
@@ -61,18 +59,18 @@ class Device {
         // and we should verbosly inform the logs as to the issue.
         if(e.code !== undefined) {
           if(e.code === 'EACCES') { console.log('Permission denied to device, no-retry'); return; }
-          if(e.code === 'ENOENT') { console.log('No such device, no-retry'); return;  }
+          if(e.code === 'ENOENT') { console.log('No such device, no-retry'); return; }
         }
 
         console.log(e);
-        devcfg.retrytimer = setInterval(Device._retrySetupDevice, devcfg.retryIntervalMs, application, devcfg);
+        devcfg.retrytimer = setInterval(Device._retrySetupDevice_poll, devcfg.retryIntervalMs, application, devcfg);
       });
   }
 
   // top level set intervale, no return
-  static _retrySetupDevice(application, devcfg) {
+  static async _retrySetupDevice_poll(application, devcfg) {
     //console.log('Retry device ', devcfg.name, ' setup');
-    Device.setupDevice(application, devcfg)
+    await Device.setupDevice(application, devcfg)
       .then(() => {
         clearInterval(devcfg.retrytimer);
         devcfg.retrytimer = undefined;
@@ -82,12 +80,12 @@ class Device {
   }
 
   static setupDevice(application, devcfg) {
-    let client = {};
+    const client = {};
     const idary = Array.isArray(devcfg.bus.id) ? devcfg.bus.id : [ devcfg.bus.id ];
     //console.log(' > ', idary);
     return Device._selectBus(devcfg.bus.driver).init(...idary)
-      .then(bus => client.bus = bus)
-      .then(() => BoschIEU.sensor(client.bus).then(sensor => client.sensor = sensor))
+      .then(bus => { client.bus = bus; })
+      .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor }))
       .then(() => client.sensor.id())
       .then(() => {
         if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
@@ -125,8 +123,6 @@ class Device {
     if(all) { State.to(application.machine, 'all'); }
     else if(some) { State.to(application.machine, direction ? 'some' : 'dsome'); }
     else if(none) { State.to(application.machine, 'none'); }
-
-    return;
   }
 
   static startStreams(application) {
@@ -180,20 +176,20 @@ class Device {
   }
 
 
-  static _poll(application, devcfg) {
+  static async _poll(application, devcfg) {
     //console.log('poll', devcfg.client.sensor.chip.name);
-    Device._houseKeepingOnPoll(devcfg).then(housekeeping => {
+    await Device._houseKeepingOnPoll(devcfg).then(housekeeping => {
       if(!housekeeping.measure) {
-        console.log('\"' + devcfg.client.name + '\"');
+        console.log('"' + devcfg.client.name + '"');
         console.log('\tskip on housekeeping request', housekeeping.sleep ? '(in sleep mode)' : '');
         console.log();
-        return;
+        return Promise.resolve();
       }
 
       let base = Promise.resolve();
       if(housekeeping.delayMs !== undefined) {
         console.log('introduct delay before read', housekeeping.delayMs)
-        base = new Promise((resolve, reject) => { setTimeout(resolve, housekeeping.delayMs); });
+        base = new Promise((resolve) => { setTimeout(resolve, housekeeping.delayMs); });
       }
 
       return base.then(() => {
@@ -206,7 +202,7 @@ class Device {
           .then(result => {
             if(result.skip !== undefined && result.skip) {
               console.log('measurment skiped', result);
-              return;
+              return Promise.resolve();
             }
 
             const full = Util.bulkup(devcfg.client.sensor.chip, result);
@@ -270,16 +266,15 @@ class Device {
         // skip force, either by checkMode suppression or 3rd party chip state update
         return { measure: true };
       }
-      else {
-        const estDelay = sensor.estimateMeasurementWait(config.profile);
-        const delayMs = estDelay.totalWaitMs;
-        return sensor.setProfile(config.profile)
-          .then(() => ({
-            measure: true,
-            delayMs: delayMs,
-            forcedAt: new Date()
-          }));
-      }
+
+      const estDelay = sensor.estimateMeasurementWait(config.profile);
+      const delayMs = estDelay.totalWaitMs;
+      return sensor.setProfile(config.profile)
+        .then(() => ({
+          measure: true,
+          delayMs: delayMs,
+          forcedAt: new Date()
+        }));
     }
     else {
       // we were configure for normal mode

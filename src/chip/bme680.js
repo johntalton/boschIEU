@@ -1,4 +1,3 @@
-"use strict";
 
 const { genericChip, enumMap, Compensate } = require('./generic.js');
 const { Util } = require('./util.js');
@@ -218,8 +217,8 @@ class bme680 extends genericChip {
     const en3wint = false; // todo profile.spi.interrupt;
     const spi_mem_page = 0; // todo profile.spi.mempage;
 
-    if(profile.gas.setpoints === undefined) { }
-    if(profile.gas.setpoints.length > 10) { }
+    if(profile.gas.setpoints === undefined) { throw Error('missing setpoint'); }
+    if(profile.gas.setpoints.length > 10) { throw Error('setpoint limit of 10'); }
 
     const active = profile.gas.setpoints
       .map((sp, idx) => ({ active: sp.active, index: idx}))
@@ -279,9 +278,9 @@ class bme680 extends genericChip {
         bus.write(0x71, ctrl_gas1),
         bus.write(0x70, ctrl_gas0),
 
-        ...idac_heat.map((x, idx) => x !== false ? bus.write(0x50 + idx, x) : undefined),
-        ...res_heat.map((x, idx) => x !== false ? bus.write(0x5A + idx, x) : undefined),
-        ...gas_wait.map((x, idx) => x !== false ? bus.write(0x64 + idx, x) : undefined)
+        ...idac_heat.filter(x => x !== false).map((x, idx) => bus.write(0x50 + idx, x)),
+        ...res_heat.filter(x => x !== false).map((x, idx) => bus.write(0x5A + idx, x)),
+        ...gas_wait.filter(x => x!== false).map((x, idx) => bus.write(0x64 + idx, x))
       ]))
       .then(() => bus.write(0x74, ctrl_meas));
   }

@@ -1,4 +1,3 @@
-"use strict";
 
 const { Util } = require('./util.js');
 
@@ -41,7 +40,7 @@ class Compensate {
     function tint() {
       const var1i = (adcT >> 3) - (T1 << 1);
       const var2i = (var1i * T2) >> 11;
-      const tmpi =  ((var1i >> 1) * (var1i >> 1)) >> 12;
+      const tmpi = ((var1i >> 1) * (var1i >> 1)) >> 12;
       const var3i = (tmpi * (T3 << 4)) >> 14;
       const Tfinei = var2i + var3i;
       const ci = (Tfinei * 5 + 128) >> 8;
@@ -132,7 +131,7 @@ class Compensate {
     }
 
     function gint() {
-    
+      // TODO
     }
 
     /*
@@ -146,14 +145,10 @@ class Compensate {
     return gas_res;
     */
 
-
     const ohms = gfloat();
-    
+
     return { adc: adcG, Ohm: ohms, skip: !adcG.stable, stable: adcG.stable };
   }
-
-
-
 
   static from_2xy(measurment, calibration) {
     const ct = Compensate.tempature(measurment.adcT, calibration.T);

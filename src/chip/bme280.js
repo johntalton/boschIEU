@@ -1,4 +1,3 @@
-"use strict";
 
 const { genericChip, enumMap, Compensate } = require('./generic.js');
 const { Util } = require('./util.js');
@@ -56,10 +55,10 @@ class bme280 extends genericChip {
 
   static profile(bus) {
     return Util.readblock(bus, [[0xF2, 4]]).then(buffer => {
-      const ctrl_hum =  buffer.readUInt8(0);
-      const status =    buffer.readUInt8(1);
+      const ctrl_hum = buffer.readUInt8(0);
+      const status = buffer.readUInt8(1);
       const ctrl_meas = buffer.readUInt8(2);
-      const config =    buffer.readUInt8(3);
+      const config = buffer.readUInt8(3);
 
       const osrs_h = Util.mapbits(ctrl_hum, 2, 3);
 
@@ -150,6 +149,7 @@ class bme280 extends genericChip {
   }
 
   static estimateMeasurementWait(profile) {
+    // TODO
     return { totalWaitMs: 0 };
   }
 }

@@ -3,10 +3,14 @@
   "version": "2.0.0",
   "description": "",
   "main": "example/repl.js",
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint ."
+  },
   "dependencies": {
     "rasbus": "file:../rasbus"
   },
   "devDependencies": {
+    "eslint": "^4.19.1",
     "mqtt": "^2.15.2",
     "repler": "file:../repler"
   },

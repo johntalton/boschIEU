@@ -1,17 +1,6 @@
-"use strict";
 
 const { Chip } = require('./chip/chip.js');
 const { Converter } = require('./converter.js');
-
-/**
- * Bosch Integrated Environmental Unit
- * bmp280 / bme280 / bme680
- */
-class BoschIEU {
-  static sensor(bus) {
-    return Promise.resolve(new BoschSensor(bus));
-  }
-}
 
 /**
  * Acts as a cache around the Chip implmentation
@@ -53,6 +42,16 @@ class BoschSensor {
   measurement() { return this._chip.measurment(this._bus, this._calibration); }
 
   estimateMeasurementWait(profile) { return this._chip.estimateMeasurementWait(profile); }
+}
+
+/**
+ * Bosch Integrated Environmental Unit
+ * bmp280 / bme280 / bme680
+ */
+class BoschIEU {
+  static sensor(bus) {
+    return Promise.resolve(new BoschSensor(bus));
+  }
 }
 
 module.exports.BoschIEU = BoschIEU;

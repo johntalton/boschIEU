@@ -1,4 +1,3 @@
-"use strict";
 
 const { genericChip } = require('./generic.js');
 const { bmp280 } = require('./bmp280.js');
@@ -12,13 +11,13 @@ class Chip {
   static generic() { return genericChip; }
 
   static fromId(id){
-    const chip = Chip._chips.find(chip => chip.chip_id === id);
+    const chip = Chip._chips.find(c => c.chip_id === id);
     if(chip === undefined) { throw Error('unknown chip id'); }
     return chip;
   }
 
   static chips() {
-    return Chips._chips.filter(chip => gernericChip.name !== chip.name)
+    return Chip._chips.filter(chip => genericChip.name !== chip.name)
       .map(chip => ({ name: chip.name, chip_id: chip.chip_id }));
   }
 }

@@ -1,13 +1,8 @@
-"use strict";
 
 const fs = require('fs');
 
 const { Converter } = require('../src/boschIEU.js');
 const Util = require('./client-util.js');
-
-const defaultProfiles = [
-  'profiles.json', './profiles.json', '../profile.json', '../src/profile.json'
-];
 
 class Config {
   static _getMs(cfg, name, defaultMs) {
@@ -23,7 +18,7 @@ class Config {
   }
 
   static config(path) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       fs.readFile(path, (err, data) => {
         if(err){ resolve({}); return; }
         resolve(JSON.parse(data));
@@ -31,7 +26,7 @@ class Config {
     })
     .then(rawConfig => {
       if(rawConfig.devices === undefined) { throw Error('no devices specified'); }
-      let devices = rawConfig.devices.map((rawDevCfg, index) => {
+      const devices = rawConfig.devices.map((rawDevCfg, index) => {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
 
         const sign = rawDevCfg.sign !== undefined ? rawDevCfg.sign : 'md5';
@@ -40,16 +35,18 @@ class Config {
         const sleepOnStreamStop = true;
 
         if(rawDevCfg.bus === undefined && rawDevCfg.bus.driver === undefined) { throw Error('undefined device bus', name); } 
-        let busdriver = rawDevCfg.bus.driver;
-        let busid = rawDevCfg.bus.id;
+        const busdriver = rawDevCfg.bus.driver;
+        const busid = rawDevCfg.bus.id;
 
-        let profile = rawDevCfg.profile;
         if(rawDevCfg.profile === undefined) { throw Error('missing profile for device: ' + name); }
+        const profile = { ...rawDevCfg.profile };
         profile.mode = profile.mode.toUpperCase();
         profile.spi = { enable3w: false };
+
         if(profile.mode === 'SLEEP') {
           console.log(' ** mode SLEEP, will poll but not measure (good for use with repl');
         }
+
         if(profile.gas !== undefined) {
           if(profile.gas.enabled === undefined) {
             console.log('gas enabled undefined, assume disabled');
@@ -60,7 +57,7 @@ class Config {
             const ms = Config._getMs(sp, 'duration', 0);
             const f = sp.tempatureF !== undefined ? Converter.ftoc(sp.tempatureF) : 0;
             const c = sp.tempatureC !== undefined ? sp.tempatureC : f;
-            const active = sp.active;
+            const active = sp.active !== undefined ? sp.active : false;
             return { tempatureC: c, durationMs: ms, active: active };
           });
         }

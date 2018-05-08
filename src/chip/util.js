@@ -1,4 +1,5 @@
-"use strict";
+
+const BASE_10 = 10;
 
 /**
  *
@@ -19,9 +20,9 @@ class Util {
     //console.log('nbit', nbit, parts);
 
     const [msb, lsb, xlsb] = parts;
-    if(nbit === 10) return (msb << 2) | lsb;
-    if(nbit === 12) return (msb << 4) | lsb;
-    if(nbit === 20) return ((msb << 8 | lsb) << 8 | xlsb) >> 4;
+    if(nbit === 10) { return (msb << 2) | lsb; }
+    if(nbit === 12) { return (msb << 4) | lsb; }
+    if(nbit === 20) { return ((msb << 8 | lsb) << 8 | xlsb) >> 4; }
 
     throw Error('nbit not supported');
   }
@@ -46,13 +47,13 @@ class Util {
   }
 
   static enumify(value, map) {
-    const item = map.find(item => item.value === value);
+    const item = map.find(i => i.value === value);
     if(item === undefined) { console.log(map); throw Error('enum mapping failed for ' + value); }
     return item.name;
   }
 
   static deenumify(name, map) {
-    const item = map.find(item => item.name === name);
+    const item = map.find(i => i.name === name);
     if(item === undefined) { console.log(map); throw Error('unknonw enum name: ' + name); }
     return item.value;
   }
@@ -68,10 +69,10 @@ class Util {
       return [item, 1];
     })
     // make it all inty
-    .map(([reg, len]) => [parseInt(reg), parseInt(len)]);
+    .map(([reg, len]) => [parseInt(reg, BASE_10), parseInt(len, BASE_10)]);
 
     // and the total...
-    const totalLength = blk.reduce((out, [reg, len]) => out += len, 0);
+    const totalLength = blk.reduce((out, [ , len]) => out + len, 0);
 
     // now lets make all those bus calls
     return Promise.all(blk.map(([reg, len]) => {

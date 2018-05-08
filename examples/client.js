@@ -1,11 +1,8 @@
-"use strict";
 
-const Util = require('./client-util.js');
+const { State } = require('./client-util.js');
 const Store = require('./client-store.js');
 const Device = require('./client-device.js');
 const Config = require('./client-config.js');
-
-const State = Util.State;
 
 function setupStateHandlers(application) {
   State.on(application.machine, 'stream', () => {
@@ -38,5 +35,5 @@ Config.config('./client.json')
   .then(setupStateHandlers)
   .then(Store.setupStore)
   .then(Device.setupDevices)
-  .then(runconfig => { console.log('Client up...'); })
+  .then(() => { console.log('Client up...'); })
   .catch(e => { console.log('top-level error', e); });

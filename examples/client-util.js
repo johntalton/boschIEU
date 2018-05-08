@@ -1,4 +1,3 @@
-"use strict";
 
 const { Converter } = require('../src/boschIEU.js');
 
@@ -156,5 +155,4 @@ class State {
   }
 }
 
-Util.State = State;
-module.exports = Util;
+module.exports = { Util, State };
