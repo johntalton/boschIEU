@@ -2,7 +2,7 @@
 const fs = require('fs');
 
 const { Converter } = require('../src/boschIEU.js');
-const Util = require('./client-util.js');
+const { Util } = require('./client-util.js');
 
 class Config {
   static _getMs(cfg, name, defaultMs) {
@@ -65,7 +65,7 @@ class Config {
         const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);
 
         const pollMs = Config._getMs(rawDevCfg, 'pollInterval', 37 * 1000);
-        console.log('poll interval', name, pollMs);
+        //console.log('poll interval', name, pollMs);
         //const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
         //const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
         //const pollMs = pS * 1000 + pMs;

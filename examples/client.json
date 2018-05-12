@@ -2,6 +2,7 @@
   "devices": [
     {
       "sign": false,
+      "_bus": { "driver": "pispi", "id": [ 42 ] },
       "bus": { "driver": "spi-device", "id": [ 0, 42 ] },
       "profile": {
         "mode": "NORMAL",
@@ -10,7 +11,7 @@
         "filter_coefficient": false,
         "standby_time": true
       },
-      "pollIntervalS": 13
+      "pollIntervalS": 5
     },
     {
       "name": "front room",

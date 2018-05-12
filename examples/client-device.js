@@ -92,6 +92,7 @@ class Device {
       })
       .then(() => client.sensor.calibration())
       .then(() => client.sensor.setProfile(devcfg.profile)) // todo skip if forced?
+      // .then(() => client.sensor.profile().then(p => console.log('profile after set', p))) // todo remvoe debu
 
       .then(() => {
         devcfg.client = client;
@@ -232,7 +233,7 @@ class Device {
       }))
       .then(config => Device._hkForce(devcfg.client.sensor, {
         normal: config.normal,
-        profile: devcfg.profile,
+        profile: devcfg.profile, _p: config._p,
         followAlong: false
       }))
       .catch(e => {
@@ -246,9 +247,10 @@ class Device {
     // if we dont care about mode checking, bypass mode check
     if(!config.checkMode) { console.log('modeCheck suppressed'); return { normal: true }; }
 
+    // console.log('housekeeping read/check profile');
     return sensor.profile().then(profile => {
       // console.log('\"' + config.name + '\"', 'chip profile on modeCheck', profile);
-      return { normal: profile.mode === 'NORMAL' };
+      return { normal: profile.mode === 'NORMAL', _p: profile };
     });
   }
 
@@ -283,7 +285,7 @@ class Device {
         return { measure: true };
       }
       else {
-        //console.log('sleep state');
+        console.log('sleep state', config._p);
         return { measure: false, sleep: true };
       }
     }

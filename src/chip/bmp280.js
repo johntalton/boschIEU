@@ -83,7 +83,7 @@ class bmp280 extends genericChip {
     const os_t = Util.deenumify(profile.oversampling_t, enumMap.oversamples);
     const sb_t = Util.deenumify(profile.standby_time, enumMap.standbys);
     const filter = Util.deenumify(profile.filter_coefficient, enumMap.filters);
-    const en3w = profile.spi.enable3w;
+    const en3w = profile.spi !== undefined ? profile.spi.enable3w : 0;
 
     const ctrl_meas = Util.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
     const config = Util.packbits([[7, 3], [4, 3], [0, 1]], sb_t, filter, en3w);

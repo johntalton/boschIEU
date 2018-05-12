@@ -12,7 +12,7 @@ class Chip {
 
   static fromId(id){
     const chip = Chip._chips.find(c => c.chip_id === id);
-    if(chip === undefined) { throw Error('unknown chip id'); }
+    if(chip === undefined) { throw Error('unknown chip id: ' + id.toString()); }
     return chip;
   }
 

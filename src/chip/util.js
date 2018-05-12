@@ -73,6 +73,7 @@ class Util {
 
     // and the total...
     const totalLength = blk.reduce((out, [ , len]) => out + len, 0);
+    // console.log(block, totalLength);
 
     // now lets make all those bus calls
     return Promise.all(blk.map(([reg, len]) => {
