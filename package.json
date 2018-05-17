@@ -7,7 +7,8 @@
     "lint": "./node_modules/.bin/eslint ."
   },
   "dependencies": {
-    "rasbus": "file:../rasbus"
+    "rasbus": "file:../rasbus",
+    "and-other-delights": "file:../and-other-delights"
   },
   "devDependencies": {
     "eslint": "^4.19.1",

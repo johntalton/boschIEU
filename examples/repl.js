@@ -192,7 +192,7 @@ Repler.addCommand({
     return state.sensor.setProfile({
         mode: 'NORMAL',
         oversampling_p: 1,
-        oversampling_t: 1,
+        oversampling_t: 2,
         oversampling_h: 1,
         filter_coefficient: 2,
         standby_time: true

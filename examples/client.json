@@ -2,8 +2,8 @@
   "devices": [
     {
       "sign": false,
-      "_bus": { "driver": "pispi", "id": [ 42 ] },
-      "bus": { "driver": "spi-device", "id": [ 0, 42 ] },
+      "bus": { "driver": "pispi", "id": [ 42 ] },
+      "_bus": { "driver": "spi-device", "id": [ 0, 42 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,

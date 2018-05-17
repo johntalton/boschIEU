@@ -1,6 +1,7 @@
 
+const { BusUtil, BitUtil, NameValueUtil } = require('and-other-delights');
+
 const { genericChip, enumMap, Compensate } = require('./generic.js');
-const { Util } = require('./util.js');
 
 class bmp280 extends genericChip {
   static get name() { return 'bmp280'; }
@@ -17,7 +18,7 @@ class bmp280 extends genericChip {
   }
 
   static calibration(bus) {
-    return Util.readblock(bus, [[0x88, 25]]).then(buffer => {
+    return BusUtil.readblock(bus, [[0x88, 25]]).then(buffer => {
       const dig_T1 = buffer.readUInt16LE(0);
       const dig_T2 = buffer.readInt16LE(2);
       const dig_T3 = buffer.readInt16LE(4);
@@ -43,28 +44,28 @@ class bmp280 extends genericChip {
   }
 
   static profile(bus) {
-    return Util.readblock(bus, [[0xF3, 3]]).then(buffer => {
+    return BusUtil.readblock(bus, [[0xF3, 3]]).then(buffer => {
       const status = buffer.readUInt8(0);
       const ctrl_meas = buffer.readUInt8(1);
       const config = buffer.readUInt8(2);
 
-      const measuring = Util.mapbits(status, 3, 1) === 1;
-      const updating = Util.mapbits(status, 0, 1) === 1;
+      const measuring = BitUtil.mapbits(status, 3, 1) === 1;
+      const updating = BitUtil.mapbits(status, 0, 1) === 1;
 
-      const osrs_t = Util.mapbits(ctrl_meas, 7, 3);
-      const osrs_p = Util.mapbits(ctrl_meas, 4, 3);
-      const mode = Util.mapbits(ctrl_meas, 1, 2);
+      const osrs_t = BitUtil.mapbits(ctrl_meas, 7, 3);
+      const osrs_p = BitUtil.mapbits(ctrl_meas, 4, 3);
+      const mode = BitUtil.mapbits(ctrl_meas, 1, 2);
 
-      const t_sb = Util.mapbits(config, 7, 3);
-      const filter = Util.mapbits(config, 4, 3);
-      const spi_3w_en = Util.mapbits(config, 0, 1) === 1;
+      const t_sb = BitUtil.mapbits(config, 7, 3);
+      const filter = BitUtil.mapbits(config, 4, 3);
+      const spi_3w_en = BitUtil.mapbits(config, 0, 1) === 1;
 
       return {
-        mode: Util.enumify(mode, enumMap.modes),
-        oversampling_p: Util.enumify(osrs_p, enumMap.oversamples),
-        oversampling_t: Util.enumify(osrs_t, enumMap.oversamples),
-        filter_coefficient: Util.enumify(filter, enumMap.filters),
-        standby_time: Util.enumify(t_sb, enumMap.standbys),
+        mode: NameValueUtil.toName(mode, enumMap.modes),
+        oversampling_p: NameValueUtil.toName(osrs_p, enumMap.oversamples),
+        oversampling_t: NameValueUtil.toName(osrs_t, enumMap.oversamples),
+        filter_coefficient: NameValueUtil.toName(filter, enumMap.filters),
+        standby_time: NameValueUtil.toName(t_sb, enumMap.standbys),
         spi: {
           enable3w: spi_3w_en
         },
@@ -78,15 +79,15 @@ class bmp280 extends genericChip {
   }
 
   static setProfile(bus, profile) {
-    const mode = Util.deenumify(profile.mode, enumMap.modes);
-    const os_p = Util.deenumify(profile.oversampling_p, enumMap.oversamples);
-    const os_t = Util.deenumify(profile.oversampling_t, enumMap.oversamples);
-    const sb_t = Util.deenumify(profile.standby_time, enumMap.standbys);
-    const filter = Util.deenumify(profile.filter_coefficient, enumMap.filters);
+    const mode = NameValueUtil.toValue(profile.mode, enumMap.modes);
+    const os_p = NameValueUtil.toValue(profile.oversampling_p, enumMap.oversamples);
+    const os_t = NameValueUtil.toValue(profile.oversampling_t, enumMap.oversamples);
+    const sb_t = NameValueUtil.toValue(profile.standby_time, enumMap.standbys);
+    const filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters);
     const en3w = profile.spi !== undefined ? profile.spi.enable3w : 0;
 
-    const ctrl_meas = Util.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
-    const config = Util.packbits([[7, 3], [4, 3], [0, 1]], sb_t, filter, en3w);
+    const ctrl_meas = BitUtil.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
+    const config = BitUtil.packbits([[7, 3], [4, 3], [0, 1]], sb_t, filter, en3w);
 
     return Promise.all([
       bus.write(0xF4, ctrl_meas),
@@ -96,16 +97,16 @@ class bmp280 extends genericChip {
 
 
   static measurment(bus, calibration) {
-    return Util.readblock(bus, [[0xF7, 6]]).then(buffer => {
+    return BusUtil.readblock(bus, [[0xF7, 6]]).then(buffer => {
       const pres_msb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
       const pres_xlsb = buffer.readUInt8(2);
-      const adcP = Util.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
+      const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
 
       const temp_msb = buffer.readUInt8(3);
       const temp_lsb = buffer.readUInt8(4);
       const temp_xlsb = buffer.readUInt8(5);
-      const adcT = Util.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
+      const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
 
       const P = (bmp280.skip_value === adcP) ? false : adcP;
       const T = (bmp280.skip_value === adcT) ? false : adcT;
@@ -115,10 +116,10 @@ class bmp280 extends genericChip {
   }
 
   static ready(bus) {
-    return Util.readblock(bus, [0xF3]).then(buffer => {
+    return BusUtil.readblock(bus, [0xF3]).then(buffer => {
       const status = buffer.readUInt8(0);
-      const measuring = Util.mapbits(status, 3, 1) === 1;
-      const updating = Util.mapbits(status, 0, 1) === 1;
+      const measuring = BiUtil.mapbits(status, 3, 1) === 1;
+      const updating = BitUtil.mapbits(status, 0, 1) === 1;
       return {
         ready: !measuring,
         measuring: measuring,

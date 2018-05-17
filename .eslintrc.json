@@ -126,16 +126,25 @@
     "sort-imports": "error",
     "symbol-description": "error",
     "template-curly-spacing": "error",
-    "yield-star-spacing": "error"
+    "yield-star-spacing": "error",
 
 
+    "comma-dangle": ["error", "never"],
+    "block-spacing": ["error", "always"],
+    "object-curly-spacing": ["error", "always"],
+    "brace-style": ["error", "1tbs", { "allowSingleLine": true }],
+    "keyword-spacing": ["error", {
+      "overrides": {
+        "if": { "after": false },
+        "for": { "after": false },
+        "while": { "after": false },
+        "switch": { "after": false }
+      }
+    }],
+    "arrow-parens": ["error", "as-needed"],
 
 
-
-
-
-
-
-
+    "require-jsdoc": "warn",
+    "max-len": ["warn", { "code": 80 }]
   }
 }

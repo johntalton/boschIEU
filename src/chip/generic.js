@@ -1,5 +1,5 @@
 
-const { Util } = require('./util.js');
+const { BusUtil } = require('and-other-delights');
 
 /**
  *
@@ -339,7 +339,7 @@ class genericChip {
   static get name() { return 'generic'; }
   static get chip_id() { return undefined; }
   static get skip_value() { return 0x80000; }
-  static id(bus) { return Util.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); }
+  static id(bus) { return BusUtil.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); }
   static reset(bus) { return bus.write(0xE0, 0xB6); }
 
   // calibrate
