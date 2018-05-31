@@ -1,5 +1,5 @@
 
-const { BusUtil, BitUtil, NameValueUtil } = require('and-other-delights');
+const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
 
 const { genericChip, enumMap, Compensate } = require('./generic.js');
 

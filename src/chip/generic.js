@@ -1,5 +1,5 @@
 
-const { BusUtil } = require('and-other-delights');
+const { BusUtil } = require('@johntalton/and-other-delights');
 
 /**
  *

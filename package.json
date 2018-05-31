@@ -1,20 +1,20 @@
 {
-  "name": "boschieu",
+  "name": "@johntalton/boschieu",
   "version": "2.0.0",
   "description": "",
-  "main": "example/repl.js",
+  "main": "src/boschieu.js",
   "scripts": {
     "lint": "./node_modules/.bin/eslint ."
   },
   "dependencies": {
-    "rasbus": "file:../rasbus",
-    "and-other-delights": "file:../and-other-delights"
+    "rasbus": "johntalton/rasbus",
+    "@johntalton/and-other-delights": "johntalton/and-other-delights"
   },
   "devDependencies": {
     "eslint": "^4.19.1",
     "eslint-config-google": "^0.9.1",
     "mqtt": "^2.15.2",
-    "repler": "file:../repler"
+    "repler": "johntalton/repler"
   },
   "repository": {
     "type": "git",
