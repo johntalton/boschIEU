@@ -7,7 +7,7 @@
     "lint": "./node_modules/.bin/eslint ."
   },
   "dependencies": {
-    "rasbus": "johntalton/rasbus",
+    "rasbus": "johntalton/rasbus@lastMultiplex",
     "@johntalton/and-other-delights": "johntalton/and-other-delights"
   },
   "devDependencies": {
