@@ -13,7 +13,7 @@
     "eslint": "^4.19.1",
     "eslint-config-google": "^0.9.1",
     "mqtt": "^2.15.2",
-    "repler": "johntalton/repler"
+    "repler": "johntalton/repler",
     "@johntalton/rasbus": "johntalton/rasbus"
   },
   "repository": {
