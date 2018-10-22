@@ -6,7 +6,7 @@ const boschLib = require('../src/boschIEU.js');
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
-const rasbus = require('rasbus');
+const { Rasbus } = require('@johntalton/rasbus');
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
@@ -31,19 +31,11 @@ Repler.addCommand({
     let busname = params.shift();
 
     if(busname === undefined || busname.trim() === '') {
-      return rasbus.names();
+      throw Error('missing busname');
     }
 
     busname = busname.trim().toLowerCase();
-
-    const matches = rasbus.names().filter(name => name.startsWith(busname));
-    if(params.length <= 0) { return matches; }
-
-    if(params[0] === '') {
-      if(rasbus.names('i2c').includes(busname)) { return  ['0', '1']; }
-      if(rasbus.names('spi').includes(busname)) { return ['0', '1']; }
-      return ['?'];
-    }
+    // anything else
 
     return [''];
   },
@@ -60,7 +52,7 @@ Repler.addCommand({
 
     let impl;
     try {
-      impl = rasbus.byname(busname.toLowerCase());
+      impl = Rasbus.bytype(busname.toLowerCase());
     } catch(e) {
      console.log('unknonw busname', busname);
      return Promise.resolve();

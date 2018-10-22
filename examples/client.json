@@ -16,7 +16,7 @@
     {
       "name": "front room",
       "active": true,
-      "bus": { "driver": "i2c-bus", "id": [ 42, 118 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -31,7 +31,7 @@
     {
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
-      "bus": { "driver": "i2c-bus", "id": [ 42, 119 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
         "mode": "FORCED",
         "oversampling_p": 2,

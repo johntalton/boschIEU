@@ -2,7 +2,7 @@
 
 const { BoschIEU } = require('../src/boschIEU.js');
 
-const rasbus = require('rasbus');
+const { Rasbus } = require('@johntalton/rasbus');
 
 const profile = {
   mode: 'FORCED',
@@ -43,7 +43,7 @@ function force(sensor, idx) {
   }));
 }
 
-rasbus.byname('i2cbus').init(42, 119).then(bus => {
+Rasbus.i2c.init(1, 119).then(bus => {
   return BoschIEU.sensor(bus).then(s => {
     return s.id().then(() => s.calibration()).then(cali => {
       console.log(s.chip.name, 'running self-test');

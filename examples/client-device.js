@@ -1,7 +1,7 @@
 
 const crypto = require('crypto');
 
-const rasbus = require('rasbus');
+const { Rasbus } = require('@johntalton/rasbus');
 
 const { BoschIEU } = require('../src/boschIEU.js');
 
@@ -27,7 +27,7 @@ function signature(devcfg, sensor) {
 class Device {
   static _selectBus(bus) {
     try {
-      return rasbus.byname(bus.replace('-', '')); // support - in names
+      return Rasbus.bytype(bus);
     } catch(e) {
       // must return a 'valid' bus driver (duck)
       return { init: () => { return Promise.reject(e); } };
