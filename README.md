@@ -1,5 +1,5 @@
 # Bosch Integrated Environmental Unit
-Sensor level API for Bosch IEU (bmp280 bme280 bme680).
+Sensor level API for Bosch IEU (bmp280 bme280 bme680 bmp388).
 
 Simplified interface for common interaction, but includes full support for some overlooked features (bme680 multi heater profiles).
 
@@ -13,26 +13,7 @@ Tested with these products:
 
 [Adafruit BME680](https://www.adafruit.com/product/3660)
 
-
-
-# :triangular_ruler: Examples
-
-## :electric_plug: Test
-
-A hardcoded one off test that mimics the self-test example from bosch.
-It can be used a a simple validation of the sensor.
-
-## :flashlight: Repl
-
-Provides a command line interaction to the sensor / api.  Allowing for testing different chip bus and addressing configurations.
-Also provides are more raw view without directly debuging.
-
-## :satellite: Client
-
-A light wieght MQTT client that can manage and stream results from several devices (of any type supported by the lib).
-
-It exercises most of the features and functionality of each chip, and provides a good base for app interaction use case.
-
+[Adafruit BMP388](https://www.adafruit.com/product/3966)
 
 # :wrench: API
 
