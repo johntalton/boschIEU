@@ -2,7 +2,7 @@
 
 const Repler = require('repler');
 
-const boschLib = require('../src/boschIEU.js');
+const boschLib = require('../');
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
