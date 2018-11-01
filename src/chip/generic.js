@@ -14,8 +14,8 @@ class Compensate {
     }
   }
 
-  static from_3xy(measurment, calibration) {
-    const t = Compenate.tempature_3xy(meassurement.adcT, calibration.T);
+  static from_3xy(measurement, calibration) {
+    const t = Compensate.tempature_3xy(measurement.adcT, calibration.T);
     return {
       tempature: t,
       pressure: Compensate.pressure_3xy(measurement.adcP, t.tlin, calibration.P)
@@ -24,13 +24,23 @@ class Compensate {
 
   static tempature_3xy(adcT, caliT) {
     const [T1, T2, T3] = caliT;
+/*
+    const data1 = adcT - (256 * T1);
+    const data2 = data1 * T2;
+    const data3 = (data1 * data1) * T3;
+    const t_lin = ((data2 * 262144) + data3) / 4294967296;
+
+    const c = (t_line * 25 ) / 16384;
+*/
 
     const data1 = adcT - T1;
     const data2 = data1 * T2;
-
     const t_lin = data2 + (data1 * data1) * T3;
+    const c = t_lin;
 
-    return { adc: adcT, tlin: t_lin };
+    console.log('compensate 3xy temp', t_lin, c);
+
+    return { adc: adcT, tlin: t_lin, C: c };
   }
 
   static pressure_3xy(adcP, tlin, caliP) {
@@ -52,6 +62,7 @@ class Compensate {
     const data10 = data9 + (adcP * adcP * adcP) * P11;
 
     const press = out1 + out2 + data10;
+    console.log('conmpensate 3xx press',  press);
 
     return { adc: adcP, tlin: tlin, P: press };
   }

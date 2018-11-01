@@ -130,7 +130,7 @@ const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity;
  *
  **/
 class Fifo {
-  static read(bus) {
+  static read(bus, calibration) {
     return bus.read(0x12, 2)
       .then(buffer => {
         //console.log('fifo counter buffer', buffer);
@@ -163,7 +163,19 @@ class Fifo {
       .then(frameset => Fifo.parseFrameSet(frameset))
       .then(msgset => {
         return msgset.reduce((acu, msg) => acu.concat(msg), []);
-      });
+      })
+      .then(msgs => {
+        return msgs.map(msg => {
+          if(msg.type === 'sensor') {
+            return {
+              ...msg,
+              ...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
+            };
+          }
+
+          return msg;
+        });
+      })
   }
 
   static _blockRead(bus, count) {
@@ -336,7 +348,7 @@ class bmp388 extends genericChip {
 
   static flushFifo(bus) { return bus.write(0x7E, 0xB0); }
 
-  static fifoRead(bus) { return Fifo.read(bus); }
+  static fifoRead(bus, calibration) { return Fifo.read(bus, calibration); }
 
   static calibration(bus) {
     return BusUtil.readblock(bus, [[0x31, 21]]).then(buffer => {
@@ -357,8 +369,8 @@ class bmp388 extends genericChip {
       const nvm_par_P11 = buffer.readInt8(20);
 
       const par_T1 = nvm_par_T1 / Math.pow(2, -8);
-      const par_T2 = nvm_par_T1 / Math.pow(2, 30);
-      const par_T3 = nvm_par_T1 / Math.pow(2, 48);
+      const par_T2 = nvm_par_T2 / Math.pow(2, 30);
+      const par_T3 = nvm_par_T3 / Math.pow(2, 48);
 
       const par_P1 = nvm_par_P1 / Math.pow(2, 20);
       const par_P2 = nvm_par_P2 / Math.pow(2, 29);
@@ -372,6 +384,23 @@ class bmp388 extends genericChip {
       const par_P10 = nvm_par_P10 / Math.pow(2, 48);
       const par_P11 = nvm_par_P11 / Math.pow(2, 65);
 
+/*
+      const par_T1 = nvm_par_T1;
+      const par_T2 = nvm_par_T1;
+      const par_T3 = nvm_par_T1 / Math.pow(2, 48);
+
+      const par_P1 = nvm_par_P1 / Math.pow(2, 20);
+      const par_P2 = nvm_par_P2 / Math.pow(2, 29);
+      const par_P3 = nvm_par_P3 / Math.pow(2, 32);
+      const par_P4 = nvm_par_P4 / Math.pow(2, 37);
+      const par_P5 = nvm_par_P5 / Math.pow(2, -3);
+      const par_P6 = nvm_par_P6 / Math.pow(2, 6);
+      const par_P7 = nvm_par_P7 / Math.pow(2, 8);
+      const par_P8 = nvm_par_P8 / Math.pow(2, 15);
+      const par_P9 = nvm_par_P9 / Math.pow(2, 48);
+      const par_P10 = nvm_par_P10 / Math.pow(2, 48);
+      const par_P11 = nvm_par_P11 / Math.pow(2, 65);
+*/
 
       const T = [par_T1, par_T2, par_T3];
       const P = [par_P1, par_P2, par_P3, par_P4, par_P5, par_P6, par_P7, par_P8, par_P9, par_P10, par_P11];
@@ -608,23 +637,23 @@ class bmp388 extends genericChip {
   }
 
 
-  static measurment(bus, calibration) {/*
-    return BusUtil.readblock(bus, [[0xF7, 6]]).then(buffer => {
-      const pres_msb = buffer.readUInt8(0);
+  static measurment(bus, calibration) {
+    return BusUtil.readblock(bus, [[0x04, 12]]).then(buffer => {
+      const pres_xlsb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
-      const pres_xlsb = buffer.readUInt8(2);
-      const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
+      const pres_msb = buffer.readUInt8(2);
+      const adcP = Util.reconstruct24bit(pres_msb, pres_lsb, pres_xlsb);
 
-      const temp_msb = buffer.readUInt8(3);
+      const temp_xlsb = buffer.readUInt8(3);
       const temp_lsb = buffer.readUInt8(4);
-      const temp_xlsb = buffer.readUInt8(5);
-      const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
+      const temp_msb = buffer.readUInt8(5);
+      const adcT = Util.reconstruct24bit(temp_msb, temp_lsb, temp_xlsb);
 
-      const P = (bmp280.skip_value === adcP) ? false : adcP;
-      const T = (bmp280.skip_value === adcT) ? false : adcT;
+      const P = (bmp388.skip_value === adcP) ? false : adcP;
+      const T = (bmp388.skip_value === adcT) ? false : adcT;
 
-      return Compensate.from({ adcP: P, adcT: T, adcH: false, type: '2xy' }, calibration);
-    });*/
+      return Compensate.from({ adcP: P, adcT: T, adcH: false, type: '3xy' }, calibration);
+    });
   }
 
   static ready(bus) {/*

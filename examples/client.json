@@ -17,7 +17,7 @@
     {
       "active": false,
       "name": "front room",
-      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -30,10 +30,10 @@
       "retryIntervalS": 60
     },
     {
-      "active": false,
+      "active": true,
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
-      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
       "profile": {
         "mode": "FORCED",
         "oversampling_p": 2,
@@ -55,7 +55,8 @@
     {
       "active": true,
       "name": "ThreeEightyEight",
-       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+      "pollIntervalS": 5,
 
       "profile": {
         "mode": "NORMAL",
@@ -65,8 +66,8 @@
         "watchdog": "LONG",
 
         "interrupt": {
-          "mode": "active-high",
-          "latched": true,
+          "mode": "open-drain",
+          "latched": false,
 
           "onFifoWatermark": true,
           "onFifoFull": true,

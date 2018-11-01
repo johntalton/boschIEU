@@ -7,16 +7,22 @@ const profile = {
 
   interrupt: {
     mode: 'open-drain',
-    latched: true,
-    onReady: false,
-    onFifoFull: true
+    latched: false,
+    onReady: true,
+    onFifoFull: true,
+    onFifoWatermark: false
   },
 
   fifo: {
     active: true,
-    time: true,
+    time: false,
     temp: true,
-    press: true
+    press: true,
+
+    highWatermark: 666,
+    data: 'filtered',
+    subsampling: 666,
+    stopOnFull: false
   }
 };
 
@@ -24,7 +30,7 @@ Rasbus.i2c.init(1, 119).then(bus => {
   return BoschIEU.sensor(bus).then(s => {
     return s.id()
       .then(() => s.calibration())
-      // .then(() => s.setProfile(profile))
+      //.then(() => s.setProfile(profile))
       .then(() => {
         console.log(s.chip.name, 'fifo dump');
         return s.fifoRead().then(fifoData => {
