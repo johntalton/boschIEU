@@ -1,7 +1,7 @@
 
 const fs = require('fs');
 
-const { Converter } = require('../src/boschIEU.js');
+const { Converter } = require('../');
 const { Util } = require('./client-util.js');
 
 class Config {
@@ -28,6 +28,8 @@ class Config {
       if(rawConfig.devices === undefined) { throw Error('no devices specified'); }
       const devices = rawConfig.devices.map((rawDevCfg, index) => {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
+
+        const active = rawDevCfg.active !== false;
 
         const sign = rawDevCfg.sign !== undefined ? rawDevCfg.sign : 'md5';
 
@@ -72,6 +74,7 @@ class Config {
 
 
         return {
+          active: active,
           name: name,
           sign: sign,
           bus: {

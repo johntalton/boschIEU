@@ -23,7 +23,8 @@ class bme680 extends genericChip {
       tempature: true,
       humidity: true,
       gas: true,
-      normalMode: false
+      normalMode: false,
+      fifo: false
     }
   }
 

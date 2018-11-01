@@ -1,6 +1,7 @@
 {
   "devices": [
     {
+      "active": false,
       "sign": false,
       "bus": { "driver": "pispi", "id": [ 42 ] },
       "_bus": { "driver": "spi-device", "id": [ 0, 42 ] },
@@ -14,8 +15,8 @@
       "pollIntervalS": 5
     },
     {
+      "active": false,
       "name": "front room",
-      "active": true,
       "bus": { "driver": "i2c", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
@@ -29,6 +30,7 @@
       "retryIntervalS": 60
     },
     {
+      "active": false,
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
@@ -49,6 +51,39 @@
         }
       },
       "pollIntervalS": 7
+    },
+    {
+      "active": true,
+      "name": "ThreeEightyEight",
+       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+
+      "profile": {
+        "mode": "NORMAL",
+        "standby_prescaler": 256,
+        "filter_coefficient": false,
+
+        "watchdog": "LONG",
+
+        "interrupt": {
+          "mode": "active-high",
+          "latched": true,
+
+          "onFifoWatermark": true,
+          "onFifoFull": true,
+          "onReady": true
+        },
+
+        "fifo": {
+          "active": true,
+          "highWatermark": 10,
+          "data": "unfiltered",
+          "subsampling": 1,
+          "stopOnFull": false,
+          "temp": true,
+          "press": true,
+          "time": true
+        }
+      }
     }
   ],
   "mqtt": {

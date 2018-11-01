@@ -3,7 +3,7 @@ const crypto = require('crypto');
 
 const { Rasbus } = require('@johntalton/rasbus');
 
-const { BoschIEU } = require('../src/boschIEU.js');
+const { BoschIEU } = require('../');
 
 const { Util, State } = require('./client-util.js');
 const Store = require('./client-store.js');
@@ -38,8 +38,13 @@ class Device {
    * given configruation result in running application state
    */
   static setupDevices(application) {
-    const clients = application.devices.filter(devcfg => devcfg.client === undefined);
-    //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
+    const clients = application.devices
+      .filter(devcfg => devcfg.active)
+      .filter(devcfg => devcfg.client === undefined);
+
+    console.log('setup devices', clients);
+
+   //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
     return Promise.all(clients.map(devcfg => Device.setupDeviceWithRetry(application, devcfg)))
       .then(results => application);
   }

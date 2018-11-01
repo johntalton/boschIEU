@@ -1,5 +1,5 @@
 
-const { Converter } = require('../src/boschIEU.js');
+const { Converter } = require('../');
 
 class Util {
   static bulkup(chip, raw) {

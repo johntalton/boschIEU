@@ -41,7 +41,7 @@ class BoschSensor {
       });
   }
 
-  valid() { return this._chip.chip_id !== undefined; }
+  valid() { return this._chip.chip_id !== Chip.generic().chip_id; }
 
   calibrated() { return this.valid() && (this._calibration !== undefined); }
 
@@ -54,7 +54,7 @@ class BoschSensor {
   //    functionality into the higher level Sensor code
   id() {
     return this.chipDetect()
-      .then(chip => chip.chip_id);
+      .then(() => this._id());
   }
 
   _id() {
@@ -85,7 +85,7 @@ class BoschSensor {
 
 /**
  * Bosch Integrated Environmental Unit
- * bmp280 / bme280 / bme680
+ * bmp280 / bme280 / bme680 / bpm388
  */
 class BoschIEU {
   static sensor(bus) {

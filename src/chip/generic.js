@@ -9,9 +9,54 @@ class Compensate {
     switch(measurment.type) {
     case '2xy': return Compensate.from_2xy(measurment, calibration); break;
     case '6xy': return Compensate.from_6xy(measurment, calibration); break;
+    case '3xy': return Compensate.from_3xy(measurment, calibration); break;
     default: throw Error('unknonw measurment type: ' + measurment.type); break;
     }
   }
+
+  static from_3xy(measurment, calibration) {
+    const t = Compenate.tempature_3xy(meassurement.adcT, calibration.T);
+    return {
+      tempature: t,
+      pressure: Compensate.pressure_3xy(measurement.adcP, t.tlin, calibration.P)
+    };
+  }
+
+  static tempature_3xy(adcT, caliT) {
+    const [T1, T2, T3] = caliT;
+
+    const data1 = adcT - T1;
+    const data2 = data1 * T2;
+
+    const t_lin = data2 + (data1 * data1) * T3;
+
+    return { adc: adcT, tlin: t_lin };
+  }
+
+  static pressure_3xy(adcP, tlin, caliP) {
+    const [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11] = caliP;
+
+    const data1 = P6 * tlin;
+    const data2 = P7 * (tlin * tlin);
+    const data3 = P8 * (tlin * tlin * tlin);
+    const out1 = P5 + data1 + data2 + data3;
+
+    const data4 = P2 * tlin;
+    const data5 = P3 * (tlin * tlin);
+    const data6 = P4 * (tlin * tlin * tlin);
+    const out2 = adcP * (P1 + data4 + data5 + data6);
+
+    const data7 = adcP * adcP;
+    const data8 = P9 + P10 * tlin;
+    const data9 = data7 * data8;
+    const data10 = data9 + (adcP * adcP * adcP) * P11;
+
+    const press = out1 + out2 + data10;
+
+    return { adc: adcP, tlin: tlin, P: press };
+  }
+
+
 
   static from_6xy(measurment, calibration) {
     const t = Compensate.tempature_6xy(measurment.adcT, calibration.T);
@@ -279,7 +324,7 @@ const enumMap = {
     { name: 8,     value: 3 },
     { name: 16,    value: 4 }
   ],
-  filters_more: [ // bme680
+  filters_more: [ // bme680 / bmp388
     { name: false, value: 0 },
     { name: 1,     value: 1 },
     { name: 3,     value: 2 },
@@ -289,7 +334,7 @@ const enumMap = {
     { name: 63,    value: 6 },
     { name: 127,   value: 7 }
   ],
-  modes: [ // bmp280 / bme280
+  modes: [ // bmp280 / bme280 / bmp388
     { name: 'SLEEP',  value: 0 },
     { name: 'FORCED', value: 1 },
     { name: 'NORMAL', value: 3 }
