@@ -1,6 +1,6 @@
 "use strict";
 
-const { BoschIEU } = require('../src/boschIEU.js');
+const { BoschIEU } = require('../');
 
 const { Rasbus } = require('@johntalton/rasbus');
 

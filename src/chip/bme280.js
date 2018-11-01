@@ -14,6 +14,7 @@ class bme280 extends genericChip {
       humidity: true,
       gas: false,
       normalMode: true,
+      interrupt: false,
       fifo: false
     }
   }

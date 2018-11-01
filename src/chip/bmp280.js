@@ -14,6 +14,7 @@ class bmp280 extends genericChip {
       humidity: false,
       gas: false,
       normalMode: true,
+      interrupt: false,
       fifo: false
     }
   }

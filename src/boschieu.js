@@ -15,6 +15,8 @@ class BoschSensor {
 
   get chip(){ return this._chip; }
 
+  fifoRead(){ return this._chip.fifoRead(this._bus); }
+
   // cached promise version
   chipDetect() {
     if(this.valid()) { return Promise.resolve(this.chip); }

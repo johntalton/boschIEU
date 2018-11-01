@@ -187,12 +187,26 @@ Repler.addCommand({
         oversampling_t: 2,
         oversampling_h: 1,
         standby_time: true,
-        standby_prescaler: 512,
-
-        watchdog: 'LONG',
+        standby_prescaler: 256,
 
         interrupt: {
-          onReady: true
+          mode: 'open-drain',
+          latched: false,
+          onReady: true,
+          onFifoFull: true,
+          onFifoWatermark: false
+        },
+
+        fifo: {
+          active: true,
+          temp: true,
+          press: true,
+          time: true,
+
+          highWatermark: 666,
+          data: 'unfiltered',
+          subsampling: 666,
+          stopOnFull: false
         }
       }).then(noop => {
         console.log('normal mode');

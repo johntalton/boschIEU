@@ -5,7 +5,12 @@ const { genericChip, enumMap, Compensate } = require('./generic.js');
 
 class Util {
   static reconstruct9bit(msb, lsb) {
+    //console.log('reconstruct 9bit', msb, lsb)
     return msb << 8 | lsb;
+  }
+
+  static reconstruct24bit(msb, lsb, xlsb) {
+    return (msb << 16) | (lsb << 8) | xlsb;
   }
 
   static bestFitPrescaler(ms) {
@@ -20,6 +25,13 @@ class Util {
     const od = mode.toLowerCase() === 'open-drain' ? INT_OPEN_DRAIN : INT_PUSH_PULL;
     const level = mode.toLowerCase() === 'active-high' ? INT_ACTIVE_HIGH : INT_ACTIVE_LOW;
     return { od, level };
+  }
+
+  static modeFrom(opendrain, level) {
+    if(opendrain === INT_OPEN_DRAIN) { return 'open-drain'; }
+    if(level === INT_ACTIVE_HIGH) { return 'active-high'; }
+    if(level === INT_ACTIVE_LOW) { return 'active-low'; }
+    throw Error('unknown mode');
   }
 }
 
@@ -110,12 +122,192 @@ const FIFO = {
   DISABLED:          0
 };
 
+const FIFO_SIZE = 512;
+const MAX_BLOCK_SIZE = 32;
+const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity;
 
 /**
  *
  **/
 class Fifo {
-  
+  static read(bus) {
+    return bus.read(0x12, 2)
+      .then(buffer => {
+        //console.log('fifo counter buffer', buffer);
+        const fifo_byte_counter_7_0 = buffer.readUInt8(0);
+        const fifo_byte_counter_8 = buffer.readUInt8(1);
+        return Util.reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
+      })
+      .then(fifo_byte_counter => {
+        console.log('fifo buffer byte counter', fifo_byte_counter);
+        if(fifo_byte_counter < 0 || fifo_byte_counter > 512) { throw Error('fifo counter error'); }
+
+        // first-way:
+        // single read using cmd/size call capped to i2c limit
+        // ```
+        //   return bus.read(0x14, Math.min(MAX_BLOCK_SIZE, fifo_byte_counter + 4 + 2)).then(buf => [buf]);
+        // ```
+        // second-way
+        // using multiple block size reads to emulate continuous read
+        // changeing block limit to max_block_size * 1 will revert back to the above behavior
+        // ```
+        //   return Fifo._blockRead(bus, Math.min(BLOCK_LIMIT, fifo_byte_counter + 4 + 2));
+        // ```
+        // third-way
+        // by using the `writeSpecial` (write with on parameter is a proxy) and the
+        // `readBuffer` no i2c limit is imposed by the undelining library (or driver? / device?)
+        return bus.write(0x14)
+          .then(() => bus.readBuffer(Math.min(FIFO_SIZE, fifo_byte_counter + 4 + 2)))
+          .then(buf => [buf]);
+      })
+      .then(frameset => Fifo.parseFrameSet(frameset))
+      .then(msgset => {
+        return msgset.reduce((acu, msg) => acu.concat(msg), []);
+      });
+  }
+
+  static _blockRead(bus, count) {
+    // console.log('foo count', count);
+    const BLOCK_SIZE = MAX_BLOCK_SIZE;
+    const blocks = Math.floor(count / BLOCK_SIZE);
+    const remainder = count - (blocks * BLOCK_SIZE);
+    //console.log('count => blocks / remainder', count, blocks, remainder);
+    const blocksRange = (new Array(blocks)).fill(0);
+    return Promise.all(blocksRange.map((b,i) => {
+        //console.log('block size read', b, i);
+        return bus.read(0x14, BLOCK_SIZE);
+      }))
+      .then(head => {
+        //console.log('read remainder', remainder)
+        return bus.read(0x14, remainder)
+          .then(tail => head.concat(tail));
+      });
+  }
+
+  static parseFrameSet(frameset) {
+    // console.log('parse frameset', frameset);
+    return frameset.map(frames => {
+      return Fifo.parseFrames(frames);
+    });
+  }
+
+  static parseFrames(frames) {
+    //console.log('parse frames', frames);
+    const result = [];
+
+    let [size, frame] = Fifo.parseFrame(frames);
+    if(size < 0) { console.log('frame underread', size, frame); return result; }
+
+    result.push(frame);
+
+    let buf = frames;
+    while((buf.length - size) > 0) {
+      buf = buf.slice(size);
+      [size, frame] = Fifo.parseFrame(buf);
+      if(size < 0) { console.log('frame underread', size, frame); break; }
+      result.push(frame);
+    }
+
+    return result;
+  }
+
+  static parseFrame(frame) {
+    if(frame.length < 1) { return [-1]; }
+    const header = frame.readUInt8(0);
+    const mode = header >> 6;
+    const param = (header >> 2) & 0b1111;
+    //console.log('frame header', header, mode);
+
+    if(mode === 0b10) {
+      return Fifo.parseSensorFrame(frame, param);
+    }
+    else if(mode === 0x01) {
+      return Fifo.parseControlFrame(frame, param);
+    }
+
+    throw Error('unknown frame type');
+  }
+
+  static parseControlFrame(frame, param) {
+    if(param === 0b0001) { return Fifo.parseControlErrorFrame(frame); }
+    if(param === 0b0010) { return Fifo.parseControlConfigFrame(frame); }
+    console.log('unknown control frame param', param);
+    throw Error('unknown control frame param');
+  }
+
+  static parseControlErrorFrame(frame) {
+    if(frame.length < 2) { return [-2]; }
+    const opcode = frame.readUInt8(1);
+    return [ 1 + 1, { type: 'control.error', opcode: opcode }];
+  }
+
+  static parseControlConfigFrame(frame) {
+    if(frame.length < 2) { return [-2]; }
+    const data = frame.readUInt8(1);
+    return [ 1 + 1, { type: 'control.config', data: data }];
+  }
+
+  static parseSensorFrame(frame, param) {
+    const s = ((param >> 3) & 0x1) === 1;
+    const p = (param  & 0x1) === 1
+    const t = ((param >> 2) & 0x1) === 1;
+
+    if(s && (t || p)) { throw Error('time vs temp/press exclusive frame'); }
+
+    const empty = !s && !t && !p;
+    if(empty) {
+      // parse empty
+      // todo this ignores range check on buffers last byte
+      return [ 1 + 1, { type: 'sensor.empty' }]; // todo conferm empty data
+    }
+
+    if(s) {
+      return Fifo.parseSensorTimeFrame(frame);
+    }
+
+    return Fifo.parseSensorMeasurmentFrame(frame, p ,t);
+  }
+
+  static parseSensorTimeFrame(frame) {
+    if(frame.length < 4) { return [-4]; }
+
+    const xlsb = frame.readUInt8(1);
+    const lsb = frame.readUInt8(2);
+    const msb = frame.readUInt8(3);
+    const time = Util.reconstruct24bit(msb, lsb, xlsb);
+
+    return [ 1 + 3, { type: 'sensor.time', time: time }];
+  }
+
+  static parseSensorMeasurmentFrame(frame, p, t) {
+    let press, temp;
+    let offset = 0
+
+    if(t) {
+      if(frame.length < 4) { return [-4]; }
+      const xlsb = frame.readUInt8(1);
+      const lsb = frame.readUInt8(2);
+      const msb = frame.readUInt8(3);
+      temp = Util.reconstruct24bit(msb, lsb, xlsb);
+      offset += 3
+    }
+
+    if(p) {
+      if(frame.length < 7) { return [-7]; }
+      const xlsb = frame.readUInt8(offset + 1);
+      const lsb = frame.readUInt8(offset + 2);
+      const msb = frame.readUInt8(offset + 3);
+      press = Util.reconstruct24bit(msb, lsb, xlsb);
+      offset += 3;
+    }
+
+    //
+    return [ 1 + offset, {
+      type: 'sensor',
+      press: press,
+      temp: temp
+    }];
+  }
 }
 
 
@@ -133,6 +325,7 @@ class bmp388 extends genericChip {
       humidity: false,
       gas: false,
       normalMode: true,
+      interrupt: true,
       fifo: true
     }
   }
@@ -140,7 +333,10 @@ class bmp388 extends genericChip {
   // unique to the 388 (aka, @override generic)
   static id(bus) { return BusUtil.readblock(bus, [0x00]).then(buffer => buffer.readInt8(0)); }
   static reset(bus) { return bus.write(0x7E, 0xB6); }
+
   static flushFifo(bus) { return bus.write(0x7E, 0xB0); }
+
+  static fifoRead(bus) { return Fifo.read(bus); }
 
   static calibration(bus) {
     return BusUtil.readblock(bus, [[0x31, 21]]).then(buffer => {
@@ -220,7 +416,7 @@ class bmp388 extends genericChip {
       const fwtm_en = BitUtil.mapbits(int_ctrl, 3, 1);
       const int_latch = BitUtil.mapbits(int_ctrl, 2, 1);
       const int_level = BitUtil.mapbits(int_ctrl, 1, 1);
-      const in_od = BitUtil.mapbits(int_ctrl, 0, 1);
+      const int_od = BitUtil.mapbits(int_ctrl, 0, 1);
       const data_select = BitUtil.mapbits(fifo_config_2, 4, 2);
       const fifo_subsampling = BitUtil.mapbits(fifo_config_2, 2, 3);
       const fifo_temp_en = BitUtil.mapbits(fifo_config_1, 4, 1);
@@ -233,7 +429,7 @@ class bmp388 extends genericChip {
 
       //
       const fifo_watermark = Util.reconstruct9bit(fifo_water_mark_8, fifo_water_mark_7_0);
-
+      const intMode = Util.modeFrom(int_od, int_level);
 
       return {
         mode: NameValueUtil.toName(mode, enumMap.modes),
@@ -245,7 +441,7 @@ class bmp388 extends genericChip {
         watchdog: (i2c_wdt_en === WATCHDOG_ENABLED) ? NameValueUtil.toName(i2c_wdt_sel, watchdogtimes) : false,
 
         interrupt: {
-          mode: undefined,
+          mode: intMode,
           latched: (int_latch === LATCHED),
           onFifoWatermark: (fwtm_en === ONWATER_ENABLED),
           onFifoFull: (ffull_en === ONFULL_ENABLED),
@@ -281,7 +477,7 @@ class bmp388 extends genericChip {
     const DEFAULT_OVERSAMPLING_TEMP = 1;
     const DEFAULT_WATCHDOG = false;
     const DEFAULT_INT_MODE = 'active-high';
-    const DEFAULT_LATECHED = false;
+    const DEFAULT_LATCHED = false;
     const DEFAULT_ON_FIFO_WM = false;
     const DEFAULT_ON_FIFO_FULL = false;
     const DEFAULT_ON_READY = false;
@@ -304,7 +500,7 @@ class bmp388 extends genericChip {
 
     if(profile.interrupt === undefined) { profile.interrupt = {}; }
     if(profile.interrupt.mode === undefined) { profile.interrupt.mode = DEFAULT_INT_MODE; }
-    if(profile.interrupt.latched === undefined) { profile.interrupt.lateched = DEFAULT_LATECHED; }
+    if(profile.interrupt.latched === undefined) { profile.interrupt.latched = DEFAULT_LATCHED; }
     if(profile.interrupt.onFifoWatermark === undefined) { profile.interrupt.onFifoWatermark = DEFAULT_ON_FIFO_WM; }
     if(profile.interrupt.onFifoFull === undefined) { profile.interrupt.onFifoFull = DEFAULT_ON_FIFO_FULL; }
     if(profile.interrupt.onReady === undefined) { profile.interrupt.onReady = DEFAULT_ON_READY; }
@@ -346,7 +542,7 @@ class bmp388 extends genericChip {
     const drdy_en = profile.interrupt.onReady ? ONREADY_ENABLED : ONREADY_DISABLED;
     const ffull_en = profile.interrupt.onFifoFull ? ONFULL_ENABLED : ONFULL_DISABLED;
     const fwtm_en = profile.interrupt.onFifoWatermark ? ONWATER_ENABLED : ONWATER_DISABLED;;
-    const int_latch = profile.interrupt.latch ? LATECHED : NON_LATCHED;
+    const int_latch = profile.interrupt.latched ? LATCHED : NON_LATCHED;
     const int_level = intMode.level;
     const int_od = intMode.od;
 
