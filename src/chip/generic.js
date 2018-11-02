@@ -17,9 +17,19 @@ class Compensate {
   static from_3xy(measurement, calibration) {
     const t = Compensate.tempature_3xy(measurement.adcT, calibration.T);
     return {
+      //...measurement,
+      ...Compensate.sensortime(measurement.sensortime),
       tempature: t,
       pressure: Compensate.pressure_3xy(measurement.adcP, t.tlin, calibration.P)
     };
+  }
+
+  static sensortime(sensortime) {
+    if(sensortime === undefined) { return undefined; }
+    return {
+      sensortime: sensortime,
+      // date: how?
+    }
   }
 
   static tempature_3xy(adcT, caliT) {
@@ -38,9 +48,7 @@ class Compensate {
     const t_lin = data2 + (data1 * data1) * T3;
     const c = t_lin;
 
-    console.log('compensate 3xy temp', t_lin, c);
-
-    return { adc: adcT, tlin: t_lin, C: c };
+    return { adc: adcT, tlin: t_lin,  C: c };
   }
 
   static pressure_3xy(adcP, tlin, caliP) {
@@ -62,9 +70,8 @@ class Compensate {
     const data10 = data9 + (adcP * adcP * adcP) * P11;
 
     const press = out1 + out2 + data10;
-    console.log('conmpensate 3xx press',  press);
 
-    return { adc: adcP, tlin: tlin, P: press };
+    return { adc: adcP, tlin: tlin, Pa: press };
   }
 
 
@@ -380,6 +387,14 @@ const enumMap = {
   ]
 }
 
+/**
+ *
+ **/
+class genericFifo {
+  static flush(bus) { throw Error('fifo flush not supported genericly'); }
+  static fead(bus) { throw Error('fifo read not supported genericly'); }
+}
+
 //
 class genericChip {
   static get features() {
@@ -395,8 +410,10 @@ class genericChip {
   static get name() { return 'generic'; }
   static get chip_id() { return undefined; }
   static get skip_value() { return 0x80000; }
-  static id(bus) { return BusUtil.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); }
+  static id(bus) { return BusUtil.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); } // todo remove and add detectChip
   static reset(bus) { return bus.write(0xE0, 0xB6); }
+
+  static get fifo() { return genericChip; } // return the class as a shorthand
 
   // calibrate
   // profile
@@ -404,6 +421,14 @@ class genericChip {
   // estimateMeasurementWait
   // ready
   // setProfile
+
+  // todo the following require knowledge of the system state
+  //   or need to read the chip before upddating, thus they
+  //   bellong to a higher level api and should be moved out
+  // patchProfile
+  // force
+  // sleep
+
 
   get ranges() {
     return {
@@ -414,6 +439,4 @@ class genericChip {
   }
 }
 
-module.exports.genericChip = genericChip;
-module.exports.Compensate = Compensate;
-module.exports.enumMap = enumMap;
+module.exports = { genericChip, genericFifo, Compensate, enumMap };

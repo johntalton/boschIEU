@@ -9,6 +9,9 @@ class Config {
     const s = cfg[name + 'S'];
     const ms = cfg[name + 'Ms'];
 
+    // support using false to disable, including via basename
+    //if(s === false || ms === false || (cfg[name] === false)) { return false; }
+
     if(s === undefined && ms === undefined) { return defaultMs; }
 
     const s_z = s !== undefined ? s : 0;
@@ -67,11 +70,7 @@ class Config {
         const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);
 
         const pollMs = Config._getMs(rawDevCfg, 'pollInterval', 37 * 1000);
-        //console.log('poll interval', name, pollMs);
-        //const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
-        //const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
-        //const pollMs = pS * 1000 + pMs;
-
+        
 
         return {
           active: active,

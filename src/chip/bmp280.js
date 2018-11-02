@@ -97,6 +97,9 @@ class bmp280 extends genericChip {
     ]);
   }
 
+  static patchProfile(bus, patch) {
+    throw Error('patch profile impl');
+  }
 
   static measurment(bus, calibration) {
     return BusUtil.readblock(bus, [[0xF7, 6]]).then(buffer => {

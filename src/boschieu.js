@@ -3,6 +3,16 @@ const { BusUtil } = require('@johntalton/and-other-delights');
 const { Chip } = require('./chip/chip.js');
 const { Converter } = require('./converter.js');
 
+class BoschFifo {
+  constructor(sensor) {
+    this.sensor = sensor;
+  }
+
+  flush() {}
+
+  read() {}
+}
+
 /**
  * Acts as a cache around the Chip implmentation
  */
@@ -15,7 +25,7 @@ class BoschSensor {
 
   get chip(){ return this._chip; }
 
-  fifoRead(){ return this._chip.fifoRead(this._bus, this._calibration); }
+  fifoRead(){ return this._chip.fifo.read(this._bus, this._calibration); }
 
   // cached promise version
   chipDetect() {
@@ -77,6 +87,7 @@ class BoschSensor {
 
   profile() { return this._chip.profile(this._bus); }
   setProfile(profile) { return this._chip.setProfile(this._bus, profile, this._calibration); }
+  patchProfile(patch) { return this._chip.patchProfile(this._bus, patch)}
 
   ready() { return this._chip.ready(this._bus); }
 

@@ -116,6 +116,10 @@ class bme280 extends genericChip {
     ]);
   }
 
+  static patchProfile(bus, patch) {
+    throw Error('patch profile impl');
+  }
+
   static measurment(bus, calibration) {
     return BusUtil.readblock(bus, [[0xF7, 8]]).then(buffer => {
       const pres_msb = buffer.readUInt8(0);

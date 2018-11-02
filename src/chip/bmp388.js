@@ -1,7 +1,7 @@
 
 const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
 
-const { genericChip, enumMap, Compensate } = require('./generic.js');
+const { genericChip, genericFifo, enumMap, Compensate } = require('./generic.js');
 
 class Util {
   static reconstruct9bit(msb, lsb) {
@@ -129,7 +129,12 @@ const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity;
 /**
  *
  **/
-class Fifo {
+class Bmp3Fifo extends genericFifo {
+
+  static flush(bus) {
+    return bus.write(0x7E, 0xB0);
+  }
+
   static read(bus, calibration) {
     return bus.read(0x12, 2)
       .then(buffer => {
@@ -151,7 +156,7 @@ class Fifo {
         // using multiple block size reads to emulate continuous read
         // changeing block limit to max_block_size * 1 will revert back to the above behavior
         // ```
-        //   return Fifo._blockRead(bus, Math.min(BLOCK_LIMIT, fifo_byte_counter + 4 + 2));
+        //   return Bmp3Fifo._blockRead(bus, Math.min(BLOCK_LIMIT, fifo_byte_counter + 4 + 2));
         // ```
         // third-way
         // by using the `writeSpecial` (write with on parameter is a proxy) and the
@@ -160,7 +165,7 @@ class Fifo {
           .then(() => bus.readBuffer(Math.min(FIFO_SIZE, fifo_byte_counter + 4 + 2)))
           .then(buf => [buf]);
       })
-      .then(frameset => Fifo.parseFrameSet(frameset))
+      .then(frameset => Bmp3Fifo.parseFrameSet(frameset))
       .then(msgset => {
         return msgset.reduce((acu, msg) => acu.concat(msg), []);
       })
@@ -168,8 +173,16 @@ class Fifo {
         return msgs.map(msg => {
           if(msg.type === 'sensor') {
             return {
-              ...msg,
+              //...msg,
+              type: msg.type,
               ...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
+            };
+          }
+          else if(msg.type === 'sensor.time') {
+            return {
+              //...msg,
+              type: msg.type,
+              ...Compensate.sensortime(msg.time)
             };
           }
 
@@ -199,7 +212,7 @@ class Fifo {
   static parseFrameSet(frameset) {
     // console.log('parse frameset', frameset);
     return frameset.map(frames => {
-      return Fifo.parseFrames(frames);
+      return Bmp3Fifo.parseFrames(frames);
     });
   }
 
@@ -207,7 +220,7 @@ class Fifo {
     //console.log('parse frames', frames);
     const result = [];
 
-    let [size, frame] = Fifo.parseFrame(frames);
+    let [size, frame] = Bmp3Fifo.parseFrame(frames);
     if(size < 0) { console.log('frame underread', size, frame); return result; }
 
     result.push(frame);
@@ -215,7 +228,7 @@ class Fifo {
     let buf = frames;
     while((buf.length - size) > 0) {
       buf = buf.slice(size);
-      [size, frame] = Fifo.parseFrame(buf);
+      [size, frame] = Bmp3Fifo.parseFrame(buf);
       if(size < 0) { console.log('frame underread', size, frame); break; }
       result.push(frame);
     }
@@ -231,18 +244,19 @@ class Fifo {
     //console.log('frame header', header, mode);
 
     if(mode === 0b10) {
-      return Fifo.parseSensorFrame(frame, param);
+      return Bmp3Fifo.parseSensorFrame(frame, param);
     }
     else if(mode === 0x01) {
-      return Fifo.parseControlFrame(frame, param);
+      return Bmp3Fifo.parseControlFrame(frame, param);
     }
 
+    console.log(frame);
     throw Error('unknown frame type');
   }
 
   static parseControlFrame(frame, param) {
-    if(param === 0b0001) { return Fifo.parseControlErrorFrame(frame); }
-    if(param === 0b0010) { return Fifo.parseControlConfigFrame(frame); }
+    if(param === 0b0001) { return Bmp3Fifo.parseControlErrorFrame(frame); }
+    if(param === 0b0010) { return Bmp3Fifo.parseControlConfigFrame(frame); }
     console.log('unknown control frame param', param);
     throw Error('unknown control frame param');
   }
@@ -274,10 +288,10 @@ class Fifo {
     }
 
     if(s) {
-      return Fifo.parseSensorTimeFrame(frame);
+      return Bmp3Fifo.parseSensorTimeFrame(frame);
     }
 
-    return Fifo.parseSensorMeasurmentFrame(frame, p ,t);
+    return Bmp3Fifo.parseSensorMeasurmentFrame(frame, p ,t);
   }
 
   static parseSensorTimeFrame(frame) {
@@ -322,7 +336,6 @@ class Fifo {
   }
 }
 
-
 /**
  *
  **/
@@ -346,9 +359,7 @@ class bmp388 extends genericChip {
   static id(bus) { return BusUtil.readblock(bus, [0x00]).then(buffer => buffer.readInt8(0)); }
   static reset(bus) { return bus.write(0x7E, 0xB6); }
 
-  static flushFifo(bus) { return bus.write(0x7E, 0xB0); }
-
-  static fifoRead(bus, calibration) { return Fifo.read(bus, calibration); }
+  static get fifo() { return Bmp3Fifo; } // return class / aka scope
 
   static calibration(bus) {
     return BusUtil.readblock(bus, [[0x31, 21]]).then(buffer => {
@@ -372,8 +383,8 @@ class bmp388 extends genericChip {
       const par_T2 = nvm_par_T2 / Math.pow(2, 30);
       const par_T3 = nvm_par_T3 / Math.pow(2, 48);
 
-      const par_P1 = nvm_par_P1 / Math.pow(2, 20);
-      const par_P2 = nvm_par_P2 / Math.pow(2, 29);
+      const par_P1 = (nvm_par_P1 - Math.pow(2, 14)) / Math.pow(2, 20);
+      const par_P2 = (nvm_par_P2 - Math.pow(2, 14)) / Math.pow(2, 29);
       const par_P3 = nvm_par_P3 / Math.pow(2, 32);
       const par_P4 = nvm_par_P4 / Math.pow(2, 37);
       const par_P5 = nvm_par_P5 / Math.pow(2, -3);
@@ -383,24 +394,6 @@ class bmp388 extends genericChip {
       const par_P9 = nvm_par_P9 / Math.pow(2, 48);
       const par_P10 = nvm_par_P10 / Math.pow(2, 48);
       const par_P11 = nvm_par_P11 / Math.pow(2, 65);
-
-/*
-      const par_T1 = nvm_par_T1;
-      const par_T2 = nvm_par_T1;
-      const par_T3 = nvm_par_T1 / Math.pow(2, 48);
-
-      const par_P1 = nvm_par_P1 / Math.pow(2, 20);
-      const par_P2 = nvm_par_P2 / Math.pow(2, 29);
-      const par_P3 = nvm_par_P3 / Math.pow(2, 32);
-      const par_P4 = nvm_par_P4 / Math.pow(2, 37);
-      const par_P5 = nvm_par_P5 / Math.pow(2, -3);
-      const par_P6 = nvm_par_P6 / Math.pow(2, 6);
-      const par_P7 = nvm_par_P7 / Math.pow(2, 8);
-      const par_P8 = nvm_par_P8 / Math.pow(2, 15);
-      const par_P9 = nvm_par_P9 / Math.pow(2, 48);
-      const par_P10 = nvm_par_P10 / Math.pow(2, 48);
-      const par_P11 = nvm_par_P11 / Math.pow(2, 65);
-*/
 
       const T = [par_T1, par_T2, par_T3];
       const P = [par_P1, par_P2, par_P3, par_P4, par_P5, par_P6, par_P7, par_P8, par_P9, par_P10, par_P11];
@@ -636,6 +629,14 @@ class bmp388 extends genericChip {
     */
   }
 
+  static patchProfile(bus, patch) {
+    // diff the json with the existing profile? given?
+    // determin the touched registers
+    // power mode sleep
+    // set register bulk
+    // power mode to final state prof + patch
+    throw Error('patch profile impl');
+  }
 
   static measurment(bus, calibration) {
     return BusUtil.readblock(bus, [[0x04, 12]]).then(buffer => {
@@ -649,10 +650,19 @@ class bmp388 extends genericChip {
       const temp_msb = buffer.readUInt8(5);
       const adcT = Util.reconstruct24bit(temp_msb, temp_lsb, temp_xlsb);
 
+      const time_7_0 = buffer.readUInt8(8);
+      const time_15_8 = buffer.readUInt8(9);
+      const time_23_16 = buffer.readUInt8(10);
+      const time_31_24 = buffer.readUInt8(11);
+
+      const time = buffer.readUInt32LE(8);
+      //const time2 = (time_31_24 << 24) | (time_23_16 << 16) | (time_15_8 << 8) | time_7_0
+      //console.log('times', time, time2, buffer.readUInt32LE(8));
+
       const P = (bmp388.skip_value === adcP) ? false : adcP;
       const T = (bmp388.skip_value === adcT) ? false : adcT;
 
-      return Compensate.from({ adcP: P, adcT: T, adcH: false, type: '3xy' }, calibration);
+      return Compensate.from({ sensortime: time, adcP: P, adcT: T, adcH: false, type: '3xy' }, calibration);
     });
   }
 

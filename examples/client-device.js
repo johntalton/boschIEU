@@ -162,6 +162,7 @@ class Device {
     }
 
     return base.then(() => {
+      // todo not all devices need a poller
       d.client.polltimer = setInterval(Device._poll, d.pollIntervalMs, application, d);
     });
   }
@@ -276,6 +277,7 @@ class Device {
 
       const estDelay = sensor.estimateMeasurementWait(config.profile);
       const delayMs = estDelay.totalWaitMs;
+      // todo we are setting the full profile here, we shold optimize to just a mode switch
       return sensor.setProfile(config.profile)
         .then(() => ({
           measure: true,

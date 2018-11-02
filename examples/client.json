@@ -56,7 +56,10 @@
       "active": true,
       "name": "ThreeEightyEight",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
-      "pollIntervalS": 5,
+
+      "pollIntervalS": 2,
+      "_setProfileOnStart": false,
+
 
       "profile": {
         "mode": "NORMAL",
