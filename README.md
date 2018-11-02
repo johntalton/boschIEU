@@ -65,6 +65,15 @@ sensor.calibration().then(calibration_data => {
 ```
 
 ---
+### :page_facing_up: fifo()
+
+```
+sensor.fifo.flush( ... ).then(...)
+```
+The `fifo` getter method returns a static `Fifo` class implementation. This provides a namesapce for fifo functionality.
+
+---
+
 
 
 ### :page_facing_up: profile()
@@ -98,6 +107,17 @@ sensor.measurement().then(results => {
 Read pressure, tempature and hunidity register in a single pass.
 
 
+## :blue_book: Fifo
+
+### :page_facing_up: flush(...)
+Flushes the fifo buffer using command register.
+
+---
+
+### :page_facing_up: read(...)
+Read byte count and read bytes parsing into frames.
+
+---
 
 
 ## :blue_book: Converter
