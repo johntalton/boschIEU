@@ -10,9 +10,11 @@ Also provides are more raw view without directly debuging.
 A light wieght MQTT client that can manage and stream results from several devices (of any type supported by the lib).
 It exercises most of the features and functionality of each chip, and provides a good base for app interaction use case.
 
-## :loudspeaker: Fifo
-For supported fifo chips (bmp3xx) a dump of the fifo buffer. can be used to test onFifoFull interrupt (by using it to draing the buffer once full).
-Supports `sensor` commands (measrument / time / empty) as well as error and configuration changes (which can be usefull to see change when using the, above, repl command to set the profile).
+## :loudspeaker: Fifo (dump)
+For supported chips (bmp3xx) dumps the contents of the fifo buffer.  Usefull to drain buffer to clear onfull condition when testing with repl.
+
+## :headphones: Fifo Observe
+For supported chips (bmp3xx) and including the interrupt pin gpio (via onoff dep) will monitor the interrupt conditons (which can be set via the profile) and read the fifo buffer on demand.
 
 ## :electric_plug: Gas Test
 A hardcoded one off test that mimics the self-test example from bosch.
