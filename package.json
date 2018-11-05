@@ -24,7 +24,10 @@
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-spellcheck": "0.0.11",
     "mqtt": "^2.15.2",
-    "repler": "johntalton/repler"
+    "onoff": "^3.2.2",
+    "repler": "johntalton/repler",
+    "rxjs": "^6.3.3",
+    "zen-observable": "^0.8.11"
   },
   "repository": {
     "type": "git",

@@ -36,6 +36,8 @@ class Config {
 
         const sign = rawDevCfg.sign !== undefined ? rawDevCfg.sign : 'md5';
 
+        const onStartSetProfile = rawDevCfg.onStartSetProfile !== undefined ? rawDevCfg.onStartSetProfile : true;
+
         const modeCheck = true;
         const sleepOnStreamStop = true;
 
@@ -80,6 +82,8 @@ class Config {
             driver: busdriver,
             id: busid
           },
+
+          onStartSetProfile: onStartSetProfile,
 
           profile: profile,
 

@@ -10,6 +10,7 @@ const { Rasbus } = require('@johntalton/rasbus');
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
+const autoDetect = true;
 
 Repler.addPrompt(state => {
   const close = '> ';
@@ -66,6 +67,10 @@ Repler.addCommand({
         .then(s => {
           console.log('sensor inited');
           state.sensor = s;
+
+          if(autoDetect) {
+            return s.detectChip().then(chip => console.log('detected chip', chip.name));
+          }
         });
     });
   }
@@ -96,9 +101,23 @@ Repler.addCommand({
 
 
 Repler.addCommand({
-  name: 'id',
+  name: 'detect',
   valid: function(state) {
     return state.sensor !== undefined && !state.sensor.valid();
+  },
+  callback: function (state) {
+    // force the detect but let it cache so that we get a new updated chip if we detected somthing new
+    // if auto detect is enabled this is likely useless :)
+    return state.sensor.detectChip(true).then(chip => {
+      console.log('Chip:'  + (state.sensor.valid() ? state.sensor.chip.name : ' (invalid)'));
+    });
+  }
+});
+
+Repler.addCommand({
+  name: 'id',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
   },
   callback: function (state) {
     return state.sensor.id().then(id => {

@@ -91,12 +91,19 @@ class Device {
     return Device._selectBus(devcfg.bus.driver).init(...idary)
       .then(bus => { client.bus = bus; })
       .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor }))
-      .then(() => client.sensor.id())
+      .then(() => client.sensor.detectChip())
       .then(() => {
         if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
       })
       .then(() => client.sensor.calibration())
-      .then(() => client.sensor.setProfile(devcfg.profile)) // todo skip if forced?
+      .then(() => {
+        // todo skip if forced?
+
+        // support suppressing via config (hope you trust the current settings :P)
+        if(!devcfg.onStartSetProfile) { console.log('skiping profile set on startup'); return Promise.resolve(); }
+
+        return client.sensor.setProfile(devcfg.profile);
+      })
       // .then(() => client.sensor.profile().then(p => console.log('profile after set', p))) // todo remvoe debu
 
       .then(() => {

@@ -58,7 +58,7 @@
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
 
       "pollIntervalS": 2,
-      "_setProfileOnStart": false,
+      "onStartSetProfile": true,
 
 
       "profile": {

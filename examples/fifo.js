@@ -28,12 +28,12 @@ const profile = {
 
 Rasbus.i2c.init(1, 119).then(bus => {
   return BoschIEU.sensor(bus).then(s => {
-    return s.id()
+    return s.detectChip()
       .then(() => s.calibration())
       //.then(() => s.setProfile(profile))
       .then(() => {
         console.log(s.chip.name, 'fifo dump');
-        return s.fifoRead().then(fifoData => {
+        return s.fifo.read().then(fifoData => {
           console.log(' => ', fifoData)
         });
       });
