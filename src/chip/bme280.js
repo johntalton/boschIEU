@@ -13,7 +13,9 @@ class bme280 extends genericChip {
       tempature: true,
       humidity: true,
       gas: false,
-      normalMode: true
+      normalMode: true,
+      interrupt: false,
+      fifo: false
     }
   }
 
@@ -112,6 +114,10 @@ class bme280 extends genericChip {
       bus.write(0xF4, ctrl_meas),
       bus.write(0xF5, config)
     ]);
+  }
+
+  static patchProfile(bus, patch) {
+    throw Error('patch profile impl');
   }
 
   static measurment(bus, calibration) {

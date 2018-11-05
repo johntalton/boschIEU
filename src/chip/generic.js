@@ -9,9 +9,72 @@ class Compensate {
     switch(measurment.type) {
     case '2xy': return Compensate.from_2xy(measurment, calibration); break;
     case '6xy': return Compensate.from_6xy(measurment, calibration); break;
+    case '3xy': return Compensate.from_3xy(measurment, calibration); break;
     default: throw Error('unknonw measurment type: ' + measurment.type); break;
     }
   }
+
+  static from_3xy(measurement, calibration) {
+    const t = Compensate.tempature_3xy(measurement.adcT, calibration.T);
+    return {
+      //...measurement,
+      ...Compensate.sensortime(measurement.sensortime),
+      tempature: t,
+      pressure: Compensate.pressure_3xy(measurement.adcP, t.tlin, calibration.P)
+    };
+  }
+
+  static sensortime(sensortime) {
+    if(sensortime === undefined) { return undefined; }
+    return {
+      sensortime: sensortime,
+      // date: how?
+    }
+  }
+
+  static tempature_3xy(adcT, caliT) {
+    const [T1, T2, T3] = caliT;
+/*
+    const data1 = adcT - (256 * T1);
+    const data2 = data1 * T2;
+    const data3 = (data1 * data1) * T3;
+    const t_lin = ((data2 * 262144) + data3) / 4294967296;
+
+    const c = (t_line * 25 ) / 16384;
+*/
+
+    const data1 = adcT - T1;
+    const data2 = data1 * T2;
+    const t_lin = data2 + (data1 * data1) * T3;
+    const c = t_lin;
+
+    return { adc: adcT, tlin: t_lin,  C: c };
+  }
+
+  static pressure_3xy(adcP, tlin, caliP) {
+    const [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11] = caliP;
+
+    const data1 = P6 * tlin;
+    const data2 = P7 * (tlin * tlin);
+    const data3 = P8 * (tlin * tlin * tlin);
+    const out1 = P5 + data1 + data2 + data3;
+
+    const data4 = P2 * tlin;
+    const data5 = P3 * (tlin * tlin);
+    const data6 = P4 * (tlin * tlin * tlin);
+    const out2 = adcP * (P1 + data4 + data5 + data6);
+
+    const data7 = adcP * adcP;
+    const data8 = P9 + P10 * tlin;
+    const data9 = data7 * data8;
+    const data10 = data9 + (adcP * adcP * adcP) * P11;
+
+    const press = out1 + out2 + data10;
+
+    return { adc: adcP, tlin: tlin, Pa: press };
+  }
+
+
 
   static from_6xy(measurment, calibration) {
     const t = Compensate.tempature_6xy(measurment.adcT, calibration.T);
@@ -279,7 +342,7 @@ const enumMap = {
     { name: 8,     value: 3 },
     { name: 16,    value: 4 }
   ],
-  filters_more: [ // bme680
+  filters_more: [ // bme680 / bmp388
     { name: false, value: 0 },
     { name: 1,     value: 1 },
     { name: 3,     value: 2 },
@@ -289,7 +352,7 @@ const enumMap = {
     { name: 63,    value: 6 },
     { name: 127,   value: 7 }
   ],
-  modes: [ // bmp280 / bme280
+  modes: [ // bmp280 / bme280 / bmp388
     { name: 'SLEEP',  value: 0 },
     { name: 'FORCED', value: 1 },
     { name: 'NORMAL', value: 3 }
@@ -324,6 +387,14 @@ const enumMap = {
   ]
 }
 
+/**
+ *
+ **/
+class genericFifo {
+  static flush(bus) { throw Error('fifo flush not supported genericly'); }
+  static fead(bus) { throw Error('fifo read not supported genericly'); }
+}
+
 //
 class genericChip {
   static get features() {
@@ -339,8 +410,10 @@ class genericChip {
   static get name() { return 'generic'; }
   static get chip_id() { return undefined; }
   static get skip_value() { return 0x80000; }
-  static id(bus) { return BusUtil.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); }
+  static id(bus) { return BusUtil.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); } // todo remove and add detectChip
   static reset(bus) { return bus.write(0xE0, 0xB6); }
+
+  static get fifo() { return genericChip; } // return the class as a shorthand
 
   // calibrate
   // profile
@@ -348,6 +421,14 @@ class genericChip {
   // estimateMeasurementWait
   // ready
   // setProfile
+
+  // todo the following require knowledge of the system state
+  //   or need to read the chip before upddating, thus they
+  //   bellong to a higher level api and should be moved out
+  // patchProfile
+  // force
+  // sleep
+
 
   get ranges() {
     return {
@@ -358,6 +439,4 @@ class genericChip {
   }
 }
 
-module.exports.genericChip = genericChip;
-module.exports.Compensate = Compensate;
-module.exports.enumMap = enumMap;
+module.exports = { genericChip, genericFifo, Compensate, enumMap };

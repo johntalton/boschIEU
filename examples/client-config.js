@@ -1,13 +1,16 @@
 
 const fs = require('fs');
 
-const { Converter } = require('../src/boschIEU.js');
+const { Converter } = require('../');
 const { Util } = require('./client-util.js');
 
 class Config {
   static _getMs(cfg, name, defaultMs) {
     const s = cfg[name + 'S'];
     const ms = cfg[name + 'Ms'];
+
+    // support using false to disable, including via basename
+    //if(s === false || ms === false || (cfg[name] === false)) { return false; }
 
     if(s === undefined && ms === undefined) { return defaultMs; }
 
@@ -29,7 +32,11 @@ class Config {
       const devices = rawConfig.devices.map((rawDevCfg, index) => {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
 
+        const active = rawDevCfg.active !== false;
+
         const sign = rawDevCfg.sign !== undefined ? rawDevCfg.sign : 'md5';
+
+        const onStartSetProfile = rawDevCfg.onStartSetProfile !== undefined ? rawDevCfg.onStartSetProfile : true;
 
         const modeCheck = true;
         const sleepOnStreamStop = true;
@@ -65,19 +72,18 @@ class Config {
         const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);
 
         const pollMs = Config._getMs(rawDevCfg, 'pollInterval', 37 * 1000);
-        //console.log('poll interval', name, pollMs);
-        //const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
-        //const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
-        //const pollMs = pS * 1000 + pMs;
-
+        
 
         return {
+          active: active,
           name: name,
           sign: sign,
           bus: {
             driver: busdriver,
             id: busid
           },
+
+          onStartSetProfile: onStartSetProfile,
 
           profile: profile,
 

@@ -1,13 +1,33 @@
 {
-  "extends": ["eslint:recommended", "google"],
+  "extends": [
+    "eslint:recommended",
+    "plugin:promise/recommended",
+    "plugin:import/recommended",
+    "plugin:import/errors",
+    "plugin:import/warnings",
+    "plugin:security/recommended",
+    "airbnb-base",
+    "google"
+  ],
   "parserOptions": {
-    "ecmaVersion": 9,
+    "ecmaVersion": 2018,
     "sourceType": "module"
   },
   "env": {
     "es6": true,
     "node": true
   },
+  "plugins": [
+    "import",
+    "promise",
+    "immutable",
+    "security",
+    "no-loops",
+    "fp",
+    "no-use-extend-native",
+    "jsdoc",
+    "spellcheck"
+  ],
   "rules": {
     "no-console": "off",
 
@@ -90,8 +110,6 @@
     "no-undefined": "off",
     "no-use-before-define": "error",
 
-
-
     "callback-return": "error",
     "global-require": "error",
     "handle-callback-err": "error",
@@ -132,7 +150,7 @@
     "comma-dangle": ["error", "never"],
     "block-spacing": ["error", "always"],
     "object-curly-spacing": ["error", "always"],
-    "brace-style": ["error", "1tbs", { "allowSingleLine": true }],
+    "brace-style": ["error", "stroustrup", { "allowSingleLine": true }],
     "keyword-spacing": ["error", {
       "overrides": {
         "if": { "after": false },
@@ -144,7 +162,131 @@
     "arrow-parens": ["error", "as-needed"],
 
 
+    "prefer-object-spread": ["error"],
+    "max-classes-per-file": ["error", 1],
+
+
     "require-jsdoc": "warn",
-    "max-len": ["warn", { "code": 80 }]
+    "max-len": ["warn", { "code": 80 }],
+
+
+
+    "import/no-unresolved": "error",
+    "import/named": "error",
+    "import/default": "error",
+    "import/namespace": "error",
+    "import/no-restricted-paths": "error",
+    "import/no-absolute-path": "error",
+    "import/no-dynamic-require": "error",
+    "import/no-internal-modules": "error",
+    "import/no-webpack-loader-syntax": "error",
+    "import/no-self-import": "error",
+    "import/no-cycle": "error",
+    "import/no-useless-path-segments": "error",
+
+    "import/export": "error",
+    "import/no-named-as-default": "error",
+    "import/no-named-as-default-member": "error",
+    "import/no-deprecated": "error",
+    "import/no-extraneous-dependencies": "error",
+    "import/no-mutable-exports": "error",
+
+    "import/unambiguous": "warn",
+    "import/no-commonjs": "warn",
+    "import/no-amd": "error",
+    "import/no-nodejs-modules": "error",
+
+    "import/first": "error",
+    "import/exports-last": "error",
+    "import/no-duplicates": "error",
+    "import/no-namespace": "error",
+    "import/extensions": "error",
+    "import/order": "error",
+    "import/newline-after-import": "error",
+    "import/prefer-default-export": "error",
+    "import/max-dependencies": "error",
+    "import/no-unassigned-import": "error",
+    "import/no-named-default": "error",
+    "import/no-default-export": "error",
+    "import/no-anonymous-default-export": "error",
+    "import/group-exports": "error",
+    "import/dynamic-import-chunkname": "error",
+
+
+    "promise/catch-or-return": "error",
+    "promise/no-return-wrap": "error",
+    "promise/param-names": "error",
+    "promise/always-return": "error",
+    "promise/no-native": "warn",
+    "promise/no-nesting": "error",
+    "promise/no-promise-in-callback": "error",
+    "promise/no-callback-in-promise": "error",
+    "promise/avoid-new": "error",
+    "promise/no-new-statics": "error",
+    "promise/no-return-in-finally": "error",
+    "promise/valid-params": "error",
+    "promise/prefer-await-to-then": "warn",
+    "promise/prefer-await-to-callbacks": "error",
+
+
+    "immutable/no-let": "warn",
+    "immutable/no-this": "warn",
+    "immutable/no-mutation": "warn",
+
+
+    "no-loops/no-loops": "warn",
+
+
+    "fp/no-arguments": "error",
+    "fp/no-class": "warn",
+    "fp/no-delete": "error",
+    "fp/no-events": "warn",
+    "fp/no-get-set": "error",
+    "fp/no-let": "error",
+    "fp/no-loops": "error",
+    "fp/no-mutating-assign": "error",
+    "fp/no-mutating-methods": "error",
+    "fp/no-mutation": ["warn", { "commonjs": true, "withThis": true }],
+    "fp/no-nil": "warn",
+    "fp/no-proxy": "error",
+    "fp/no-rest-parameters": "error",
+    "fp/no-this": "warn",
+    "fp/no-throw": "warn",
+    "fp/no-unused-expression": "warn",
+    "fp/no-valueof-field": "error",
+    "no-var": "error",
+
+
+    "no-use-extend-native/no-use-extend-native": "error",
+
+
+    "jsdoc/check-param-names": "error",
+    "jsdoc/check-tag-names": "error",
+    "jsdoc/check-types": "error",
+    "jsdoc/newline-after-description": "error",
+    "jsdoc/no-undefined-types": "error",
+    "jsdoc/require-description-complete-sentence": "error",
+    "jsdoc/require-example": "error",
+    "jsdoc/require-hyphen-before-param-description": "error",
+    "jsdoc/require-param": "error",
+    "jsdoc/require-param-description": "error",
+    "jsdoc/require-param-name": "error",
+    "jsdoc/require-param-type": "error",
+    "jsdoc/require-returns-description": "error",
+    "jsdoc/require-returns-type": "error",
+    "jsdoc/valid-types": "error",
+
+
+
+    "spellcheck/spell-checker": [ "error", {
+      "identifiers": false,
+      "minLength": 3,
+      "skipWords": [
+        "johntalton",
+        "todo", "const", "eslint", "bitwise",
+        "rasbus"
+      ]
+    }]
   }
 }
+

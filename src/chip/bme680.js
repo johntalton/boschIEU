@@ -23,7 +23,9 @@ class bme680 extends genericChip {
       tempature: true,
       humidity: true,
       gas: true,
-      normalMode: false
+      normalMode: false,
+      interrupt: false,
+      fifo: false
     }
   }
 
@@ -285,6 +287,10 @@ class bme680 extends genericChip {
         ...gas_wait.filter(x => x!== false).map((x, idx) => bus.write(0x64 + idx, x))
       ]))
       .then(() => bus.write(0x74, ctrl_meas));
+  }
+
+  static patchProfile(bus, patch) {
+    throw Error('patch profile impl');
   }
 
   static measurment(bus, calibration) {

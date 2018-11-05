@@ -3,6 +3,7 @@ const { genericChip } = require('./generic.js');
 const { bmp280 } = require('./bmp280.js');
 const { bme280 } = require('./bme280.js');
 const { bme680 } = require('./bme680.js');
+const { bmp388 } = require('./bmp388.js');
 
 /**
  * Factory for discovering chips
@@ -26,7 +27,8 @@ Chip._chips = [
   genericChip,
   bmp280,
   bme280,
-  bme680
+  bme680,
+  bmp388
 ];
 
 module.exports.Chip = Chip;

@@ -3,7 +3,7 @@ const crypto = require('crypto');
 
 const { Rasbus } = require('@johntalton/rasbus');
 
-const { BoschIEU } = require('../src/boschIEU.js');
+const { BoschIEU } = require('../');
 
 const { Util, State } = require('./client-util.js');
 const Store = require('./client-store.js');
@@ -38,8 +38,13 @@ class Device {
    * given configruation result in running application state
    */
   static setupDevices(application) {
-    const clients = application.devices.filter(devcfg => devcfg.client === undefined);
-    //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
+    const clients = application.devices
+      .filter(devcfg => devcfg.active)
+      .filter(devcfg => devcfg.client === undefined);
+
+    console.log('setup devices', clients);
+
+   //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
     return Promise.all(clients.map(devcfg => Device.setupDeviceWithRetry(application, devcfg)))
       .then(results => application);
   }
@@ -86,12 +91,19 @@ class Device {
     return Device._selectBus(devcfg.bus.driver).init(...idary)
       .then(bus => { client.bus = bus; })
       .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor }))
-      .then(() => client.sensor.id())
+      .then(() => client.sensor.detectChip())
       .then(() => {
         if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
       })
       .then(() => client.sensor.calibration())
-      .then(() => client.sensor.setProfile(devcfg.profile)) // todo skip if forced?
+      .then(() => {
+        // todo skip if forced?
+
+        // support suppressing via config (hope you trust the current settings :P)
+        if(!devcfg.onStartSetProfile) { console.log('skiping profile set on startup'); return Promise.resolve(); }
+
+        return client.sensor.setProfile(devcfg.profile);
+      })
       // .then(() => client.sensor.profile().then(p => console.log('profile after set', p))) // todo remvoe debu
 
       .then(() => {
@@ -157,6 +169,7 @@ class Device {
     }
 
     return base.then(() => {
+      // todo not all devices need a poller
       d.client.polltimer = setInterval(Device._poll, d.pollIntervalMs, application, d);
     });
   }
@@ -271,6 +284,7 @@ class Device {
 
       const estDelay = sensor.estimateMeasurementWait(config.profile);
       const delayMs = estDelay.totalWaitMs;
+      // todo we are setting the full profile here, we shold optimize to just a mode switch
       return sensor.setProfile(config.profile)
         .then(() => ({
           measure: true,

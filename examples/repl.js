@@ -2,7 +2,7 @@
 
 const Repler = require('repler');
 
-const boschLib = require('../src/boschIEU.js');
+const boschLib = require('../');
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
@@ -10,6 +10,7 @@ const { Rasbus } = require('@johntalton/rasbus');
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
+const autoDetect = true;
 
 Repler.addPrompt(state => {
   const close = '> ';
@@ -66,6 +67,10 @@ Repler.addCommand({
         .then(s => {
           console.log('sensor inited');
           state.sensor = s;
+
+          if(autoDetect) {
+            return s.detectChip().then(chip => console.log('detected chip', chip.name));
+          }
         });
     });
   }
@@ -96,9 +101,23 @@ Repler.addCommand({
 
 
 Repler.addCommand({
-  name: 'id',
+  name: 'detect',
   valid: function(state) {
     return state.sensor !== undefined && !state.sensor.valid();
+  },
+  callback: function (state) {
+    // force the detect but let it cache so that we get a new updated chip if we detected somthing new
+    // if auto detect is enabled this is likely useless :)
+    return state.sensor.detectChip(true).then(chip => {
+      console.log('Chip:'  + (state.sensor.valid() ? state.sensor.chip.name : ' (invalid)'));
+    });
+  }
+});
+
+Repler.addCommand({
+  name: 'id',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
   },
   callback: function (state) {
     return state.sensor.id().then(id => {
@@ -186,8 +205,28 @@ Repler.addCommand({
         oversampling_p: 1,
         oversampling_t: 2,
         oversampling_h: 1,
-        filter_coefficient: 2,
-        standby_time: true
+        standby_time: true,
+        standby_prescaler: 256,
+
+        interrupt: {
+          mode: 'open-drain',
+          latched: false,
+          onReady: true,
+          onFifoFull: true,
+          onFifoWatermark: false
+        },
+
+        fifo: {
+          active: true,
+          temp: true,
+          press: true,
+          time: true,
+
+          highWatermark: 666,
+          data: 'unfiltered',
+          subsampling: 666,
+          stopOnFull: false
+        }
       }).then(noop => {
         console.log('normal mode');
     });

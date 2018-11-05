@@ -1,5 +1,5 @@
 
-const { Converter } = require('../src/boschIEU.js');
+const { Converter } = require('../');
 
 class Util {
   static bulkup(chip, raw) {
@@ -11,7 +11,7 @@ class Util {
     if(P === undefined) { console.log('odd P', raw); throw Error('no P'); }
     if(T === undefined) { console.log('odd T', raw); throw Error('no T'); }
 
-    const result = {};
+    const result = { sensortime: raw.sensortime};
 
     if(chip.features.pressure) {
       if(P.skip !== undefined && P.skip) {
@@ -61,6 +61,8 @@ class Util {
     const H = result.humidity;
     const A = result.altitude;
     const G = result.gas;
+    const sensortime = result.sensortime;
+    //console.log(result);
 
     console.log('"' + device.name + '" (' + device.sensor.chip.name + ' @ ' + device.bus.name + '):');
     if(device.signature !== undefined) {
