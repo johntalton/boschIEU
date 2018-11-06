@@ -473,6 +473,7 @@ class bmp388 extends genericChip {
           active: (fifo_mode === FIFO.ENABLED),
           data: NameValueUtil.toName(data_select, dataselects),
           subsampling: fifo_subsampling,
+          highWatermark: fifo_watermark,
           stopOnFull: (fifo_stop_on_full === FIFO.FULL_STOP_ENABLED),
           temp: (fifo_temp_en === FIFO.TEMP_ENABLED),
           press: (fifo_press_en === FIFO.PRESS_ENABLED),
@@ -529,7 +530,7 @@ class bmp388 extends genericChip {
 
     if(profile.fifo === undefined) { profile.fifo = {}; }
     if(profile.fifo.active === undefined) { profile.fifo.active = DEFAULT_FIFO_ACTIVE; }
-    if(profile.fifo.highWatermark === undefined) { profile.fifo.highWatermakr = DEFAULT_FIFO_HIGH_WATERMARK; }
+    if(profile.fifo.highWatermark === undefined) { profile.fifo.highWatermark = DEFAULT_FIFO_HIGH_WATERMARK; }
     if(profile.fifo.data === undefined) { profile.fifo.data = DEFAULT_FIFO_DATA; }
     if(profile.fifo.subsampling === undefined) { profile.fifo.subsampling = DEFAULT_FIFO_SUBSAMPLING; }
     if(profile.fifo.stopOnFull === undefined) { profile.fifo.stopOnFull = DEFAULT_FIFO_STOP_ON_FULL; }
@@ -542,10 +543,14 @@ class bmp388 extends genericChip {
     //
     const intMode = Util.interruptMode(profile.interrupt.mode);
 
+    if(profile.fifo.highWatermark >= Math.pow(2, 9) || profile.fifo.highWatermark < 0) { throw Error('invalid high watermark'); }
     const fifoWatermark = {
       high: (profile.fifo.highWatermark >> 8) & 0x1,
-      low: profile.fifo.highWatermark & 0x0F
+      low: profile.fifo.highWatermark & 0xFF
     };
+
+    if(profile.fifo.subsampling < 0 || profile.fifo.subsampling >= Math.pow(2, 3)) { throw Error('invalid subsamping range'); }
+    console.log('subsmapling', profile.fifo.subsampling);
 
     //
     const iff_filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters_more);
@@ -569,7 +574,7 @@ class bmp388 extends genericChip {
     const int_od = intMode.od;
 
     const data_select = NameValueUtil.toValue(profile.fifo.data, dataselects);
-    const fifo_subsampling = Number.parseInt(profile.subsampling, 10);
+    const fifo_subsampling = Number.parseInt(profile.fifo.subsampling, 10);
     const fifo_temp_en = (profile.fifo.active && profile.fifo.temp) ? FIFO.TEMP_ENABLED : FIFO.TEMP_DISABLED;
     const fifo_press_en = (profile.fifo.active && profile.fifo.press) ? FIFO.PRESS_ENABLED : FIFO.PRESS_DISABLED;
     const fifo_time_en = (profile.fifo.active && profile.fifo.time) ? FIFO.TIME_ENABLED : FIFO.TIME_DISABLED;
@@ -588,7 +593,7 @@ class bmp388 extends genericChip {
     const fifo_config_2 = BitUtil.packbits([[4, 2], [2, 3]], data_select, fifo_subsampling);
     const fifo_config_1 = BitUtil.packbits([[4], [3], [2], [1], [0]], fifo_temp_en, fifo_press_en, fifo_time_en, fifo_stop_on_full, fifo_mode);
     const fifo_wtm_1 = BitUtil.packbits([[0]], fifo_water_mark_8);
-    const fifo_wtm_0 = BitUtil.packbits([7, 8], fifo_water_mark_7_0);
+    const fifo_wtm_0 = BitUtil.packbits([[7, 8]], fifo_water_mark_7_0);
 
     //console.log('pwr ctrl', pwr_ctrl)
     return bus.write(0x1B, 0)

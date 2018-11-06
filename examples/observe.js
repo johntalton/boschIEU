@@ -86,14 +86,17 @@ Rasbus.i2c.init(1, 119).then(bus => {
           mode: 'open-drain',
           latched: false,
           onReady: false,
-          onFifoFull: true,
-          onFifoWatermark: false
+          onFifoFull: false,
+          onFifoWatermark: true
         },
         fifo: {
           active: true,
           time: true,
           temp: true,
-          press: true
+          press: true,
+
+          subsampling: 2,
+          highWatermark: 30
         }
       }))
       .then(() => observeFifo(s.fifo))
