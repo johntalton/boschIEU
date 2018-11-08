@@ -222,7 +222,7 @@ Repler.addCommand({
           press: true,
           time: true,
 
-          highWatermark: 666,
+          highWatermark: 128,
           data: 'unfiltered',
           subsampling: 666,
           stopOnFull: false
