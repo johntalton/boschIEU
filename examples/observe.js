@@ -9,7 +9,12 @@ const { Gpio } = require('onoff');
 const { BoschIEU, Converter } = require('../');
 const { Rasbus } = require('@johntalton/rasbus');
 
-function log(measurement) {
+function log(frame) {
+
+  if(frame.type !== 'sensor') { console.log(frame); return; }
+
+  const measurement = frame;
+
   const C = measurement.tempature.C;
   const F = Converter.ctof(C);
   const Pa = measurement.pressure.Pa;
@@ -35,6 +40,7 @@ const interrupt = new Gpio(4, 'in', 'rising', { activeLow: true });
 
 function observeGpio(gpio) {
   return new Observable(observer => {
+    console.log('setup gpio watch');
     const first = gpio.readSync();
     observer.next(first); // todo should reflect gpio settings
 
@@ -52,9 +58,9 @@ function observeGpio(gpio) {
 }
 
 
-function observeFifo(fifo) {
+function observeFifo(fifo, triggerStream) {
   return new Observable(observer => {
-    const gpioCancle = observeGpio(interrupt)
+    const gpioCancle = triggerStream
       .subscribe(
         msg => {
           console.log('read the fifo');
@@ -81,6 +87,7 @@ Rasbus.i2c.init(1, 119).then(bus => {
       .then(() => s.calibration())
       .then(() => s.setProfile({
         mode: 'NORMAL',
+        oversampling_t: 8,
         standby_prescaler: 127,
         interrupt: {
           mode: 'open-drain',
@@ -90,32 +97,33 @@ Rasbus.i2c.init(1, 119).then(bus => {
           onFifoWatermark: true
         },
         fifo: {
+          // data: 'filtered',
           active: true,
           time: true,
           temp: true,
           press: true,
 
           subsampling: 2,
-          highWatermark: 30
+          highWatermark: 42
         }
       }))
-      .then(() => observeFifo(s.fifo))
-      .then(observer => observer
-//        .map(msg => msg)
-//        .pipe(filter(msg => msg.name !== undefined))
-        .filter(msg => msg.type !== undefined)
-        .filter(msg => msg.type === 'sensor')
-        .subscribe(
-          //msg => console.log('sensor measurement', msg.tempature.C, msg.pressure.Pa),
-          msg => log(msg),
-          err => {},
-          () => console.log('closed')));
+      .then(() => {
+        const interruptStream = observeGpio(interrupt);
+        const fifoStream = observeFifo(s.fifo, interruptStream);
+
+        return [
+          fifoStream.subscribe(
+            frame => log(frame),
+            err => {},
+            () => console.log('closed'))
+          ];
+      });
   });
 })
-.then(cancelable => process.on('SIGINT', () => {
+.then(cancelables => process.on('SIGINT', () => {
   console.log('clean up');
 
-  cancelable.unsubscribe();
+  cancelables.forEach(cancelable => cancelable.unsubscribe());
 
   if(cleaned) { process.exit(); }
   cleaned = true;

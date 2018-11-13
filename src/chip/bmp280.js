@@ -101,7 +101,7 @@ class bmp280 extends genericChip {
     throw Error('patch profile impl');
   }
 
-  static measurment(bus, calibration) {
+  static measurement(bus, calibration) {
     return BusUtil.readblock(bus, [[0xF7, 6]]).then(buffer => {
       const pres_msb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);

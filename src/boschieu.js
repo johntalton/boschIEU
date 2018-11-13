@@ -111,7 +111,7 @@ class BoschSensor {
 
   ready() { return this._chip.ready(this._bus); }
 
-  measurement() { return this._chip.measurment(this._bus, this._calibration); }
+  measurement() { return this._chip.measurement(this._bus, this._calibration); }
 
   estimateMeasurementWait(profile) { return this._chip.estimateMeasurementWait(profile); }
 }

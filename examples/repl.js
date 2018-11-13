@@ -147,6 +147,7 @@ Repler.addCommand({
     return state.sensor.ready().then(ready => {
       console.log('Ready:', ready.ready);
       console.log('Measuing: ', ready.measuring, ' Image Update: ', ready.updating);
+      console.log(ready);
     });
   }
 });
@@ -224,7 +225,7 @@ Repler.addCommand({
 
           highWatermark: 128,
           data: 'unfiltered',
-          subsampling: 666,
+          subsampling: false,
           stopOnFull: false
         }
       }).then(noop => {
@@ -275,18 +276,11 @@ Repler.addCommand({
     return state.sensor !== undefined &&
       state.sensor.valid() &&
       state.sensor.calibrated() &&
-      state.sensor.chip.supportsTempature;
+      state.sensor.chip.features.tempature;
   },
   callback: function(state) {
-    return state.sensor.tempature().then(temp => {
-      if(temp.skip){
-        console.log('Tempature sensing disabled');
-      }else if(temp.undef){
-        console.log('Tempature calibration unset:', temp.undef);
-      }else{
-        console.log('Tempature (c): ', Converter.trim(temp.T));
-        console.log('          (f): ', Converter.trim(Converter.ctof(temp.T)));
-      }
+    return state.sensor.measurement().then(measurement => {
+      console.log(measurement);
     });
   }
 });

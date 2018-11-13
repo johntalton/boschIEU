@@ -293,7 +293,7 @@ class bme680 extends genericChip {
     throw Error('patch profile impl');
   }
 
-  static measurment(bus, calibration) {
+  static measurement(bus, calibration) {
     return BusUtil.readblock(bus, [[0x1D, 15]]).then(buffer => {
       const meas_status = buffer.readUInt8(0);
       const meas_index = buffer.readUInt8(1);

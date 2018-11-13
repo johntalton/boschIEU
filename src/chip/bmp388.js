@@ -44,7 +44,7 @@ const oversamplings = [
   { name: 32, value: 0x5 },
 
   // to support the use of `false` as a indicator
-  //   for dissabling the measurment, as was used
+  //   for dissabling the measurement, as was used
   //   in the generic chips.
   // retuning 0 (no oversampling) when setting
   //   disabled (this can be used as a signature / fingerprint
@@ -191,7 +191,7 @@ class Bmp3Fifo extends genericFifo {
       })
   }
 
-  static _blockRead(bus, count) {
+  /*static _blockRead(bus, count) {
     // console.log('foo count', count);
     const BLOCK_SIZE = MAX_BLOCK_SIZE;
     const blocks = Math.floor(count / BLOCK_SIZE);
@@ -207,7 +207,7 @@ class Bmp3Fifo extends genericFifo {
         return bus.read(0x14, remainder)
           .then(tail => head.concat(tail));
       });
-  }
+  }*/
 
   static parseFrameSet(frameset) {
     // console.log('parse frameset', frameset);
@@ -217,7 +217,7 @@ class Bmp3Fifo extends genericFifo {
   }
 
   static parseFrames(frames) {
-    //console.log('parse frames', frames);
+    console.log('parse frames', frames);
     const result = [];
 
     let [size, frame] = Bmp3Fifo.parseFrame(frames);
@@ -291,7 +291,7 @@ class Bmp3Fifo extends genericFifo {
       return Bmp3Fifo.parseSensorTimeFrame(frame);
     }
 
-    return Bmp3Fifo.parseSensorMeasurmentFrame(frame, p ,t);
+    return Bmp3Fifo.parseSensorMeasurementFrame(frame, p ,t);
   }
 
   static parseSensorTimeFrame(frame) {
@@ -305,7 +305,7 @@ class Bmp3Fifo extends genericFifo {
     return [ 1 + 3, { type: 'sensor.time', time: time }];
   }
 
-  static parseSensorMeasurmentFrame(frame, p, t) {
+  static parseSensorMeasurementFrame(frame, p, t) {
     let press, temp;
     let offset = 0
 
@@ -409,16 +409,16 @@ class bmp388 extends genericChip {
     return BusUtil.readblock(bus, [[0x15, 11]]).then(buffer => {
       console.log('profile buffer', buffer);
 
-      const config = buffer.readInt8(10);
-      const odr = buffer.readInt8(8);
-      const osr = buffer.readInt8(7);
-      const pwr_ctrl = buffer.readInt8(6);
-      const if_conf = buffer.readInt8(5);
-      const int_ctrl = buffer.readInt8(4);
-      const fifo_config_2 = buffer.readInt8(3);
-      const fifo_config_1 = buffer.readInt8(2);
-      const fifo_wtm_1 = buffer.readInt8(1);
-      const fifo_wtm_0 = buffer.readInt8(0);
+      const config = buffer.readUInt8(10);
+      const odr = buffer.readUInt8(8);
+      const osr = buffer.readUInt8(7);
+      const pwr_ctrl = buffer.readUInt8(6);
+      const if_conf = buffer.readUInt8(5);
+      const int_ctrl = buffer.readUInt8(4);
+      const fifo_config_2 = buffer.readUInt8(3);
+      const fifo_config_1 = buffer.readUInt8(2);
+      const fifo_wtm_1 = buffer.readUInt8(1);
+      const fifo_wtm_0 = buffer.readUInt8(0);
 
       //console.log('pwr ctrl', pwr_ctrl);
 
@@ -643,7 +643,7 @@ class bmp388 extends genericChip {
     throw Error('patch profile impl');
   }
 
-  static measurment(bus, calibration) {
+  static measurement(bus, calibration) {
     return BusUtil.readblock(bus, [[0x04, 12]]).then(buffer => {
       const pres_xlsb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
@@ -671,7 +671,44 @@ class bmp388 extends genericChip {
     });
   }
 
-  static ready(bus) {/*
+  static ready(bus) {
+
+    return BusUtil.readblock(bus, [[0x02, 2], [0x10, 2]])
+      .then(buffer => {
+
+        const err_reg = buffer.readUInt8(0);
+        const status = buffer.readUInt8(1);
+        const event = buffer.readUInt8(2);
+        const int_status = buffer.readUInt8(3);
+
+        const BIT_SET = 1;
+
+        const conf_err =  BitUtil.mapbits(err_reg, 2, 1) === BIT_SET;
+        const cmd_err =  BitUtil.mapbits(err_reg, 1, 1) === BIT_SET;
+        const fatal_err =  BitUtil.mapbits(err_reg, 0, 1) === BIT_SET;
+
+        const drdy_temp =  BitUtil.mapbits(status, 6, 1) === BIT_SET;
+        const drdy_press =  BitUtil.mapbits(status, 5, 1) === BIT_SET;
+        const cmd_rdy =  BitUtil.mapbits(status, 4, 1) === BIT_SET;
+
+        const por_detected = BitUtil.mapbits(event, 0, 1) === BIT_SET;
+
+        const drdy =  BitUtil.mapbits(int_status, 3, 1) === BIT_SET;
+        const ffull_int =  BitUtil.mapbits(int_status, 1, 1) === BIT_SET;
+        const fwm_int =  BitUtil.mapbits(int_status, 0, 1) === BIT_SET;
+
+        return {
+          // ready: 
+
+          error: { config: conf_err, command: cmd_err, fatal: fatal_err }, // all false is good
+          status: { tempature: drdy_temp, pressure: drdy_press, command: cmd_rdy }, // all ture is good
+          event: { por_detected }, // false is good,
+          interrupt: { data_ready: drdy, fifo_full: ffull_int, fifo_watermark: fwm_int }
+        };
+      });
+
+
+  /*
     return BusUtil.readblock(bus, [0xF3]).then(buffer => {
       const status = buffer.readUInt8(0);
       const measuring = BiUtil.mapbits(status, 3, 1) === 1;
