@@ -15,7 +15,7 @@ class Util {
 
   static bestFitPrescaler(ms) {
     const PRESCALER_HZ = 200; // from spec
-    
+    // todo
   }
 
   static interruptMode(mode) {
