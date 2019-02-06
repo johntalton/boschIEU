@@ -15,6 +15,8 @@ Tested with these products:
 
 [Adafruit BMP388](https://www.adafruit.com/product/3966)
 
+(note: Adafruit nologer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
+
 # :wrench: API
 
 The API is exposed via a `Sensor` class and a factory `BoschIEU`. Additional utilitiy class `Converter` is exposed for more complex use cases. The `Fifo` class is exposed on the `Sensor.fifo` getter.
