@@ -3,7 +3,7 @@ Sensor level API for Bosch IEU (bmp280 bme280 bme680 bmp388).
 
 Simplified interface for common interaction, but includes full support for some overlooked features (bme680 multi heater profiles).
 
-This also wraps all three modules, allowing for better reuse and api encapsulation.
+Providing a unified API for all four modules, allowing for better reuse and encapsulation.
 
 Tested with these products:
 
