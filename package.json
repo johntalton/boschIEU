@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@johntalton/rasbus": "johntalton/rasbus",
-    "eslint": "^4.19.1",
+    "eslint": "^6.7.2",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-config-google": "^0.9.1",
     "eslint-plugin-fp": "^2.3.0",
@@ -23,8 +23,8 @@
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-spellcheck": "0.0.11",
-    "mqtt": "^2.15.2",
-    "onoff": "^3.2.2",
+    "mqtt": "^3.0.0",
+    "onoff": "^5.0.0",
     "repler": "johntalton/repler",
     "rxjs": "^6.3.3",
     "zen-observable": "^0.8.11"
