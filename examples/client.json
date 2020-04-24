@@ -15,9 +15,9 @@
       "pollIntervalS": 5
     },
     {
-      "active": false,
+      "active": true,
       "name": "front room",
-      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -30,7 +30,7 @@
       "retryIntervalS": 60
     },
     {
-      "active": true,
+      "active": false,
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
       "bus": { "driver": "i2c", "id": [ 1, 118 ] },

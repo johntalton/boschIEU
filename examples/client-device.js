@@ -126,11 +126,14 @@ class Device {
   }
 
   static _processDevice(application, direction) {
-    const pending = application.devices.filter(d => d.client === undefined);
+    const pending = application.devices
+        .filter(d => d.client === undefined)
+        .filter(d => d.active);
     const all = pending.length === 0;
     const some = pending.length > 0 && pending.length !== application.devices.length;
     const none = pending.length === application.devices.length;
 
+    // console.log(pending);
     // console.log('proccess', all, some, none);
 
     if(all) { State.to(application.machine, 'all'); }

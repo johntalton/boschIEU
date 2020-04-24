@@ -3,6 +3,9 @@ const { State } = require('./client-util.js');
 const Store = require('./client-store.js');
 const Device = require('./client-device.js');
 const Config = require('./client-config.js');
+const { Converter } = require('../')
+
+Converter.seaLevelPa = 100700;
 
 function setupStateHandlers(application) {
   State.on(application.machine, 'stream', () => {
