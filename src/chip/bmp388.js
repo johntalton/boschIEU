@@ -493,7 +493,7 @@ class bmp388 extends genericChip {
     const profile = { ...p }; // explode p into our profile so we can add defaults
 
 
-    const DEFAUT_MODE = 'SLEEP';
+    const DEFAULT_MODE = 'SLEEP';
     const DEFAULT_FILTER_COEFFICIENT = false;
     const DEFAULT_PRESCALER = 1;
     const DEFAULT_OVERSAMPLING_PRESS = 1; // todo datasheet disagrees
@@ -550,7 +550,7 @@ class bmp388 extends genericChip {
     };
 
     if(profile.fifo.subsampling < 0 || profile.fifo.subsampling >= Math.pow(2, 3)) { throw Error('invalid subsamping range'); }
-    console.log('subsmapling', profile.fifo.subsampling);
+    console.log('subsampling', profile.fifo.subsampling);
 
     //
     const iff_filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters_more);
@@ -561,14 +561,14 @@ class bmp388 extends genericChip {
     const temp_en = profile.oversampling_t === false ? TEMP_DISABLED : TEMP_ENABLED;
     const press_en = profile.oversampling_p === false ? PRESS_DISABLED : PRESS_ENABLED;
 
-    const i2c_wdt_sel = NameValueUtil.toValue(profile.watchdog, watchdogtimes)
+    const i2c_wdt_sel = NameValueUtil.toValue(profile.watchdog, watchdogtimes);
     const i2c_wdt_en = profile.watchdog === false ? WATCHDOG_DISABLED : WATCHDOG_ENABLED;
 
     const spi3 = SPI3; // todo add support
 
     const drdy_en = profile.interrupt.onReady ? ONREADY_ENABLED : ONREADY_DISABLED;
     const ffull_en = profile.interrupt.onFifoFull ? ONFULL_ENABLED : ONFULL_DISABLED;
-    const fwtm_en = profile.interrupt.onFifoWatermark ? ONWATER_ENABLED : ONWATER_DISABLED;;
+    const fwtm_en = profile.interrupt.onFifoWatermark ? ONWATER_ENABLED : ONWATER_DISABLED;
     const int_latch = profile.interrupt.latched ? LATCHED : NON_LATCHED;
     const int_level = intMode.level;
     const int_od = intMode.od;
@@ -578,7 +578,7 @@ class bmp388 extends genericChip {
     const fifo_temp_en = (profile.fifo.active && profile.fifo.temp) ? FIFO.TEMP_ENABLED : FIFO.TEMP_DISABLED;
     const fifo_press_en = (profile.fifo.active && profile.fifo.press) ? FIFO.PRESS_ENABLED : FIFO.PRESS_DISABLED;
     const fifo_time_en = (profile.fifo.active && profile.fifo.time) ? FIFO.TIME_ENABLED : FIFO.TIME_DISABLED;
-    const fifo_stop_on_full = (profile.fifo.active && profile.fifo.stopOnFull) ? FIFO.FULL_STOP_ENABLED : FIFO.FULL_STOP_DISABLED;;
+    const fifo_stop_on_full = (profile.fifo.active && profile.fifo.stopOnFull) ? FIFO.FULL_STOP_ENABLED : FIFO.FULL_STOP_DISABLED;
     const fifo_mode = profile.fifo.active ? FIFO.ENABLED : FIFO.DISABLED;
     const fifo_water_mark_8 = fifoWatermark.high;
     const fifo_water_mark_7_0 = fifoWatermark.low;
@@ -597,22 +597,22 @@ class bmp388 extends genericChip {
 
     //console.log('pwr ctrl', pwr_ctrl)
     return bus.write(0x1B, 0)
-      .then(() => {
-        return Promise.all([
-          bus.write(0x15, fifo_wtm_0),
-          bus.write(0x16, fifo_wtm_1),
-          bus.write(0x17, fifo_config_1),
-          bus.write(0x18, fifo_config_2),
-          bus.write(0x19, int_ctrl),
-          bus.write(0x1A, if_conf),
-          //bus.write(0x1B, pwr_ctrl),
-          bus.write(0x1C, osr),
-          bus.write(0x1D, odr),
-          // 0, // reserved
-          bus.write(0x1F, config)
-        ]);
-      })
-      .then(() => bus.write(0x1B, pwr_ctrl));
+        .then(() => {
+            return Promise.all([
+                bus.write(0x15, fifo_wtm_0),
+                bus.write(0x16, fifo_wtm_1),
+                bus.write(0x17, fifo_config_1),
+                bus.write(0x18, fifo_config_2),
+                bus.write(0x19, int_ctrl),
+                bus.write(0x1A, if_conf),
+                //bus.write(0x1B, pwr_ctrl),
+                bus.write(0x1C, osr),
+                bus.write(0x1D, odr),
+                // 0, // reserved
+                bus.write(0x1F, config)
+            ]);
+        })
+        .then(() => bus.write(0x1B, pwr_ctrl));
 
 
 /*    const buffer = Buffer.from([

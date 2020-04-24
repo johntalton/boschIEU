@@ -284,7 +284,7 @@
       "skipWords": [
         "johntalton",
         "todo", "const", "eslint", "bitwise",
-        "rasbus"
+        "rasbus", "fifo"
       ]
     }]
   }
