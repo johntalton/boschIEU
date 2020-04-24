@@ -9,6 +9,8 @@ const { Gpio } = require('onoff');
 const { BoschIEU, Converter } = require('../');
 const { Rasbus } = require('@johntalton/rasbus');
 
+const seaLevelPa = 100700; // Converter.seaLevelPa
+
 function log(frame) {
 
   if(frame.type !== 'sensor') { console.log(frame); return; }
@@ -19,7 +21,7 @@ function log(frame) {
   const F = Converter.ctof(C);
   const Pa = measurement.pressure.Pa;
   const inHg = Converter.pressurePaToInHg(Pa);
-  const altFt = Converter.altitudeFromPressure(Converter.seaLevelPa, Pa);
+  const altFt = Converter.altitudeFromPressure(seaLevelPa, Pa);
   const altM = Converter.ftToMeter(altFt);
 
   console.log('Tempature', Converter.trim(C), 'C');
@@ -69,7 +71,8 @@ function observeFifo(fifo, triggerStream) {
             fifoData.forEach(frame => {
               observer.next(frame);
             });
-          });
+          })
+          .catch(e => { console.log('catching fifo read error', e); });
 
         },
         err => { observer.error(err) },
