@@ -71,7 +71,7 @@ class Util {
 
     if(device.sensor.chip.features.pressure){
       if(P.skip) {
-        console.log('\tPreassure: skipped');
+        console.log('\tPressure: skipped');
       } else {
         console.log('\tPressure (Pa):', Converter.trim(P.Pa), '(inHg):', Converter.trim(P.inHg));
         console.log('\tAltitude','(ft):', Converter.trim(A.Ft), '(m): ', Converter.trim(A.M));
@@ -79,9 +79,9 @@ class Util {
     }
     if(device.sensor.chip.features.tempature){
       if(T.skip) {
-        console.log('\tTempature: skipped');
+        console.log('\tTemperature: skipped');
       } else {
-        console.log('\tTempature: (c)', Converter.trim(T.C), '(F)', Converter.trim(T.F));
+        console.log('\tTemperature: (c)', Converter.trim(T.C), '(F)', Converter.trim(T.F));
       }
     }
     if(device.sensor.chip.features.humidity){

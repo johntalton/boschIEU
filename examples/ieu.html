@@ -1,7 +1,18 @@
 <!DOCTYPE html>
 <html>
 	<head>
+		<link rel="subresource" href="https://unpkg.com/mqtt/dist/mqtt.min.js" />
+		<link rel="import" href="graph.html" crossorigin="anonymous" />
+
 		<style>
+			@keyframes foo {
+				0% { background-color: lavender; }
+				20% { background-color: navajowhite; }
+				40% { background-color: palegoldenrod; }
+				60% { background-color: snow; }
+				80% { background-color:  bisque; }
+				100% { background-color: linen; }
+			}
 			body {
 				margin: 0;
 				padding: 0;
@@ -11,100 +22,80 @@
 				flex-wrap: nowrap;
 				justify-content: center;
 				align-items: center;
+
+				background-color:  lavender;
+				animation-name: foo;
+				animation-duration: 123s;
+
 			}
 			div.pad {
 				flex: 0;
 			}
-			svg {
+			@keyframes bar {
+				from { filter: grayscale(80%); }
+				to { filter: inherit; }
+			}
+
+			.graph {
 				margin-top: 2em;
 				height: 500px;
 				width: 90%;
-				background-color: beige;
-			}
-			.axis > line {
-				stroke: slateblue;
-				stroke-width: 1;
+				background-color: rgba(255, 255, 255, 0.25);
+
+				filter: grayscale(80%);
+				animation-name: bar;
+				animation-duration: 37s;
 			}
 
-			.points > circle {
-				transition: cx 60s;
-				fill: slateblue;
-			}
-
-			.A { stroke: red; }
-			.B { stroke: green; }
-			.C { stroke: purple; }
 		</style>
 
-		<script src="https://unpkg.com/mqtt/dist/mqtt.min.js" async="true" onload="mqttloaded(this);"></script>
+		<script src="https://unpkg.com/mqtt/dist/mqtt.min.js" async onload="mqttloaded();"></script>
 		<script>
 			function zip(a,b){ return a.map((e,i) => [e, b[i]]); }
 		</script>
 		<script type="text/javascript">
 			const HTML5NS = '';
 			const SVGNS = 'http://www.w3.org/2000/svg';
+		</script>
+		<script>
+			class Bucket extends EventTarget {
+				static conjure() { return new Bucket(); }
 
-			function addJoint(name, point) {
-				const g = document.createElementNS(SVGNS, 'g');
-				g.id = name;
-				g.style.transform = 'translate(' + point[0] + 'px, ' + point[1] + 'px)';
-
-				const circle = document.createElementNS(SVGNS, 'circle');
-
-				const text = document.createElementNS(SVGNS, 'text');
-				text.appendChild(document.createTextNode(name));
-
-				g.appendChild(circle);
-				g.appendChild(text);
-
-				svgJoints.appendChild(g);
-			}
-
-			function updateJoint(name, point) {
-				const g = document.querySelector('#' + name);
-				g.style.transform = 'translate(' + point[0] + 'px, ' + point[1] + 'px)';
-			}
-
-			function addBone(name, from, to) {
-				const line = document.createElementNS(SVGNS, 'line');
-				line.id = name;
-				line.setAttribute('x1', from[0]);
-				line.setAttribute('y1', from[1]);
-				line.setAttribute('x2', to[0]);
-				line.setAttribute('y2', to[1]);
-				svgBones.appendChild(line);
-			}
-
-			function updateBone(name, from, to) {
-				const line = document.querySelector('#' + name);
-				if(from !== undefined) {
-					line.setAttribute('x1', from[0]);
-					line.setAttribute('y1', from[1]);
+				static from(source) {
+					const b = new Bucket();
+					source.addEventListener('add', event => { b.add(event.detail.slot, event.detail); })
+					return b;
 				}
-				if(to !== undefined) {
-					line.setAttribute('x2', to[0]);
-					line.setAttribute('y2', to[1]);
+
+				constructor() {
+					super();
+					this._bucket = []; // todo could be a {}
+					this._total = 0;
+					this._sum = 0;
 				}
+
+				add(slot, detail) {
+					if(this._bucket[slot] === undefined) { this._bucket[slot] = []; }
+					this._bucket[slot].push(detail.sum); // todo { value: value, insertedAt: new Date() }
+
+					// update
+					this._total += detail.total;
+					this._sum += detail.sum;
+
+					// fake async
+					const event = new CustomEvent('add', { detail: { slot: 0, total: this._total, sum: this._sum }});
+					const preventD = this.dispatchEvent(event);
+				}
+
+
 			}
 
-			function addEffector(name, point) {
-				const g = document.createElementNS(SVGNS,'g');
+			const Bs = Bucket.conjure(60);
+			const Bm = Bucket.from(Bs, 60);
+			const Bh = Bucket.from(Bm, 24);
 
-				g.setAttribute('draggable', 'true');
-
-				g.id = name;
-				g.style.transform = 'translate(' + point[0] + 'px, ' + point[1] + 'px)';
-
-				const circle = document.createElementNS(SVGNS, 'circle');
-
-				const text = document.createElementNS(SVGNS, 'text');
-				text.appendChild(document.createTextNode(name));
-
-				g.appendChild(circle);
-				g.appendChild(text);
-
-				svgEffectors.appendChild(g);
-			}
+			Bs.add(2, { total: 1, sum: 37 });
+			Bs.add(3, { total: 1, sum: 42 });
 		</script>
 		<script type="text/javascript">
 
@@ -127,24 +118,36 @@
 			var max;
 
 			function scale(value, from, to) {
+				if(!isFinite(from[0])) throw Error('from 0')
+				if(!isFinite(from[1])) throw Error('from 1')
+				if(!isFinite(to[0])) throw Error('to 0')
+				if(!isFinite(to[1])) throw Error('to 1')
+
+				const fromMag = from[1] - from[0];
+				const toMag = to[1] - to[0];
+				const ratio = toMag / (fromMag * 1.0);
+
+				return (value - from[0]) * ratio + to[0];
+			}
+
+			function add(value, group) {
+
 				if(min == undefined) { min = value; }
 				if(max == undefined) { max = value; }
 				min = Math.min(min, value);
 				max = Math.max(max, value);
+				if(max - min < 2) { max += 0.5;  min -= 0.5; }
 
-				const fromMag = from[1] - from[0];
-				const toMag = to[1] - to[0];
-				//console.log(fromMag, toMag);
-				return (value - from[0]) * (toMag / (fromMag * 1.0)) + to[0];
-			}
+				let y = scale(value, [min, max], [95, 5]);
+				if(!isFinite(y)) throw Error('y not finite');
 
-			function add(value, group) {
-				console.log('adding value', value);
 				const points = svg.querySelector('.points');
+				const groupText = svg.querySelector('.lastPointLabels' + ' .' + group);
+				groupText.innerHTML = '' + Math.trunc(value * 1000) / 1000.0 + '&deg;C';
+				groupText.setAttribute('x', 180);
+				groupText.setAttribute('y', y);
 
-				const y = scale(value, [min, max], [95, 5])
-				//console.log('scale', value, [min, max], [95, 5], y);
-				console.log('Y', y);
+
 
 				const point = document.createElementNS(SVGNS, 'circle');
 				point.setAttribute('class', group);
@@ -154,20 +157,18 @@
 				point.setAttribute('transition', 'cx 60s');
 				points.appendChild(point);
 
-				setTimeout(() => { point.setAttribute('cx', 5); }, 0);
+				setTimeout(() => { point.setAttribute('cx', 5); }, 100);
 				setTimeout(() => { points.removeChild(point); }, 58 * 1000);
 			}
 
 
 			function setup() {
-				console.log('setup');
 				// snap global element
-				svg = document.querySelector('SVG');
+				//svg = document.querySelector('SVG');
 				// setupEffectorCallback(state);
 			}
 
 			function update(state) {
-				console.log('update');
 
 
 			}
@@ -187,28 +188,48 @@
 			const availC = ['A', 'B', 'C'];
 			const usedC = {};
 			function groupForName(result) {
-				const group = result.signature ? result.signature : result.name;
+				const group = result.signature ? result.signature : (result.name ? result.name : 'unknown');
 				if(usedC[group] !== undefined) { return usedC[group]; }
 
 				const nextC = availC.shift();
 				usedC[group] = nextC;
+
+				const pls = svg.querySelector('.lastPointLabels');
+				const text = document.createElementNS(SVGNS, 'text');
+				text.setAttribute('class', nextC);
+				text.appendChild(document.createTextNode('-'));
+				pls.appendChild(text);
+
 				return nextC;
 			}
 
-			function handleIUE(result) {
-				console.log(result);
+			const blob = [];
+			function handleIUE(client, result) {
+				//console.log(result);
 				add(result.tempature.C, groupForName(result));
+
+				//
+				const timestamp = (new Date(result.time)).getTime();
+				const now = Date.now();
+				if(timestamp > now) { throw Error('great scotts. heavy doc'); }
+				const durationMs = 1000 * 60 * 1;
+				const endtimestamp = now - durationMs;
+				if(timestamp < endtimestamp) { console.log('to little too late'); return; }
+
+
+
+				//blob[]
 			}
 
-			function mqttloaded(script) {
+			function mqttloaded() {
 				console.log('mqtt loaded');
-				const client = mqtt.connect('mqtt://10.0.1.1:1884', { reconnectPeriod: 30 * 1000});
+				const client = mqtt.connect('mqtt://192.168.1.14:1884', { reconnectPeriod: 30 * 1000});
 				client.on('connect', () => { console.log('mqtt connected'); client.subscribe('boschieu/#') });
 				client.on('disconnect', () => { console.log('mqtt disconnected'); });
 				client.on('message', (topic, message) => {
 					try {
 						const json = JSON.parse(message);
-						handleIUE(json);
+						//setTimeout(() => handleIUE(client, json), 100);
 					}
 					catch(e) {
 						console.log('failed to parse message', e);
@@ -217,35 +238,22 @@
 
 			}
 
+			document.addEventListener('DOMContentLoaded', event => {
+				console.log('dom content loaded ... wait for async mqtt lib');
+				svg = document.querySelector('SVG');
+
+			});
+
 			window.addEventListener('load', event => {
-				setup();
+				//setup();
 				// and kick off natural animation
-				window.requestAnimationFrame(step);
+				//setTimeout(() => window.requestAnimationFrame(step), 1);
 			});
 		</script>
 	</head>
 	<body>
 			<div class="pad"></div>
-			<svg viewBox="0 0 200 100" preserveAspectRatio="xMidYMid meet">
-				<defs>
-					<marker id='head' orient="auto"
-						markerWidth="4" markerHeight="4"
-						refX='4' refY='2'>
-						<!-- triangle pointing right (+x) -->
-						<path d='M0,0 V4 L2,2 Z' class="marker"/>
-					</marker>
-					<marker id="marker-arrow" markerWidth="12" markerHeight="12" refx="6" refy="4" orient="auto">
-						<path d="M 1 1 7 4 1 7 Z" class="marker"/>
-					</marker>
-				</defs>
-				<g class="points">
-				</g>
-				<g class="axis">
-					<line class="time" x1="4.5" y1="95" x2="195" y2="95" />
-					<line class="value" x1="5" y1="5" x2="5" y2="95" />
-				</g>
-			</svg>
+
 			<div class="pad"></div>
 	</body>
 </html>
-
