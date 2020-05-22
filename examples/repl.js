@@ -1,15 +1,18 @@
 "use strict";
 
+const i2c = require('i2c-bus')
+
 const Repler = require('repler');
 
-const boschLib = require('../src/boschIEU.js');
+const boschLib = require('../');
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
-const rasbus = require('rasbus');
+const { I2CAddressedBus } = require('@johntalton/and-other-delights');
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
+const autoDetect = true;
 
 Repler.addPrompt(state => {
   const close = '> ';
@@ -31,19 +34,11 @@ Repler.addCommand({
     let busname = params.shift();
 
     if(busname === undefined || busname.trim() === '') {
-      return rasbus.names();
+      throw Error('missing busname');
     }
 
     busname = busname.trim().toLowerCase();
-
-    const matches = rasbus.names().filter(name => name.startsWith(busname));
-    if(params.length <= 0) { return matches; }
-
-    if(params[0] === '') {
-      if(rasbus.names('i2c').includes(busname)) { return  ['0', '1']; }
-      if(rasbus.names('spi').includes(busname)) { return ['0', '1']; }
-      return ['?'];
-    }
+    // anything else
 
     return [''];
   },
@@ -58,23 +53,47 @@ Repler.addCommand({
     state.bus = undefined;
     state.sensor = undefined;
 
-    let impl;
-    try {
-      impl = rasbus.byname(busname.toLowerCase());
-    } catch(e) {
-     console.log('unknonw busname', busname);
-     return Promise.resolve();
-    }
+    if(busname.toLowerCase() === 'i2c') {
+      const busNumber = parseInt(prams.shift());
+      const busAddress = parseInt(prams.shift());
 
-    prams = prams.map(foo => parseInt(foo));
-    return impl.init(...prams).then(bus => {
-      console.log('bus inited');
-      state.bus = bus;
-      return bosch.sensor(bus)
-        .then(s => {
-          console.log('sensor inited');
-          state.sensor = s;
-        });
+      return i2c.openPromisified(busNumber)
+      .then(bus => new I2CAddressedBus(bus, busAddress))
+      .then(bus => {
+        console.log('bus inited');
+        state.bus = bus;
+        return bosch.sensor(bus)
+          .then(s => {
+            console.log('sensor inited');
+            state.sensor = s;
+
+            if(autoDetect) {
+              return s.detectChip().then(chip => console.log('detected chip', chip.name));
+            }
+          });
+      });
+    }
+  }
+});
+
+Repler.addCommand({
+  name: 'features',
+  valid: function(state) {
+    return state.sensor !== undefined
+  },
+  callback: function(state) {
+    console.log(state.sensor.chip.features);
+  }
+});
+
+Repler.addCommand({
+  name: 'time',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.chip.features.time;
+  },
+  callback: function(state) {
+    return state.sensor.sensorTime().then(time => {
+      console.log('time >', time);
     });
   }
 });
@@ -94,9 +113,23 @@ Repler.addCommand({
 
 
 Repler.addCommand({
-  name: 'id',
+  name: 'detect',
   valid: function(state) {
     return state.sensor !== undefined && !state.sensor.valid();
+  },
+  callback: function (state) {
+    // force the detect but let it cache so that we get a new updated chip if we detected somthing new
+    // if auto detect is enabled this is likely useless :)
+    return state.sensor.detectChip(true).then(chip => {
+      console.log('Chip:'  + (state.sensor.valid() ? state.sensor.chip.name : ' (invalid)'));
+    });
+  }
+});
+
+Repler.addCommand({
+  name: 'id',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid();
   },
   callback: function (state) {
     return state.sensor.id().then(id => {
@@ -126,6 +159,7 @@ Repler.addCommand({
     return state.sensor.ready().then(ready => {
       console.log('Ready:', ready.ready);
       console.log('Measuing: ', ready.measuring, ' Image Update: ', ready.updating);
+      console.log(ready);
     });
   }
 });
@@ -143,6 +177,24 @@ Repler.addCommand({
     });
   }
 });
+
+Repler.addCommand({
+  name: 'get',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid()
+  }
+});
+
+Repler.addCommand({
+  name: 'set',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid()
+  },
+  callback: function(state) {
+    return Promise.reject();
+  }
+});
+
 
 Repler.addCommand({
   name: 'calibration',
@@ -175,18 +227,39 @@ Repler.addCommand({
   valid: function(state) {
     if(state.sensor === undefined) { return false; }
     if(!state.sensor.valid()) { return false; }
-    return state.sensor.chip.supportsNormalMode;
+    return state.sensor.chip.features.normalMode;
   },
   callback: function(state) {
-    return state.sensor.setProfile(Profiles.chipProfile({
-      mode: 'NORMAL',
-      oversampling_p: 1,
-      oversampling_t: 1,
-      oversampling_h: 1,
-      filter_coefficient: 2,
-      standby_time: true
-      }, state.sensor.chip)).then(noop => {
-      console.log('normal mode');
+    console.log('setting profile to normal');
+    return state.sensor.setProfile({
+        mode: 'NORMAL',
+        oversampling_p: 1,
+        oversampling_t: 2,
+        oversampling_h: 1,
+        standby_time: true,
+        standby_prescaler: 256,
+
+        interrupt: {
+          mode: 'open-drain',
+          latched: false,
+          onReady: true,
+          onFifoFull: true,
+          onFifoWatermark: false
+        },
+
+        fifo: {
+          active: true,
+          temp: true,
+          press: true,
+          time: true,
+
+          highWatermark: 128,
+          data: 'unfiltered',
+          subsampling: false,
+          stopOnFull: false
+        }
+      }).then(noop => {
+        console.log('normal mode');
     });
   }
 });
@@ -233,18 +306,11 @@ Repler.addCommand({
     return state.sensor !== undefined &&
       state.sensor.valid() &&
       state.sensor.calibrated() &&
-      state.sensor.chip.supportsTempature;
+      state.sensor.chip.features.tempature;
   },
   callback: function(state) {
-    return state.sensor.tempature().then(temp => {
-      if(temp.skip){
-        console.log('Tempature sensing disabled');
-      }else if(temp.undef){
-        console.log('Tempature calibration unset:', temp.undef);
-      }else{
-        console.log('Tempature (c): ', Converter.trim(temp.T));
-        console.log('          (f): ', Converter.trim(Converter.ctof(temp.T)));
-      }
+    return state.sensor.measurement().then(measurement => {
+      console.log(measurement);
     });
   }
 });

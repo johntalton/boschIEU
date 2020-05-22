@@ -1,6 +1,5 @@
-"use strict";
 
-const { Converter } = require('../src/boschIEU.js');
+const { Converter } = require('..');
 
 class Util {
   static bulkup(chip, raw) {
@@ -9,7 +8,10 @@ class Util {
     const H = raw.humidity;
     const G = raw.gas;
 
-    const result = {};
+    if(P === undefined) { console.log('odd P', raw); throw Error('no P'); }
+    if(T === undefined) { console.log('odd T', raw); throw Error('no T'); }
+
+    const result = { sensortime: raw.sensortime};
 
     if(chip.features.pressure) {
       if(P.skip !== undefined && P.skip) {
@@ -19,7 +21,7 @@ class Util {
         const altFt = Converter.altitudeFromPressure(Converter.seaLevelPa, P.Pa);
         const altM = Converter.ftToMeter(altFt);
 
-        result.pressure = { Pa: P.Pa, inHg: inHg };
+        result.pressure = { ...P, inHg: inHg };
         result.altitude = { Ft: altFt, M: altM };
       }
     }
@@ -29,7 +31,7 @@ class Util {
         result.tempature = { skip: true };
       } else {
         const f = Converter.ctof(T.C);
-        result.tempature = { C: T.C, F: f };
+        result.tempature = { ...T, F: f };
       }
     }
 
@@ -37,7 +39,7 @@ class Util {
       if(H.skip !== undefined && H.skip) {
         result.humidity = { skip: true };
       } else {
-        result.humidity = { percent: H.percent, Hunclamped: H.Hunclamped };
+        result.humidity = { ...H };
       }
     }
 
@@ -45,7 +47,7 @@ class Util {
       if(G.skip !== undefined && G.skip) {
         result.gas = { skip: true };
       } else {
-        result.gas = { Ohm: G.ohm };
+        result.gas = { ...G };
       }
     }
 
@@ -59,6 +61,8 @@ class Util {
     const H = result.humidity;
     const A = result.altitude;
     const G = result.gas;
+    const sensortime = result.sensortime;
+    //console.log(result);
 
     console.log('"' + device.name + '" (' + device.sensor.chip.name + ' @ ' + device.bus.name + '):');
     if(device.signature !== undefined) {
@@ -102,7 +106,10 @@ class Util {
       state: '1init',
       states: {
         '1init': {
+          // none
           'some': { next: '2some', event: '' },
+          // dsome
+          'all': { next: '3all', event: '' },
           'mqtt': { next: '5mqtt', event: '' },
           'dmqtt': { next: '1init', event: '' } }, // we know, thanks
         '2some': {
@@ -113,20 +120,32 @@ class Util {
           'mqtt': { next: '6mqttsome', event: 'stream' },
           'dmqtt': { next: '2some', event: '' } }, // we know, thanks
         '3all': {
-          'mqtt': { next: '4active', event: 'stream' },
+          'none': { next: '1init', event: '' },
+          // some
           'dsome': { next: '2some', event: '' },
+          // all
+          'mqtt': { next: '4active', event: 'stream' },
           'dmqtt': { next: '3all', event: '' } }, // we know, thanks
         '4active': { // streaming state
+          'none': { next: '5mqtt', event: 'stopstream' },
+          // some
           'dsome': { next: '6mqttsome', event: 'restopstream' },
+          // all
+          // mqtt
           'dmqtt': { next: '3all', event: 'stopstream' } },
         '5mqtt': {
+          // none
           'some': { next: '6mqttsome', event: 'stream' },
+          // dsome
+          'all': { next: '4active', event: 'stream' },
+          // mqtt
           'dmqtt': { next: '1init', event: '' } },
         '6mqttsome': { // streaming state
           'none': { next: '5mqtt', event: 'stopstream' },
           'some': { next: '6mqttsome', event: 'restream' },
           'dsome': { next: '6mqttsome', event: 'restopstream' },
           'all': { next: '4active', event: 'restream' },
+          // mqtt
           'dmqtt': { next: '2some', event: 'stopstream' } }
       }
     };
@@ -153,5 +172,4 @@ class State {
   }
 }
 
-Util.State = State;
-module.exports = Util;
+module.exports = { Util, State };

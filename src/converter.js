@@ -2,15 +2,15 @@
  *
  */
 class Converter {
-  static altitudeFromPressure(seaLevelPa, P){
-    if(P === undefined){ return { undef: 'P' }; }
-    // if((searLevelPa / Pa) >= (101325 / 5474.89) { throw new Error('excides max altitude'); }
+  static altitudeFromPressure(seaLevelPa, P) {
+    if(P === undefined) { return { undef: 'P' }; }
+    // if((searLevelPa / Pa) >= (101325 / 5474.89) { throw new Error('max altitude'); }
     // return (1.0 - Math.pow(pressure_hPa / seaLevelPressure_hPa, (1 / 5.2553))) * 145366.45;
 
     const exp = 1 / 5.2553; // 0.1903
     const foo = (1.0 - Math.pow((P / 100.0) / (seaLevelPa / 100.0), exp)) * 145366.45;
 
-    //console.log(seaLevelPa, P, exp, foo);
+    // console.log(seaLevelPa, P, exp, foo);
     return foo;
   }
 
@@ -19,7 +19,7 @@ class Converter {
   }
 
   static ftToMeter(ft) {
-    return ft / 3.2808
+    return ft / 3.2808;
   }
 
   static dewPoint(T, H) {
@@ -27,7 +27,7 @@ class Converter {
   }
 
   static ctof(c) {
-    if(c === undefined){ return undefined; }
+    if(c === undefined) { return undefined; }
     return c * (9 / 5.0) + 32;
   }
 
@@ -36,11 +36,10 @@ class Converter {
     return (f - 32) * (5 / 9.0);
   }
 
-  static trim(f, p) {
-    if(f === undefined){ return undefined; }
+  static trim(f) {
+    if(f === undefined) { return undefined; }
     return Math.round(f * 10000) / 10000;
   }
-
 }
 
 Converter.seaLevelPa = 101325.0; // a normal guess

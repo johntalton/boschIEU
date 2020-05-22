@@ -1,18 +1,32 @@
 {
-  "name": "boschieu",
-  "version": "2.0.0",
+  "name": "@johntalton/boschieu",
+  "version": "3.0.0",
   "description": "",
-  "main": "example/repl.js",
+  "license": "MIT",
+  "main": "src/boschieu.js",
+  "scripts": {
+    "lint": "./node_modules/.bin/eslint ."
+  },
   "dependencies": {
-    "i2c": "^0.2.3",
-    "i2c-bus": "^1.2.2",
-    "pi-spi": "^1.0.1",
-    "rasbus": "file:../rasbus",
-    "spi": "^0.2.0"
+    "@johntalton/and-other-delights": "github:johntalton/and-other-delights"
   },
   "devDependencies": {
-    "mqtt": "^2.15.2",
-    "repler": "file:../repler"
+    "eslint": "^7.0.0",
+    "eslint-plugin-fp": "^2.3.0",
+    "eslint-plugin-immutable": "^1.0.0",
+    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-jsdoc": "^25.4.2",
+    "eslint-plugin-no-loops": "^0.3.0",
+    "eslint-plugin-no-use-extend-native": "^0.5.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "eslint-plugin-security": "^1.4.0",
+    "eslint-plugin-spellcheck": "0.0.16",
+    "i2c-bus": "^5.2.0",
+    "mqtt": "^4.1.0",
+    "onoff": "^6.0.0",
+    "repler": "github:johntalton/repler",
+    "rxjs": "^6.4.0",
+    "zen-observable": "^0.8.13"
   },
   "repository": {
     "type": "git",

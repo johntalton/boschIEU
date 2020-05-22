@@ -1,18 +1,16 @@
-"use strict";
 
 const fs = require('fs');
 
-const { Converter } = require('../src/boschIEU.js');
-const Util = require('./client-util.js');
-
-const defaultProfiles = [
-  'profiles.json', './profiles.json', '../profile.json', '../src/profile.json'
-];
+const { Converter } = require('../');
+const { Util } = require('./client-util.js');
 
 class Config {
   static _getMs(cfg, name, defaultMs) {
     const s = cfg[name + 'S'];
     const ms = cfg[name + 'Ms'];
+
+    // support using false to disable, including via basename
+    //if(s === false || ms === false || (cfg[name] === false)) { return false; }
 
     if(s === undefined && ms === undefined) { return defaultMs; }
 
@@ -23,7 +21,7 @@ class Config {
   }
 
   static config(path) {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       fs.readFile(path, (err, data) => {
         if(err){ resolve({}); return; }
         resolve(JSON.parse(data));
@@ -31,25 +29,31 @@ class Config {
     })
     .then(rawConfig => {
       if(rawConfig.devices === undefined) { throw Error('no devices specified'); }
-      let devices = rawConfig.devices.map((rawDevCfg, index) => {
+      const devices = rawConfig.devices.map((rawDevCfg, index) => {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
 
+        const active = rawDevCfg.active !== false;
+
         const sign = rawDevCfg.sign !== undefined ? rawDevCfg.sign : 'md5';
+
+        const onStartSetProfile = rawDevCfg.onStartSetProfile !== undefined ? rawDevCfg.onStartSetProfile : true;
 
         const modeCheck = true;
         const sleepOnStreamStop = true;
 
         if(rawDevCfg.bus === undefined && rawDevCfg.bus.driver === undefined) { throw Error('undefined device bus', name); } 
-        let busdriver = rawDevCfg.bus.driver;
-        let busid = rawDevCfg.bus.id;
+        const busdriver = rawDevCfg.bus.driver;
+        const busid = rawDevCfg.bus.id;
 
-        let profile = rawDevCfg.profile;
         if(rawDevCfg.profile === undefined) { throw Error('missing profile for device: ' + name); }
+        const profile = { ...rawDevCfg.profile };
         profile.mode = profile.mode.toUpperCase();
         profile.spi = { enable3w: false };
+
         if(profile.mode === 'SLEEP') {
           console.log(' ** mode SLEEP, will poll but not measure (good for use with repl');
         }
+
         if(profile.gas !== undefined) {
           if(profile.gas.enabled === undefined) {
             console.log('gas enabled undefined, assume disabled');
@@ -60,7 +64,7 @@ class Config {
             const ms = Config._getMs(sp, 'duration', 0);
             const f = sp.tempatureF !== undefined ? Converter.ftoc(sp.tempatureF) : 0;
             const c = sp.tempatureC !== undefined ? sp.tempatureC : f;
-            const active = sp.active;
+            const active = sp.active !== undefined ? sp.active : false;
             return { tempatureC: c, durationMs: ms, active: active };
           });
         }
@@ -68,19 +72,18 @@ class Config {
         const retryMs = Config._getMs(rawDevCfg, 'retryInterval', 30 * 1000);
 
         const pollMs = Config._getMs(rawDevCfg, 'pollInterval', 37 * 1000);
-        console.log('poll interval', name, pollMs);
-        //const pS = rawDevCfg.pollIntervalS ? rawDevCfg.pollIntervalS : 0;
-        //const pMs = rawDevCfg.pollIntervalMs ? rawDevCfg.pollIntervalMs : 0;
-        //const pollMs = pS * 1000 + pMs;
-
+        
 
         return {
+          active: active,
           name: name,
           sign: sign,
           bus: {
             driver: busdriver,
             id: busid
           },
+
+          onStartSetProfile: onStartSetProfile,
 
           profile: profile,
 
