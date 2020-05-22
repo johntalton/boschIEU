@@ -22,7 +22,7 @@ Tested with these products:
 The API is exposed via a `Sensor` class and a factory `BoschIEU`. Additional utilitiy class `Converter` is exposed for more complex use cases. The `Fifo` class is exposed on the `Sensor.fifo` getter.
 
 Simple init case:
-```
+```js
 bus.init(1, 0x77).then(bus => {
   return BoschIEU.sensor(bus).then(sensor => {
      return sensor.detectChip();
@@ -35,7 +35,7 @@ bus.init(1, 0x77).then(bus => {
 
 Static factory class for returning a new sensor then ... (thats up to you)
 
-```
+```js
 const { BoeschIEU } = requre('./boschIEU.js');
 BoscIEU.sensor(bus).then( ... )
 ``` 
@@ -45,7 +45,7 @@ BoscIEU.sensor(bus).then( ... )
 
 After constructing a sensor object, the `detectChip` method is recomended as it will attemtp to (get this) detect which version of the chip to use for further register interactions. 
 
-```
+```js
 sensor.detectChip()
    .then(() => { if(sensor.valid()) ... })
 
@@ -56,7 +56,7 @@ sensor.detectChip()
 Returns the chips id as defined by the vendor. This is only valid after a chip has been detected (`valid()` returns true)
 (note that legacy `id()` call will internal run `detectChip()` for now...)
 
-```
+```js
 sensor.id()
    .then(id => console.log('sensors Id', id);
 ```
@@ -72,7 +72,7 @@ The method itself caches results in the class and is not needed externaly (thoug
 ### :page_facing_up: fifo()
 
 The `fifo` getter method returns a static `Fifo` class implementation. This provides a namesapce for fifo functionality.
-```
+```js
 sensor.fifo.flush( ... ).then(...)
 ```
 
@@ -87,7 +87,7 @@ Sets the profile for the chip.
 
 ### :page_facing_up: reset()
 
-```
+```js
 sensor.reset().then( ... )
 ```
 
@@ -96,7 +96,7 @@ Write a soft-reset to the chip.  Returning it to power-on state.
 
 ### :page_facing_up: measurement(...)
 
-```
+```js
 sensor.measurement().then(results => {
   // process results
 });
