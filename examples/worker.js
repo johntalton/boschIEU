@@ -1,4 +1,3 @@
-
 const {
   Worker, isMainThread, parentPort, workerData,
   MessageChannel
