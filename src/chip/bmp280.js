@@ -5,7 +5,7 @@ const { genericChip, enumMap, Compensate } = require('./generic.js');
 
 class bmp280 extends genericChip {
   static get name() { return 'bmp280'; }
-  static get chip_id() { return 0x58; } // todo [56, 57, 58]
+  static get chipId() { return 0x58; } // todo [56, 57, 58]
 
   static get features() {
     return {
@@ -15,7 +15,8 @@ class bmp280 extends genericChip {
       gas: false,
       normalMode: true,
       interrupt: false,
-      fifo: false
+      fifo: false,
+      time: false
     }
   }
 

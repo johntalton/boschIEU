@@ -1,7 +1,8 @@
 
 const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
 
-const { genericChip, genericFifo, enumMap, Compensate } = require('./generic.js');
+const { Compensate } = require('./compensate.js')
+const { genericChip, genericFifo, enumMap } = require('./generic.js');
 
 class Util {
   static reconstruct9bit(msb, lsb) {
@@ -144,7 +145,7 @@ class Bmp3Fifo extends genericFifo {
         return Util.reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
       })
       .then(fifo_byte_counter => {
-        console.log('fifo buffer byte counter', fifo_byte_counter);
+        // console.log('fifo buffer byte counter', fifo_byte_counter);
         if(fifo_byte_counter < 0 || fifo_byte_counter > 512) { throw Error('fifo counter error'); }
 
         // first-way:
@@ -217,40 +218,45 @@ class Bmp3Fifo extends genericFifo {
   }
 
   static parseFrames(frames) {
-    console.log('parse frames', frames);
+    // console.log('parse frames', frames.length, frames);
     const result = [];
 
     let [size, frame] = Bmp3Fifo.parseFrame(frames);
-    if(size < 0) { console.log('frame underread', size, frame); return result; }
+    if(size < 0) { console.log('frame underread', size, buf); return result; }
 
     result.push(frame);
 
+    //let totalb = size;
     let buf = frames;
     while((buf.length - size) > 0) {
       buf = buf.slice(size);
       [size, frame] = Bmp3Fifo.parseFrame(buf);
-      if(size < 0) { console.log('frame underread', size, frame); break; }
+      if(size < 0) { console.log('frame underread (loop)', size, buf); break; }
+      //totalb += size;
       result.push(frame);
     }
 
+    // console.log('totalb', totalb);
     return result;
   }
 
   static parseFrame(frame) {
     if(frame.length < 1) { return [-1]; }
     const header = frame.readUInt8(0);
-    const mode = header >> 6;
+    const mode = (header >> 6) & 0b11;
     const param = (header >> 2) & 0b1111;
-    //console.log('frame header', header, mode);
+    const reserv = header & 0b11;
+    if(reserv !== 0) { console.log('reserve frame bits not zero')}
+    // console.log('frame header', header, mode, param);
 
     if(mode === 0b10) {
       return Bmp3Fifo.parseSensorFrame(frame, param);
     }
-    else if(mode === 0x01) {
+    else if(mode === 0b01) {
       return Bmp3Fifo.parseControlFrame(frame, param);
     }
 
-    console.log(frame);
+    console.log(header, mode, param, frame);
     throw Error('unknown frame type');
   }
 
@@ -295,7 +301,7 @@ class Bmp3Fifo extends genericFifo {
   }
 
   static parseSensorTimeFrame(frame) {
-    if(frame.length < 4) { return [-4]; }
+    if(frame.length < 4) { console.log('unexpected time frame'); return [-4]; }
 
     const xlsb = frame.readUInt8(1);
     const lsb = frame.readUInt8(2);
@@ -310,7 +316,7 @@ class Bmp3Fifo extends genericFifo {
     let offset = 0
 
     if(t) {
-      if(frame.length < 4) { return [-4]; }
+      if(frame.length < 4) { console.log('unexpecged measurement frame'); return [-4]; }
       const xlsb = frame.readUInt8(1);
       const lsb = frame.readUInt8(2);
       const msb = frame.readUInt8(3);
@@ -319,7 +325,8 @@ class Bmp3Fifo extends genericFifo {
     }
 
     if(p) {
-      if(frame.length < 7) { return [-7]; }
+      if(t && frame.length < 7) { console.log('unexpected presure '); return [-7]; }
+      if(!t && frame.length < 4) { console.log('unexpected presure '); return [-4]; }
       const xlsb = frame.readUInt8(offset + 1);
       const lsb = frame.readUInt8(offset + 2);
       const msb = frame.readUInt8(offset + 3);
@@ -341,7 +348,7 @@ class Bmp3Fifo extends genericFifo {
  **/
 class bmp388 extends genericChip {
   static get name() { return 'bmp388'; }
-  static get chip_id() { return 0x50; }
+  static get chipId() { return 0x50; }
 
   static get features() {
     return {
@@ -351,7 +358,8 @@ class bmp388 extends genericChip {
       gas: false,
       normalMode: true,
       interrupt: true,
-      fifo: true
+      fifo: true,
+      time: true
     }
   }
 
@@ -360,6 +368,10 @@ class bmp388 extends genericChip {
   static reset(bus) { return bus.write(0x7E, 0xB6); }
 
   static get fifo() { return Bmp3Fifo; } // return class / aka scope
+
+  static sensorTime(bus) {
+    return BusUtil.readblock(bus, [[0xC0, 4]]).then(buffer => buffer.readInt32LE(0));
+  }
 
   static calibration(bus) {
     return BusUtil.readblock(bus, [[0x31, 21]]).then(buffer => {
@@ -407,7 +419,7 @@ class bmp388 extends genericChip {
 
   static profile(bus) {
     return BusUtil.readblock(bus, [[0x15, 11]]).then(buffer => {
-      console.log('profile buffer', buffer);
+      // console.log('profile buffer', buffer);
 
       const config = buffer.readUInt8(10);
       const odr = buffer.readUInt8(8);
@@ -550,7 +562,7 @@ class bmp388 extends genericChip {
     };
 
     if(profile.fifo.subsampling < 0 || profile.fifo.subsampling >= Math.pow(2, 3)) { throw Error('invalid subsamping range'); }
-    console.log('subsampling', profile.fifo.subsampling);
+    // console.log('subsampling', profile.fifo.subsampling);
 
     //
     const iff_filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters_more);

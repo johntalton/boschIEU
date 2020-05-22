@@ -12,14 +12,14 @@ class Chip {
   static generic() { return genericChip; }
 
   static fromId(id){
-    const chip = Chip._chips.find(c => c.chip_id === id);
+    const chip = Chip._chips.find(c => c.chipId === id);
     if(chip === undefined) { throw Error('unknown chip id: ' + id.toString()); }
     return chip;
   }
 
   static chips() {
     return Chip._chips.filter(chip => genericChip.name !== chip.name)
-      .map(chip => ({ name: chip.name, chip_id: chip.chip_id }));
+      .map(chip => ({ name: chip.name, chip_id: chip.chipId }));
   }
 }
 

@@ -1,7 +1,9 @@
 
 const crypto = require('crypto');
 
-const { Rasbus } = require('@johntalton/rasbus');
+const i2c = require('i2c-bus');
+
+const { I2CAddressedBus } = require('@johntalton/and-other-delights');
 
 const { BoschIEU } = require('../');
 
@@ -25,15 +27,6 @@ function signature(devcfg, sensor) {
 }
 
 class Device {
-  static _selectBus(bus) {
-    try {
-      return Rasbus.bytype(bus);
-    } catch(e) {
-      // must return a 'valid' bus driver (duck)
-      return { init: () => { return Promise.reject(e); } };
-    }
-  }
-
   /**
    * given configruation result in running application state
    */
@@ -42,12 +35,19 @@ class Device {
       .filter(devcfg => devcfg.active)
       .filter(devcfg => devcfg.client === undefined);
 
-    console.log('setup devices', clients);
+    // console.log('setup devices', clients);
 
    //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
     return Promise.all(clients.map(devcfg => Device.setupDeviceWithRetry(application, devcfg)))
       .then(results => application);
   }
+
+//  static demolishDevices(application) {
+//    return Promise.all(
+//      application.devices.filter(d => d.client !== undefined)
+//        .map(d => Devcie.demolishDevice(d)))
+//    );
+//  }
 
   static setupDeviceWithRetry(application, devcfg) {
     return Device.setupDevice(application, devcfg)
@@ -87,8 +87,12 @@ class Device {
   static setupDevice(application, devcfg) {
     const client = {};
     const idary = Array.isArray(devcfg.bus.id) ? devcfg.bus.id : [ devcfg.bus.id ];
-    //console.log(' > ', idary);
-    return Device._selectBus(devcfg.bus.driver).init(...idary)
+
+    const busNumber = idary[0];
+    const busAddress = idary[1];
+
+    return i2c.openPromisified(busNumber)
+      .then(bus => new I2CAddressedBus(bus, busAddress))
       .then(bus => { client.bus = bus; })
       .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor }))
       .then(() => client.sensor.detectChip())
@@ -126,12 +130,11 @@ class Device {
   }
 
   static _processDevice(application, direction) {
-    const pending = application.devices
-        .filter(d => d.client === undefined)
-        .filter(d => d.active);
+    const active = application.devices.filter(d => d.active);
+    const pending = active.filter(d => d.client === undefined);
     const all = pending.length === 0;
-    const some = pending.length > 0 && pending.length !== application.devices.length;
-    const none = pending.length === application.devices.length;
+    const some = pending.length > 0 && pending.length < active.length;
+    const none = pending.length === active.length;
 
     // console.log(pending);
     // console.log('proccess', all, some, none);

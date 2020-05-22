@@ -4,15 +4,28 @@
 
 const Observable = require('zen-observable');
 
+const i2c = require('i2c-bus');
 const { Gpio } = require('onoff');
 
 const { BoschIEU, Converter } = require('../');
-const { Rasbus } = require('@johntalton/rasbus');
+const { I2CAddressedBus } = require('@johntalton/and-other-delights');
 
 const seaLevelPa = 100700; // Converter.seaLevelPa
 
-function log(frame) {
+let cachedSensorTime = undefined;
+function processFrame(frame) {
+  if(frame.type === 'sensor.time') {
+    cachedSensorTime = frame.sensortime;
+  }
 
+  log({ lastSensorTime: cachedSensorTime, ...frame })
+}
+
+function log(frame) {
+  if(frame.type === 'sensor.time') {
+    // console.log('sensor time', frame.sensortime);
+    return;
+  }
   if(frame.type !== 'sensor') { console.log(frame); return; }
 
   const measurement = frame;
@@ -24,6 +37,9 @@ function log(frame) {
   const altFt = Converter.altitudeFromPressure(seaLevelPa, Pa);
   const altM = Converter.ftToMeter(altFt);
 
+  if(frame.lastSensorTime !== undefined) {
+    console.log('Sensor Time', frame.lastSensorTime);
+  }
   console.log('Tempature', Converter.trim(C), 'C');
   console.log('         ', Converter.trim(F), 'F');
   console.log('Pressure', Converter.trim(Pa), 'Pa');
@@ -55,6 +71,8 @@ function observeGpio(gpio) {
     return () => {
       console.log('unwatch gpio');
       gpio.unwatch();
+      console.log('unexport gpio');
+      gpio.unexport()
     };
   });
 }
@@ -72,7 +90,7 @@ function observeFifo(fifo, triggerStream) {
               observer.next(frame);
             });
           })
-          .catch(e => { console.log('catching fifo read error', e); });
+          .catch(e => { console.log('catching fifo read error', e); observer.error(e); });
 
         },
         err => { observer.error(err) },
@@ -83,15 +101,20 @@ function observeFifo(fifo, triggerStream) {
   });
 }
 
-
-Rasbus.i2c.init(1, 119).then(bus => {
+i2c.openPromisified(1)
+.then(bus => new I2CAddressedBus(bus, 119))
+.then(bus => {
   return BoschIEU.sensor(bus).then(s => {
     return s.detectChip()
+      // .then(() => s.reset())
       .then(() => s.calibration())
+      .then(() => s.fifo.flush())
+      // .then(() => s.profile()).then(p => console.log(p))
+      .then(() => s.setProfile({ mode: 'SLEEP' }))
       .then(() => s.setProfile({
         mode: 'NORMAL',
         oversampling_t: 8,
-        standby_prescaler: 127,
+        standby_prescaler: 32,
         interrupt: {
           mode: 'open-drain',
           latched: false,
@@ -106,17 +129,18 @@ Rasbus.i2c.init(1, 119).then(bus => {
           temp: true,
           press: true,
 
-          subsampling: 2,
+          subsampling: 1,
           highWatermark: 42
         }
       }))
       .then(() => {
+        console.log('sensor up. start observers')
         const interruptStream = observeGpio(interrupt);
         const fifoStream = observeFifo(s.fifo, interruptStream);
 
         return [
           fifoStream.subscribe(
-            frame => log(frame),
+            frame => processFrame(frame),
             err => {},
             () => console.log('closed'))
           ];

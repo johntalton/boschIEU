@@ -14,7 +14,7 @@ const gwMultipliers = [
 
 class bme680 extends genericChip {
   static get name() { return 'bme680'; }
-  static get chip_id() { return 0x61; }
+  static get chipId() { return 0x61; }
 
   // features
   static get features() {
@@ -25,7 +25,8 @@ class bme680 extends genericChip {
       gas: true,
       normalMode: false,
       interrupt: false,
-      fifo: false
+      fifo: false,
+      time: false
     }
   }
 

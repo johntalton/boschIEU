@@ -1,12 +1,14 @@
 "use strict";
 
+const i2c = require('i2c-bus')
+
 const Repler = require('repler');
 
 const boschLib = require('../');
 const bosch = boschLib.BoschIEU;
 const Converter = boschLib.Converter;
 
-const { Rasbus } = require('@johntalton/rasbus');
+const { I2CAddressedBus } = require('@johntalton/and-other-delights');
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
@@ -51,28 +53,26 @@ Repler.addCommand({
     state.bus = undefined;
     state.sensor = undefined;
 
-    let impl;
-    try {
-      impl = Rasbus.bytype(busname.toLowerCase());
-    } catch(e) {
-     console.log('unknonw busname', busname);
-     return Promise.resolve();
+    if(busname.toLowerCase() === 'i2c') {
+      const busNumber = parseInt(prams.shift());
+      const busAddress = parseInt(prams.shift());
+
+      return i2c.openPromisified(busNumber)
+      .then(bus => new I2CAddressedBus(bus, busAddress))
+      .then(bus => {
+        console.log('bus inited');
+        state.bus = bus;
+        return bosch.sensor(bus)
+          .then(s => {
+            console.log('sensor inited');
+            state.sensor = s;
+
+            if(autoDetect) {
+              return s.detectChip().then(chip => console.log('detected chip', chip.name));
+            }
+          });
+      });
     }
-
-    prams = prams.map(foo => parseInt(foo));
-    return impl.init(...prams).then(bus => {
-      console.log('bus inited');
-      state.bus = bus;
-      return bosch.sensor(bus)
-        .then(s => {
-          console.log('sensor inited');
-          state.sensor = s;
-
-          if(autoDetect) {
-            return s.detectChip().then(chip => console.log('detected chip', chip.name));
-          }
-        });
-    });
   }
 });
 
@@ -83,6 +83,18 @@ Repler.addCommand({
   },
   callback: function(state) {
     console.log(state.sensor.chip.features);
+  }
+});
+
+Repler.addCommand({
+  name: 'time',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.chip.features.time;
+  },
+  callback: function(state) {
+    return state.sensor.sensorTime().then(time => {
+      console.log('time >', time);
+    });
   }
 });
 
@@ -165,6 +177,24 @@ Repler.addCommand({
     });
   }
 });
+
+Repler.addCommand({
+  name: 'get',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid()
+  }
+});
+
+Repler.addCommand({
+  name: 'set',
+  valid: function(state) {
+    return state.sensor !== undefined && state.sensor.valid()
+  },
+  callback: function(state) {
+    return Promise.reject();
+  }
+});
+
 
 Repler.addCommand({
   name: 'calibration',

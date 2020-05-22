@@ -5,9 +5,7 @@
     "plugin:import/recommended",
     "plugin:import/errors",
     "plugin:import/warnings",
-    "plugin:security/recommended",
-    "airbnb-base",
-    "google"
+    "plugin:security/recommended"
   ],
   "parserOptions": {
     "ecmaVersion": 2018,
@@ -267,7 +265,7 @@
     "jsdoc/no-undefined-types": "error",
     "jsdoc/require-description-complete-sentence": "error",
     "jsdoc/require-example": "error",
-    "jsdoc/require-hyphen-before-param-description": "error",
+    "jsdoc/require-hyphen-before-param-description": "warn",
     "jsdoc/require-param": "error",
     "jsdoc/require-param-description": "error",
     "jsdoc/require-param-name": "error",
@@ -284,7 +282,8 @@
       "skipWords": [
         "johntalton",
         "todo", "const", "eslint", "bitwise",
-        "rasbus", "fifo"
+        "rasbus", "fifo",
+        "bmp280", "bme280", "bmp388", "bme680"
       ]
     }]
   }

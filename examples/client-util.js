@@ -1,5 +1,5 @@
 
-const { Converter } = require('../');
+const { Converter } = require('..');
 
 class Util {
   static bulkup(chip, raw) {
@@ -106,7 +106,10 @@ class Util {
       state: '1init',
       states: {
         '1init': {
+          // none
           'some': { next: '2some', event: '' },
+          // dsome
+          'all': { next: '3all', event: '' },
           'mqtt': { next: '5mqtt', event: '' },
           'dmqtt': { next: '1init', event: '' } }, // we know, thanks
         '2some': {
@@ -117,20 +120,32 @@ class Util {
           'mqtt': { next: '6mqttsome', event: 'stream' },
           'dmqtt': { next: '2some', event: '' } }, // we know, thanks
         '3all': {
-          'mqtt': { next: '4active', event: 'stream' },
+          'none': { next: '1init', event: '' },
+          // some
           'dsome': { next: '2some', event: '' },
+          // all
+          'mqtt': { next: '4active', event: 'stream' },
           'dmqtt': { next: '3all', event: '' } }, // we know, thanks
         '4active': { // streaming state
+          'none': { next: '5mqtt', event: 'stopstream' },
+          // some
           'dsome': { next: '6mqttsome', event: 'restopstream' },
+          // all
+          // mqtt
           'dmqtt': { next: '3all', event: 'stopstream' } },
         '5mqtt': {
+          // none
           'some': { next: '6mqttsome', event: 'stream' },
+          // dsome
+          'all': { next: '4active', event: 'stream' },
+          // mqtt
           'dmqtt': { next: '1init', event: '' } },
         '6mqttsome': { // streaming state
           'none': { next: '5mqtt', event: 'stopstream' },
           'some': { next: '6mqttsome', event: 'restream' },
           'dsome': { next: '6mqttsome', event: 'restopstream' },
           'all': { next: '4active', event: 'restream' },
+          // mqtt
           'dmqtt': { next: '2some', event: 'stopstream' } }
       }
     };

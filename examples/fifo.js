@@ -1,5 +1,7 @@
+const i2c = require('i2c-bus');
+
 const { BoschIEU } = require('../');
-const { Rasbus } = require('@johntalton/rasbus');
+const { I2CAddressedBus } = require('@johntalton/and-other-delights');
 
 const profile = {
   mode: 'NORMAL',
@@ -26,7 +28,9 @@ const profile = {
   }
 };
 
-Rasbus.i2c.init(1, 119).then(bus => {
+i2c.openPromisified(1)
+.then(bus => new I2CAddressedBus(bus, 119))
+.then(bus => {
   return BoschIEU.sensor(bus).then(s => {
     return s.detectChip()
       .then(() => s.calibration())

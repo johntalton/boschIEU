@@ -15,7 +15,7 @@ class BoschFifo {
     this.sensor = sensor;
   }
 
-  flush() { return this.sensor.chip.fifo.flush(sensor._bus); }
+  flush() { return this.sensor.chip.fifo.flush(this.sensor._bus); }
 
   read() { return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration); }
 }
@@ -62,7 +62,7 @@ class BoschSensor {
     return readid(this._bus, 0xD0) // standard `generic` register id
       .then(result => {
         if(result === 0) {
-          console.log('inital buffer Zero, read alt register');
+          console.log('detect: inital buffer Zero, read alt register');
           return readid(this._bus, 0x00); // bmp388 register
         }
         return result;
@@ -73,10 +73,11 @@ class BoschSensor {
       });
   }
 
-  valid() { return this._chip.chip_id !== Chip.generic().chip_id; }
+  valid() { return this._chip.chipId !== Chip.generic().chipId; }
 
   calibrated() { return this.valid() && (this._calibration !== undefined); }
 
+  sensorTime() { return this._chip.sensorTime(this._bus); }
 
   // old code used call to `id` in order to force a chip identification
   //   and update the cached chip reference.
@@ -106,8 +107,13 @@ class BoschSensor {
   }
 
   profile() { return this._chip.profile(this._bus); }
-  setProfile(profile) { return this._chip.setProfile(this._bus, profile, this._calibration); }
-  patchProfile(patch) { return this._chip.patchProfile(this._bus, patch)}
+  setProfile(profile, only = true) {
+    return Promise.resolve()
+      .then(() => only ? undefined : this._chip.patchProfile(this._bus, { mode: 'SLEEP' }))
+      .then(() => this._chip.setProfile(this._bus, profile, this._calibration))
+      .then(() => only ? undefined : this._chip.patchProfile(this._bus, { mode: profile.mode }))
+  }
+  patchProfile(patch) { return this._chip.patchProfile(this._bus, patch); }
 
   ready() { return this._chip.ready(this._bus); }
 

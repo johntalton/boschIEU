@@ -1,11 +1,66 @@
 
-const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
+const {
+  BusUtil,
+  BitUtil,
+  NameValueUtil
+} = require('@johntalton/and-other-delights');
 
 const { genericChip, enumMap, Compensate } = require('./generic.js');
 
+// Chip ID
+const CHIP_ID = 0x60;
+
+// Registers
+const PRESS_MSB = 0xF7;
+const CONFIG = 0xF5;
+const CTRL_MEAS = 0xF4;
+const STATUS = 0xF3;
+const CTRL_HUM = 0xF2;
+const CALIB26 = 0xE1;
+//const CHIIP_ID = 0xE0;
+//const RESET = 0xD0;
+const CALIB00 = 0x88;
+
+// Registers
+const REGISTER = {
+  PRESS_MSB,
+  CONFIG,
+  CTRL_MEAS,
+  STATUS,
+  CTRL_HUM,
+  CALIB26,
+  CALIB00
+};
+
+// Calibration
+const CALIBRATION_TP_START_ADDRESS = REGISTER.CALIB00;
+const CALIBRATION_H_START_ADDRESS = REGISTER.CALIB26;
+const CALIBRATION_TP_LENGTH = 25;
+const CALIBRATION_H_LENGTH = 7;
+const CALIBRATION_BLOCK = [
+  [CALIBRATION_TP_START_ADDRESS, CALIBRATION_TP_LENGTH],
+  [CALIBRATION_H_START_ADDRESS, CALIBRATION_H_LENGTH]
+];
+
+// Profile
+const PROFILE_START_ADDRESS = REGISTER.CTRL_HUM;
+const PROFILE_LENGTH = 4;
+const PROFILE_BLOCK = [[PROFILE_START_ADDRESS, PROFILE_LENGTH]];
+
+// Measurement
+const MEASUREMENT_START_ADDRESS = REGISTER.PRESS_MSB;
+const MEASUREMENT_LENGTH = 8;
+const MEASUREMENT_BLOCK = [[MEASUREMENT_START_ADDRESS, MEASUREMENT_LENGTH]];
+
+// Status
+const STATUS_START_ADDRESS = REGISTER.STATUS;
+const STATUS_LENGTH = 1;
+const STATUS_BLOCK = [[STATUS_START_ADDRESS, STATUS_LENGTH]];
+
+//
 class bme280 extends genericChip {
   static get name() { return 'bme280'; }
-  static get chip_id() { return 0x60; }
+  static get chipId() { return CHIP_ID; }
 
   static get features() {
     return {
@@ -15,12 +70,13 @@ class bme280 extends genericChip {
       gas: false,
       normalMode: true,
       interrupt: false,
-      fifo: false
-    }
+      fifo: false,
+      time: false
+    };
   }
 
   static calibration(bus) {
-    return BusUtil.readblock(bus, [[0x88, 25], [0xE1, 7]]).then(buffer => {
+    return BusUtil.readblock(bus, CALIBRATION_BLOCK).then(buffer => {
       const dig_T1 = buffer.readUInt16LE(0);
       const dig_T2 = buffer.readInt16LE(2);
       const dig_T3 = buffer.readInt16LE(4);
@@ -57,7 +113,7 @@ class bme280 extends genericChip {
   }
 
   static profile(bus) {
-    return BusUtil.readblock(bus, [[0xF2, 4]]).then(buffer => {
+    return BusUtil.readblock(bus, PROFILE_BLOCK).then(buffer => {
       const ctrl_hum = buffer.readUInt8(0);
       const status = buffer.readUInt8(1);
       const ctrl_meas = buffer.readUInt8(2);
@@ -110,9 +166,9 @@ class bme280 extends genericChip {
     const config = BitUtil.packbits([[7, 3], [4, 3], [0, 1]], sb_t, filter, en3w);
 
     return Promise.all([
-      bus.write(0xF2, ctrl_hum),
-      bus.write(0xF4, ctrl_meas),
-      bus.write(0xF5, config)
+      bus.write(REGISTER.CTRL_HUM, ctrl_hum),
+      bus.write(REGISTER.CTRL_MEAS, ctrl_meas),
+      bus.write(REGISTER.CONFIG, config)
     ]);
   }
 
@@ -121,7 +177,7 @@ class bme280 extends genericChip {
   }
 
   static measurement(bus, calibration) {
-    return BusUtil.readblock(bus, [[0xF7, 8]]).then(buffer => {
+    return BusUtil.readblock(bus, MEASUREMENT_BLOCK).then(buffer => {
       const pres_msb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
       const pres_xlsb = buffer.readUInt8(2);
@@ -138,12 +194,14 @@ class bme280 extends genericChip {
       const T = (bme280.skip_value === adcT) ? false : adcT;
       const H = (bme280.skip_value === adcH) ? false : adcH;
 
-      return Compensate.from({ adcP: P, adcT: T, adcH: H, type: '2xy' }, calibration);
+      const base = { adcP: P, adcT: T, adcH: H, type: '2xy' };
+
+      return Compensate.from(base, calibration);
     });
   }
 
   static ready(bus) {
-    return BusUtil.readblock(bus, [0xF3]).then(buffer => {
+    return BusUtil.readblock(bus, STATUS_BLOCK).then(buffer => {
       const status = buffer.readUInt8(0);
       const measuring = BitUtil.mapbits(status, 3, 1) === 1;
       const updating = BitUtil.mapbits(status, 0, 1) === 1;

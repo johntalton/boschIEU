@@ -38,5 +38,11 @@ Config.config('./client.json')
   .then(setupStateHandlers)
   .then(Store.setupStore)
   .then(Device.setupDevices)
-  .then(() => { console.log('Client up...'); })
+  .then(() => {
+    console.log('Client up...');
+    process.on('SIGINT', () => {
+      //
+      process.exit()
+    });
+  })
   .catch(e => { console.log('top-level error', e); });
