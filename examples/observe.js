@@ -1,4 +1,4 @@
-
+/* eslint-disable promise/no-nesting */
 // const { Observable } = require('rxjs');
 //const { filter } = require('rxjs/operators');
 
@@ -7,8 +7,9 @@ const Observable = require('zen-observable');
 const i2c = require('i2c-bus');
 const { Gpio } = require('onoff');
 
-const { BoschIEU, Converter } = require('../');
 const { I2CAddressedBus } = require('@johntalton/and-other-delights');
+
+const { BoschIEU, Converter } = require('../');
 
 const seaLevelPa = 100700; // Converter.seaLevelPa
 
@@ -18,7 +19,7 @@ function processFrame(frame) {
     cachedSensorTime = frame.sensortime;
   }
 
-  log({ lastSensorTime: cachedSensorTime, ...frame })
+  log({ lastSensorTime: cachedSensorTime, ...frame });
 }
 
 function log(frame) {
@@ -30,9 +31,9 @@ function log(frame) {
 
   const measurement = frame;
 
-  const C = measurement.tempature.C;
+  const { C } = measurement.temperature;
   const F = Converter.ctof(C);
-  const Pa = measurement.pressure.Pa;
+  const { Pa } = measurement.pressure;
   const inHg = Converter.pressurePaToInHg(Pa);
   const altFt = Converter.altitudeFromPressure(seaLevelPa, Pa);
   const altM = Converter.ftToMeter(altFt);
@@ -40,7 +41,7 @@ function log(frame) {
   if(frame.lastSensorTime !== undefined) {
     console.log('Sensor Time', frame.lastSensorTime);
   }
-  console.log('Tempature', Converter.trim(C), 'C');
+  console.log('Temperature', Converter.trim(C), 'C');
   console.log('         ', Converter.trim(F), 'F');
   console.log('Pressure', Converter.trim(Pa), 'Pa');
   console.log('        ', Converter.trim(inHg), 'inHg');
@@ -72,7 +73,7 @@ function observeGpio(gpio) {
       console.log('unwatch gpio');
       gpio.unwatch();
       console.log('unexport gpio');
-      gpio.unexport()
+      gpio.unexport();
     };
   });
 }
@@ -85,15 +86,17 @@ function observeFifo(fifo, triggerStream) {
         msg => {
           console.log('read the fifo');
           /* await */ fifo.read().then(fifoData => {
-            //console.log('data read', fifoData);
+            // console.log('data read', fifoData);
             fifoData.forEach(frame => {
               observer.next(frame);
             });
+
+            return true;
           })
           .catch(e => { console.log('catching fifo read error', e); observer.error(e); });
 
         },
-        err => { observer.error(err) },
+        err => { observer.error(err); },
         () => { console.log('gpio closed'); observer.complete(); });
 
 
@@ -143,7 +146,7 @@ i2c.openPromisified(1)
             frame => processFrame(frame),
             err => {},
             () => console.log('closed'))
-          ];
+        ];
       });
   });
 })
@@ -152,8 +155,8 @@ i2c.openPromisified(1)
 
   cancelables.forEach(cancelable => cancelable.unsubscribe());
 
+  // eslint-disable-next-line no-process-exit
   if(cleaned) { process.exit(); }
   cleaned = true;
 }))
 .catch(e => console.log('top level error', e));
-

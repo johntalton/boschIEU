@@ -1,4 +1,3 @@
-
 const {
   BusUtil,
   BitUtil,
@@ -17,8 +16,8 @@ const CTRL_MEAS = 0xF4;
 const STATUS = 0xF3;
 const CTRL_HUM = 0xF2;
 const CALIB26 = 0xE1;
-//const CHIIP_ID = 0xE0;
-//const RESET = 0xD0;
+// const CHIIP_ID = 0xE0;
+// const RESET = 0xD0;
 const CALIB00 = 0x88;
 
 // Registers
@@ -95,7 +94,7 @@ class bme280 extends genericChip {
       const P = [dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9];
 
       const dig_H1 = buffer.readUInt8(24);
-      // boundry packed
+      // boundary packed
       const dig_H2 = buffer.readInt16LE(25);
       const dig_H3 = buffer.readUInt8(27);
       const e4 = buffer.readUInt8(28);
@@ -141,7 +140,7 @@ class bme280 extends genericChip {
         standby_time: NameValueUtil.toName(t_sb, enumMap.standbys_hires),
 
         spi: {
-          enable3w: spi_3w_en,
+          enable3w: spi_3w_en
         },
         ready: {
           ready: !measuring,
@@ -173,7 +172,7 @@ class bme280 extends genericChip {
   }
 
   static patchProfile(bus, patch) {
-    throw Error('patch profile impl');
+    throw new Error('patch profile impl');
   }
 
   static measurement(bus, calibration) {
@@ -219,5 +218,4 @@ class bme280 extends genericChip {
   }
 }
 
-module.exports.bme280 = bme280;
-
+module.exports = { bme280 };

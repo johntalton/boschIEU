@@ -1,7 +1,9 @@
+/* eslint-disable promise/no-nesting */
 const i2c = require('i2c-bus');
 
-const { BoschIEU } = require('../');
 const { I2CAddressedBus } = require('@johntalton/and-other-delights');
+
+const { BoschIEU } = require('../');
 
 const profile = {
   mode: 'NORMAL',
@@ -34,15 +36,14 @@ i2c.openPromisified(1)
   return BoschIEU.sensor(bus).then(s => {
     return s.detectChip()
       .then(() => s.calibration())
-      //.then(() => s.setProfile(profile))
+      // .then(() => s.setProfile(profile))
       .then(() => {
         console.log(s.chip.name, 'fifo dump');
         return s.fifo.read().then(fifoData => {
-          console.log(' => ', fifoData)
+          console.log(' => ', fifoData);
+          return true;
         });
       });
   });
 })
 .catch(e => console.log('top level error', e));
-
-

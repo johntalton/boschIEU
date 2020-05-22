@@ -1,4 +1,3 @@
-
 const { genericChip } = require('./generic.js');
 const { bmp280 } = require('./bmp280.js');
 const { bme280 } = require('./bme280.js');
@@ -6,14 +5,14 @@ const { bme680 } = require('./bme680.js');
 const { bmp388 } = require('./bmp388.js');
 
 /**
- * Factory for discovering chips
+ * Factory for discovering chips.
  */
 class Chip {
   static generic() { return genericChip; }
 
-  static fromId(id){
+  static fromId(id) {
     const chip = Chip._chips.find(c => c.chipId === id);
-    if(chip === undefined) { throw Error('unknown chip id: ' + id.toString()); }
+    if(chip === undefined) { throw new Error('unknown chip id: ' + id.toString()); }
     return chip;
   }
 
@@ -31,5 +30,4 @@ Chip._chips = [
   bmp388
 ];
 
-module.exports.Chip = Chip;
-
+module.exports = { Chip };

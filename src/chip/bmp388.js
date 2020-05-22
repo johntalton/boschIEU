@@ -1,40 +1,9 @@
+/* eslint max-classes-per-file: ["error", 3] */
 
 const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
 
-const { Compensate } = require('./compensate.js')
+const { Compensate } = require('./compensate.js');
 const { genericChip, genericFifo, enumMap } = require('./generic.js');
-
-class Util {
-  static reconstruct9bit(msb, lsb) {
-    //console.log('reconstruct 9bit', msb, lsb)
-    return msb << 8 | lsb;
-  }
-
-  static reconstruct24bit(msb, lsb, xlsb) {
-    return (msb << 16) | (lsb << 8) | xlsb;
-  }
-
-  static bestFitPrescaler(ms) {
-    const PRESCALER_HZ = 200; // from spec
-    // todo
-  }
-
-  static interruptMode(mode) {
-    const INT_DEFAULT_MODE = { od: INT_PUSH_PULL, level: INT_ACTIVE_HIGH };
-
-    if(mode === undefined || mode === '') { return INT_DEFAULT_MODE; }
-    const od = mode.toLowerCase() === 'open-drain' ? INT_OPEN_DRAIN : INT_PUSH_PULL;
-    const level = mode.toLowerCase() === 'active-high' ? INT_ACTIVE_HIGH : INT_ACTIVE_LOW;
-    return { od, level };
-  }
-
-  static modeFrom(opendrain, level) {
-    if(opendrain === INT_OPEN_DRAIN) { return 'open-drain'; }
-    if(level === INT_ACTIVE_HIGH) { return 'active-high'; }
-    if(level === INT_ACTIVE_LOW) { return 'active-low'; }
-    throw Error('unknown mode');
-  }
-}
 
 const oversamplings = [
   { name: 1, value: 0x0 },
@@ -45,9 +14,9 @@ const oversamplings = [
   { name: 32, value: 0x5 },
 
   // to support the use of `false` as a indicator
-  //   for dissabling the measurement, as was used
+  //   for disabled the measurement, as was used
   //   in the generic chips.
-  // retuning 0 (no oversampling) when setting
+  // returning 0 (no oversampling) when setting
   //   disabled (this can be used as a signature / fingerprint
   //   of our profile code - randomize)
   { name: false, value: 0 }
@@ -108,7 +77,7 @@ const INT_OPEN_DRAIN = 1;
 const INT_PUSH_PULL = 0;
 const INT_ACTIVE_HIGH = 1;
 const INT_ACTIVE_LOW = 0;
-//};
+// };
 
 const FIFO = {
   TEMP_ENABLED:      1,
@@ -129,6 +98,41 @@ const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity;
 
 /**
  *
+ */
+class Util {
+  static reconstruct9bit(msb, lsb) {
+    // console.log('reconstruct 9bit', msb, lsb)
+    return msb << 8 | lsb;
+  }
+
+  static reconstruct24bit(msb, lsb, xlsb) {
+    return (msb << 16) | (lsb << 8) | xlsb;
+  }
+
+  static bestFitPrescaler(ms) {
+    const PRESCALER_HZ = 200; // from spec
+    // todo
+  }
+
+  static interruptMode(mode) {
+    const INT_DEFAULT_MODE = { od: INT_PUSH_PULL, level: INT_ACTIVE_HIGH };
+
+    if(mode === undefined || mode === '') { return INT_DEFAULT_MODE; }
+    const od = mode.toLowerCase() === 'open-drain' ? INT_OPEN_DRAIN : INT_PUSH_PULL;
+    const level = mode.toLowerCase() === 'active-high' ? INT_ACTIVE_HIGH : INT_ACTIVE_LOW;
+    return { od, level };
+  }
+
+  static modeFrom(opendrain, level) {
+    if(opendrain === INT_OPEN_DRAIN) { return 'open-drain'; }
+    if(level === INT_ACTIVE_HIGH) { return 'active-high'; }
+    if(level === INT_ACTIVE_LOW) { return 'active-low'; }
+    throw new Error('unknown mode');
+  }
+}
+
+/**
+ *
  **/
 class Bmp3Fifo extends genericFifo {
 
@@ -139,7 +143,7 @@ class Bmp3Fifo extends genericFifo {
   static read(bus, calibration) {
     return bus.read(0x12, 2)
       .then(buffer => {
-        //console.log('fifo counter buffer', buffer);
+        // console.log('fifo counter buffer', buffer);
         const fifo_byte_counter_7_0 = buffer.readUInt8(0);
         const fifo_byte_counter_8 = buffer.readUInt8(1);
         return Util.reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
@@ -149,19 +153,19 @@ class Bmp3Fifo extends genericFifo {
         if(fifo_byte_counter < 0 || fifo_byte_counter > 512) { throw Error('fifo counter error'); }
 
         // first-way:
-        // single read using cmd/size call capped to i2c limit
+        // single read using command/size call capped to i2c limit
         // ```
         //   return bus.read(0x14, Math.min(MAX_BLOCK_SIZE, fifo_byte_counter + 4 + 2)).then(buf => [buf]);
         // ```
         // second-way
         // using multiple block size reads to emulate continuous read
-        // changeing block limit to max_block_size * 1 will revert back to the above behavior
+        // changing block limit to max_block_size * 1 will revert back to the above behavior
         // ```
         //   return Bmp3Fifo._blockRead(bus, Math.min(BLOCK_LIMIT, fifo_byte_counter + 4 + 2));
         // ```
         // third-way
         // by using the `writeSpecial` (write with on parameter is a proxy) and the
-        // `readBuffer` no i2c limit is imposed by the undelining library (or driver? / device?)
+        // `readBuffer` no i2c limit is imposed by the underlying library (or driver? / device?)
         return bus.write(0x14)
           .then(() => bus.readBuffer(Math.min(FIFO_SIZE, fifo_byte_counter + 4 + 2)))
           .then(buf => [buf]);
@@ -174,14 +178,14 @@ class Bmp3Fifo extends genericFifo {
         return msgs.map(msg => {
           if(msg.type === 'sensor') {
             return {
-              //...msg,
+              // ...msg,
               type: msg.type,
               ...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
             };
           }
           else if(msg.type === 'sensor.time') {
             return {
-              //...msg,
+              // ...msg,
               type: msg.type,
               ...Compensate.sensortime(msg.time)
             };
@@ -192,7 +196,8 @@ class Bmp3Fifo extends genericFifo {
       })
   }
 
-  /*static _blockRead(bus, count) {
+  /*
+  static _blockRead(bus, count) {
     // console.log('foo count', count);
     const BLOCK_SIZE = MAX_BLOCK_SIZE;
     const blocks = Math.floor(count / BLOCK_SIZE);
@@ -208,7 +213,8 @@ class Bmp3Fifo extends genericFifo {
         return bus.read(0x14, remainder)
           .then(tail => head.concat(tail));
       });
-  }*/
+  }
+  */
 
   static parseFrameSet(frameset) {
     // console.log('parse frameset', frameset);
@@ -222,7 +228,7 @@ class Bmp3Fifo extends genericFifo {
     const result = [];
 
     let [size, frame] = Bmp3Fifo.parseFrame(frames);
-    if(size < 0) { console.log('frame underread', size, buf); return result; }
+    if(size < 0) { console.log('frame under read', size, frame); return result; }
 
     result.push(frame);
 
@@ -257,14 +263,14 @@ class Bmp3Fifo extends genericFifo {
     }
 
     console.log(header, mode, param, frame);
-    throw Error('unknown frame type');
+    throw new Error('unknown frame type');
   }
 
   static parseControlFrame(frame, param) {
     if(param === 0b0001) { return Bmp3Fifo.parseControlErrorFrame(frame); }
     if(param === 0b0010) { return Bmp3Fifo.parseControlConfigFrame(frame); }
     console.log('unknown control frame param', param);
-    throw Error('unknown control frame param');
+    throw new Error('unknown control frame param');
   }
 
   static parseControlErrorFrame(frame) {
@@ -281,16 +287,16 @@ class Bmp3Fifo extends genericFifo {
 
   static parseSensorFrame(frame, param) {
     const s = ((param >> 3) & 0x1) === 1;
-    const p = (param  & 0x1) === 1
+    const p = (param & 0x1) === 1;
     const t = ((param >> 2) & 0x1) === 1;
 
-    if(s && (t || p)) { throw Error('time vs temp/press exclusive frame'); }
+    if(s && (t || p)) { throw new Error('time vs temp/press exclusive frame'); }
 
     const empty = !s && !t && !p;
     if(empty) {
       // parse empty
       // todo this ignores range check on buffers last byte
-      return [ 1 + 1, { type: 'sensor.empty' }]; // todo conferm empty data
+      return [ 1 + 1, { type: 'sensor.empty' }]; // todo confirm empty data
     }
 
     if(s) {
@@ -316,17 +322,17 @@ class Bmp3Fifo extends genericFifo {
     let offset = 0
 
     if(t) {
-      if(frame.length < 4) { console.log('unexpecged measurement frame'); return [-4]; }
+      if(frame.length < 4) { console.log('unexpected measurement frame'); return [-4]; }
       const xlsb = frame.readUInt8(1);
       const lsb = frame.readUInt8(2);
       const msb = frame.readUInt8(3);
       temp = Util.reconstruct24bit(msb, lsb, xlsb);
-      offset += 3
+      offset += 3;
     }
 
     if(p) {
-      if(t && frame.length < 7) { console.log('unexpected presure '); return [-7]; }
-      if(!t && frame.length < 4) { console.log('unexpected presure '); return [-4]; }
+      if(t && frame.length < 7) { console.log('unexpected pressure '); return [-7]; }
+      if(!t && frame.length < 4) { console.log('unexpected pressure '); return [-4]; }
       const xlsb = frame.readUInt8(offset + 1);
       const lsb = frame.readUInt8(offset + 2);
       const msb = frame.readUInt8(offset + 3);
@@ -360,7 +366,7 @@ class bmp388 extends genericChip {
       interrupt: true,
       fifo: true,
       time: true
-    }
+    };
   }
 
   // unique to the 388 (aka, @override generic)
@@ -432,7 +438,7 @@ class bmp388 extends genericChip {
       const fifo_wtm_1 = buffer.readUInt8(1);
       const fifo_wtm_0 = buffer.readUInt8(0);
 
-      //console.log('pwr ctrl', pwr_ctrl);
+      // console.log('pwr ctrl', pwr_ctrl);
 
       //
       const iff_filter = BitUtil.mapbits(config, 3, 3);
@@ -476,20 +482,20 @@ class bmp388 extends genericChip {
 
         interrupt: {
           mode: intMode,
-          latched: (int_latch === LATCHED),
-          onFifoWatermark: (fwtm_en === ONWATER_ENABLED),
-          onFifoFull: (ffull_en === ONFULL_ENABLED),
-          onReady: (drdy_en === ONREADY_ENABLED)
+          latched: int_latch === LATCHED,
+          onFifoWatermark: fwtm_en === ONWATER_ENABLED,
+          onFifoFull: ffull_en === ONFULL_ENABLED,
+          onReady: drdy_en === ONREADY_ENABLED
         },
         fifo: {
-          active: (fifo_mode === FIFO.ENABLED),
+          active: fifo_mode === FIFO.ENABLED,
           data: NameValueUtil.toName(data_select, dataselects),
           subsampling: fifo_subsampling,
           highWatermark: fifo_watermark,
-          stopOnFull: (fifo_stop_on_full === FIFO.FULL_STOP_ENABLED),
-          temp: (fifo_temp_en === FIFO.TEMP_ENABLED),
-          press: (fifo_press_en === FIFO.PRESS_ENABLED),
-          time: (fifo_time_en === FIFO.TIME_ENABLED)
+          stopOnFull: fifo_stop_on_full === FIFO.FULL_STOP_ENABLED,
+          temp: fifo_temp_en === FIFO.TEMP_ENABLED,
+          press: fifo_press_en === FIFO.PRESS_ENABLED,
+          time: fifo_time_en === FIFO.TIME_ENABLED
         },
 
         ready: {
@@ -550,18 +556,18 @@ class bmp388 extends genericChip {
     if(profile.fifo.press === undefined) { profile.fifo.press = DEFAULT_FIFO_PRESS; }
     if(profile.fifo.time === undefined) { profile.fifo.time = DEFAULT_FIFO_TIME; }
 
-    //console.log('set profile resolved', profile)
+    // console.log('set profile resolved', profile)
 
     //
     const intMode = Util.interruptMode(profile.interrupt.mode);
 
-    if(profile.fifo.highWatermark >= Math.pow(2, 9) || profile.fifo.highWatermark < 0) { throw Error('invalid high watermark'); }
+    if(profile.fifo.highWatermark >= Math.pow(2, 9) || profile.fifo.highWatermark < 0) { throw new Error('invalid high watermark'); }
     const fifoWatermark = {
       high: (profile.fifo.highWatermark >> 8) & 0x1,
       low: profile.fifo.highWatermark & 0xFF
     };
 
-    if(profile.fifo.subsampling < 0 || profile.fifo.subsampling >= Math.pow(2, 3)) { throw Error('invalid subsamping range'); }
+    if(profile.fifo.subsampling < 0 || profile.fifo.subsampling >= Math.pow(2, 3)) { throw new Error('invalid subsamping range'); }
     // console.log('subsampling', profile.fifo.subsampling);
 
     //
@@ -607,27 +613,28 @@ class bmp388 extends genericChip {
     const fifo_wtm_1 = BitUtil.packbits([[0]], fifo_water_mark_8);
     const fifo_wtm_0 = BitUtil.packbits([[7, 8]], fifo_water_mark_7_0);
 
-    //console.log('pwr ctrl', pwr_ctrl)
+    // console.log('pwr ctrl', pwr_ctrl)
     return bus.write(0x1B, 0)
         .then(() => {
-            return Promise.all([
-                bus.write(0x15, fifo_wtm_0),
-                bus.write(0x16, fifo_wtm_1),
-                bus.write(0x17, fifo_config_1),
-                bus.write(0x18, fifo_config_2),
-                bus.write(0x19, int_ctrl),
-                bus.write(0x1A, if_conf),
-                //bus.write(0x1B, pwr_ctrl),
-                bus.write(0x1C, osr),
-                bus.write(0x1D, odr),
-                // 0, // reserved
-                bus.write(0x1F, config)
-            ]);
+          return Promise.all([
+            bus.write(0x15, fifo_wtm_0),
+            bus.write(0x16, fifo_wtm_1),
+            bus.write(0x17, fifo_config_1),
+            bus.write(0x18, fifo_config_2),
+            bus.write(0x19, int_ctrl),
+            bus.write(0x1A, if_conf),
+            // bus.write(0x1B, pwr_ctrl),
+            bus.write(0x1C, osr),
+            bus.write(0x1D, odr),
+            // 0, // reserved
+            bus.write(0x1F, config)
+          ]);
         })
         .then(() => bus.write(0x1B, pwr_ctrl));
 
 
-/*    const buffer = Buffer.from([
+/*
+    const buffer = Buffer.from([
       fifo_wtm_0,
       fifo_wtm_1,
       fifo_config_1,
@@ -643,16 +650,18 @@ class bmp388 extends genericChip {
 
     console.log('profile set buffer', buffer);
     return bus.write(0x15, buffer);
-    */
+
+*/
+
   }
 
   static patchProfile(bus, patch) {
     // diff the json with the existing profile? given?
-    // determin the touched registers
+    // identify the touched registers
     // power mode sleep
     // set register bulk
     // power mode to final state prof + patch
-    throw Error('patch profile impl');
+    throw new Error('patch profile impl');
   }
 
   static measurement(bus, calibration) {
@@ -710,10 +719,10 @@ class bmp388 extends genericChip {
         const fwm_int =  BitUtil.mapbits(int_status, 0, 1) === BIT_SET;
 
         return {
-          // ready: 
+          // ready:
 
           error: { config: conf_err, command: cmd_err, fatal: fatal_err }, // all false is good
-          status: { tempature: drdy_temp, pressure: drdy_press, command: cmd_rdy }, // all ture is good
+          status: { tempature: drdy_temp, pressure: drdy_press, command: cmd_rdy }, // all true is good
           event: { por_detected }, // false is good,
           interrupt: { data_ready: drdy, fifo_full: ffull_int, fifo_watermark: fwm_int }
         };
@@ -739,5 +748,4 @@ class bmp388 extends genericChip {
   }
 }
 
-module.exports.bmp388 = bmp388;
-
+module.exports = { bmp388 };

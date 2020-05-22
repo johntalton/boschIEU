@@ -1,4 +1,3 @@
-
 const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
 
 const { genericChip, enumMap, Compensate } = require('./generic.js');
@@ -17,7 +16,7 @@ class bmp280 extends genericChip {
       interrupt: false,
       fifo: false,
       time: false
-    }
+    };
   }
 
   static calibration(bus) {
@@ -99,7 +98,7 @@ class bmp280 extends genericChip {
   }
 
   static patchProfile(bus, patch) {
-    throw Error('patch profile impl');
+    throw new Error('patch profile impl');
   }
 
   static measurement(bus, calibration) {
@@ -124,7 +123,7 @@ class bmp280 extends genericChip {
   static ready(bus) {
     return BusUtil.readblock(bus, [0xF3]).then(buffer => {
       const status = buffer.readUInt8(0);
-      const measuring = BiUtil.mapbits(status, 3, 1) === 1;
+      const measuring = BitUtil.mapbits(status, 3, 1) === 1;
       const updating = BitUtil.mapbits(status, 0, 1) === 1;
       return {
         ready: !measuring,
@@ -140,5 +139,4 @@ class bmp280 extends genericChip {
   }
 }
 
-module.exports.bmp280 = bmp280;
-
+module.exports = { bmp280 };

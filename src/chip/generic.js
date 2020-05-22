@@ -1,7 +1,8 @@
+/* eslint max-classes-per-file: ["error", 2] */
 
 const { BusUtil } = require('@johntalton/and-other-delights');
 
-const { Compensate } = require('./compensate.js')
+const { Compensate } = require('./compensate.js');
 
 const enumMap = {
   oversamples: [ //
@@ -62,14 +63,12 @@ const enumMap = {
     // alias
     { name: true, value: 5 }  // MAX
   ]
-}
+};
 
-/**
- *
- **/
+//
 class genericFifo {
-  static flush(bus) { throw Error('fifo flush not supported'); }
-  static read(bus) { throw Error('fifo read not supported'); }
+  static flush(bus) { throw new Error('fifo flush not supported'); }
+  static read(bus) { throw new Error('fifo read not supported'); }
 }
 
 //
@@ -84,7 +83,7 @@ class genericChip {
       interrupt: false,
       fifo: false,
       time: false
-    }
+    };
   }
 
   static get name() { return 'generic'; }
@@ -110,6 +109,7 @@ class genericChip {
   // sleep
 
 
+  // eslint-disable-next-line class-methods-use-this
   get ranges() {
     return {
       tempatureC: [0, 60],

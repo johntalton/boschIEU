@@ -1,3 +1,5 @@
+/* eslint max-classes-per-file: ["error", 2] */
+
 /**
  *
  **/
@@ -7,14 +9,14 @@ class Compensate {
     case '2xy': return Compensate.from_2xy(measurment, calibration); break;
     case '6xy': return Compensate.from_6xy(measurment, calibration); break;
     case '3xy': return Compensate.from_3xy(measurment, calibration); break;
-    default: throw Error('unknonw measurment type: ' + measurment.type); break;
+    default: throw new Error('unknonw measurment type: ' + measurment.type); break;
     }
   }
 
   static from_3xy(measurement, calibration) {
     const t = Compensate.tempature_3xy(measurement.adcT, calibration.T);
     return {
-      //...measurement,
+      // ...measurement,
       ...Compensate.sensortime(measurement.sensortime),
       tempature: t,
       pressure: Compensate.pressure_3xy(measurement.adcP, t.tlin, calibration.P)
@@ -24,9 +26,9 @@ class Compensate {
   static sensortime(sensortime) {
     if(sensortime === undefined) { return undefined; }
     return {
-      sensortime: sensortime,
+      sensortime: sensortime
       // date: how?
-    }
+    };
   }
 
   static tempature_3xy(adcT, caliT) {
@@ -45,7 +47,7 @@ class Compensate {
     const t_lin = data2 + (data1 * data1) * T3;
     const c = t_lin;
 
-    return { adc: adcT, tlin: t_lin,  C: c };
+    return { adc: adcT, tlin: t_lin, C: c };
   }
 
   static pressure_3xy(adcP, tlin, caliP) {
@@ -71,8 +73,6 @@ class Compensate {
     return { adc: adcP, tlin: tlin, Pa: press };
   }
 
-
-
   static from_6xy(measurment, calibration) {
     const t = Compensate.tempature_6xy(measurment.adcT, calibration.T);
     return {
@@ -97,6 +97,7 @@ class Compensate {
 
       return [cf, Tfinef];
     }
+
     function tint() {
       const var1i = (adcT >> 3) - (T1 << 1);
       const var2i = (var1i * T2) >> 11;
@@ -108,10 +109,10 @@ class Compensate {
       return [ci, Tfinei];
     }
 
-    const [iC, iTfine] = tint();
+    // const [iC, iTfine] = tint();
     const [fC, fTfine] = tfloat();
 
-    //console.log(iC, iTfine, fC, fTfine);
+    // console.log(iC, iTfine, fC, fTfine);
 
     return { adc: adcT, C: fC, Tfine: fTfine };
   }
@@ -220,7 +221,7 @@ class Compensate {
       tempature: ct,
       pressure: cp,
       humidity: ch
-    }
+    };
   }
 
   static tempature(adcT, caliT) {
@@ -230,9 +231,9 @@ class Compensate {
     const [dig_T1, dig_T2, dig_T3] = caliT;
 
     // console.log(T, dig_T1, dig_T2, dig_T3);
-    if(dig_T1 === undefined){ return { undef: 't1' }; }
-    if(dig_T2 === undefined){ return { undef: 't2' }; }
-    if(dig_T3 === undefined){ return { undef: 't3' }; }
+    if(dig_T1 === undefined) { return { undef: 't1' }; }
+    if(dig_T2 === undefined) { return { undef: 't2' }; }
+    if(dig_T3 === undefined) { return { undef: 't3' }; }
 
     const var1f = (adcT / 16384.0 - dig_T1 / 1024.0) * dig_T2;
     const var2f = (adcT / 131072.0 - dig_T1 / 8192.0) * (adcT / 131072.0 - dig_T1 / 8192.0) * dig_T3;

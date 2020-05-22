@@ -1,4 +1,5 @@
-
+/* eslint-disable promise/no-nesting */
+// eslint-disable-next-line import/no-nodejs-modules
 const crypto = require('crypto');
 
 const i2c = require('i2c-bus');
@@ -20,7 +21,7 @@ function signature(devcfg, sensor) {
     hash.update(b);
     const hex = hash.digest('hex');
     return hex;
-  } catch(e) {
+  } catch (e) {
     console.log('error setting up signature', e);
     return undefined;
   }
@@ -37,7 +38,7 @@ class Device {
 
     // console.log('setup devices', clients);
 
-   //return Promise.all(clients.map(foo =>Promise.reject('🦄')))
+   // return Promise.all(clients.map(foo =>Promise.reject('🦄')))
     return Promise.all(clients.map(devcfg => Device.setupDeviceWithRetry(application, devcfg)))
       .then(results => application);
   }
@@ -139,9 +140,13 @@ class Device {
     // console.log(pending);
     // console.log('proccess', all, some, none);
 
-    if(all) { State.to(application.machine, 'all'); }
-    else if(some) { State.to(application.machine, direction ? 'some' : 'dsome'); }
-    else if(none) { State.to(application.machine, 'none'); }
+    if(all) {
+      State.to(application.machine, 'all');
+    } else if(some) {
+      State.to(application.machine, direction ? 'some' : 'dsome');
+    } else if(none) {
+      State.to(application.machine, 'none');
+    }
   }
 
   static startStreams(application) {
@@ -155,7 +160,7 @@ class Device {
   }
 
   static stopStreams(application) {
-    console.log('stoping streams...');
+    console.log('stopping streams...');
     const reap = application.devices
       .filter(d => d.client !== undefined)
       .filter(d => d.client.polltimer !== undefined)
@@ -177,6 +182,7 @@ class Device {
     return base.then(() => {
       // todo not all devices need a poller
       d.client.polltimer = setInterval(Device._poll, d.pollIntervalMs, application, d);
+      return true;
     });
   }
 
@@ -188,8 +194,8 @@ class Device {
     if(d.sleepOnStreamStop) {
       console.log('**************');
       d.client.putToSleep = true;
-      //let sleepprofile = Profiles.chipProfile(d.profile);
-      //return d.client.sensor.setProfile(sleepprofile);
+      // let sleepprofile = Profiles.chipProfile(d.profile);
+      // return d.client.sensor.setProfile(sleepprofile);
       return Promise.resolve(); // TODO re-add sleep setting
     }
     return Promise.resolve();
@@ -197,7 +203,7 @@ class Device {
 
 
   static async _poll(application, devcfg) {
-    //console.log('poll', devcfg.client.sensor.chip.name);
+    // console.log('poll', devcfg.client.sensor.chip.name);
     await Device._houseKeepingOnPoll(devcfg).then(housekeeping => {
       if(!housekeeping.measure) {
         console.log('"' + devcfg.client.name + '"');
@@ -221,7 +227,7 @@ class Device {
         return devcfg.client.sensor.measurement()
           .then(result => {
             if(result.skip !== undefined && result.skip) {
-              console.log('measurment skiped', result);
+              console.log('measurement skipped', result);
               return Promise.resolve();
             }
 
@@ -244,7 +250,7 @@ class Device {
   }
 
   static _houseKeepingOnPoll(devcfg) {
-    //console.log('configured profile', devcfg.profile);
+    // console.log('configured profile', devcfg.profile);
     return Promise.resolve({})
       .then(config => Device._hkModeCheck(devcfg.client.sensor, {
         checkMode: true,
@@ -263,7 +269,7 @@ class Device {
   }
 
   static _hkModeCheck(sensor, config) {
-    // if we dont care about mode checking, bypass mode check
+    // if we do not care about mode checking, bypass mode check
     if(!config.checkMode) { console.log('modeCheck suppressed'); return { normal: true }; }
 
     // console.log('housekeeping read/check profile');
@@ -277,7 +283,7 @@ class Device {
 
   // static _hkTimingSuggestions() // TODO validate config.profile / running profile with poll time
 
-  // static _hkStatusCheck() {} // TODO status lets us know if a conversion is ready (good for froced state)
+  // static _hkStatusCheck() {} // TODO status lets us know if a conversion is ready (good for forced state)
 
   static _hkForce(sensor, config) {
 
@@ -290,7 +296,7 @@ class Device {
 
       const estDelay = sensor.estimateMeasurementWait(config.profile);
       const delayMs = estDelay.totalWaitMs;
-      // todo we are setting the full profile here, we shold optimize to just a mode switch
+      // todo we are setting the full profile here, we should optimize to just a mode switch
       return sensor.setProfile(config.profile)
         .then(() => ({
           measure: true,
@@ -298,20 +304,16 @@ class Device {
           forcedAt: new Date()
         }));
     }
-    else {
-      // we were configure for normal mode
-      if(config.normal) {
-        // thats normal
-        return { measure: true };
-      }
-      else {
-        console.log('sleep state', config._p);
-        return { measure: false, sleep: true };
-      }
+
+    // we were configure for normal mode
+    if(config.normal) {
+      // that is normal
+      return { measure: true };
     }
+
+    console.log('sleep state', config._p);
+    return { measure: false, sleep: true };
   }
 }
 
 module.exports = Device;
-
-

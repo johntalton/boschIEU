@@ -5,14 +5,13 @@
  *   API).
  **/
 class BoschFifo {
-    constructor(sensor) {
-      this.sensor = sensor;
-    }
-  
-    flush() { return this.sensor.chip.fifo.flush(this.sensor._bus); }
-  
-    read() { return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration); }
+  constructor(sensor) {
+    this.sensor = sensor;
   }
 
-  module.exports = { BoschFifo };
+  flush() { return this.sensor.chip.fifo.flush(this.sensor._bus); }
 
+  read() { return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration); }
+}
+
+module.exports = { BoschFifo };

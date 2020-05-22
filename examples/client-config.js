@@ -1,4 +1,4 @@
-
+// eslint-disable-next-line import/no-nodejs-modules
 const fs = require('fs');
 
 const { Converter } = require('../');
@@ -9,8 +9,8 @@ class Config {
     const s = cfg[name + 'S'];
     const ms = cfg[name + 'Ms'];
 
-    // support using false to disable, including via basename
-    //if(s === false || ms === false || (cfg[name] === false)) { return false; }
+    // support using false to disable, including via base name
+    // if(s === false || ms === false || (cfg[name] === false)) { return false; }
 
     if(s === undefined && ms === undefined) { return defaultMs; }
 
@@ -21,14 +21,16 @@ class Config {
   }
 
   static config(path) {
-    return new Promise((resolve) => {
+    // eslint-disable-next-line promise/avoid-new
+    return new Promise(resolve => {
+      // eslint-disable-next-line promise/prefer-await-to-callbacks
       fs.readFile(path, (err, data) => {
-        if(err){ resolve({}); return; }
+        if(err) { resolve({}); return; }
         resolve(JSON.parse(data));
       });
     })
     .then(rawConfig => {
-      if(rawConfig.devices === undefined) { throw Error('no devices specified'); }
+      if(rawConfig.devices === undefined) { throw new Error('no devices specified'); }
       const devices = rawConfig.devices.map((rawDevCfg, index) => {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
 
@@ -106,6 +108,7 @@ class Config {
         machine: Util.machine(),
         devices: devices,
         mqtt: {
+          // eslint-disable-next-line no-process-env
           url: (rawConfig.mqtt && rawConfig.mqtt.url) ? rawConfig.mqtt.url : process.env.mqtturl,
           reconnectMs: mqttReMs
         }

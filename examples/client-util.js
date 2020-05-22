@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 
 const { Converter } = require('..');
 
@@ -8,10 +9,10 @@ class Util {
     const H = raw.humidity;
     const G = raw.gas;
 
-    if(P === undefined) { console.log('odd P', raw); throw Error('no P'); }
-    if(T === undefined) { console.log('odd T', raw); throw Error('no T'); }
+    if(P === undefined) { console.log('odd P', raw); throw new Error('no P'); }
+    if(T === undefined) { console.log('odd T', raw); throw new Error('no T'); }
 
-    const result = { sensortime: raw.sensortime};
+    const result = { sensortime: raw.sensortime };
 
     if(chip.features.pressure) {
       if(P.skip !== undefined && P.skip) {
@@ -69,7 +70,7 @@ class Util {
       console.log('\tsignature:', (device.signature !== null) ? device.signature : '(disabled)' );
     }
 
-    if(device.sensor.chip.features.pressure){
+    if(device.sensor.chip.features.pressure) {
       if(P.skip) {
         console.log('\tPressure: skipped');
       } else {
@@ -77,21 +78,21 @@ class Util {
         console.log('\tAltitude','(ft):', Converter.trim(A.Ft), '(m): ', Converter.trim(A.M));
       }
     }
-    if(device.sensor.chip.features.tempature){
+    if(device.sensor.chip.features.tempature) {
       if(T.skip) {
         console.log('\tTemperature: skipped');
       } else {
         console.log('\tTemperature: (c)', Converter.trim(T.C), '(F)', Converter.trim(T.F));
       }
     }
-    if(device.sensor.chip.features.humidity){
+    if(device.sensor.chip.features.humidity) {
       if(H.skip) {
         console.log('\tHumidity: skipped');
       } else {
         console.log('\tHumidity:', Converter.trim(H.percent), '%');
       }
     }
-    if(device.sensor.chip.features.gas){
+    if(device.sensor.chip.features.gas) {
       if(G.skip) {
         console.log('\tGas: skipped');
       } else {
@@ -159,7 +160,7 @@ class State {
 
     const on = machine.ons[transition.event];
     if(on !== undefined) {
-      try { on(); } catch(e) { console.log('machine callback error', e); }
+      try { on(); } catch (e) { console.log('machine callback error', e); }
     }
 
     machine.state = transition.next;
