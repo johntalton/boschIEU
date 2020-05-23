@@ -20,5 +20,5 @@ jobs:
       env:
         CI: true
     - name: Lint
-      run: npm run lint
+      run: npm run lint -- --quiet
 

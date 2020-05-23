@@ -103,7 +103,7 @@ class bme280 extends genericChip {
       const dig_H6 = buffer.readInt8(31);
 
       const dig_H4 = (e4 << 4) | (e5 & 0b1111);
-      const dig_H5 = (e6 << 4)| (e5 >> 4);
+      const dig_H5 = (e6 << 4) | (e5 >> 4);
 
       const H = [dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6];
 
@@ -172,7 +172,7 @@ class bme280 extends genericChip {
   }
 
   static patchProfile(bus, patch) {
-    throw new Error('patch profile impl');
+    throw new Error('patch profile unavailable');
   }
 
   static measurement(bus, calibration) {
@@ -189,9 +189,9 @@ class bme280 extends genericChip {
 
       const adcH = buffer.readUInt16BE(6);
 
-      const P = (bme280.skip_value === adcP) ? false : adcP;
-      const T = (bme280.skip_value === adcT) ? false : adcT;
-      const H = (bme280.skip_value === adcH) ? false : adcH;
+      const P = bme280.skip_value === adcP ? false : adcP;
+      const T = bme280.skip_value === adcT ? false : adcT;
+      const H = bme280.skip_value === adcH ? false : adcH;
 
       const base = { adcP: P, adcT: T, adcH: H, type: '2xy' };
 

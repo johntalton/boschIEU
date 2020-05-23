@@ -9,7 +9,7 @@ class Compensate {
     case '2xy': return Compensate.from_2xy(measurment, calibration); break;
     case '6xy': return Compensate.from_6xy(measurment, calibration); break;
     case '3xy': return Compensate.from_3xy(measurment, calibration); break;
-    default: throw new Error('unknonw measurment type: ' + measurment.type); break;
+    default: throw new Error('unknown measurement type: ' + measurment.type); break;
     }
   }
 

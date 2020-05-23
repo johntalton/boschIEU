@@ -181,7 +181,7 @@
     "import/no-restricted-paths": "error",
     "import/no-absolute-path": "error",
     "import/no-dynamic-require": "error",
-    "import/no-internal-modules": "error",
+    "import/no-internal-modules": ["error", { "allow": [ "chip/*" ]}],
     "import/no-webpack-loader-syntax": "error",
     "import/no-self-import": "error",
     "import/no-cycle": "error",
@@ -277,14 +277,14 @@
 
 
 
-    
+
 
 
 
     "accessor-pairs": "error",
     "arrow-spacing": ["error", { "before": true, "after": true }],
-  
-   
+
+
     "comma-spacing": "error",
     "comma-style": "error",
     "computed-property-spacing": "error",
@@ -303,7 +303,7 @@
       "FunctionExpression": { "parameters": "first" },
       "MemberExpression": "off",
       "ObjectExpression": "first",
-      "SwitchCase": 1
+      "SwitchCase": 0
     }],
     "key-spacing": ["error", { "mode": "strict" }],
     "linebreak-style": ["error", "unix"],
@@ -324,7 +324,7 @@
     "no-empty-character-class": "error",
     "no-ex-assign": "error",
     "no-extra-boolean-cast": "error",
-    
+
     "no-extra-semi": "error",
     "no-fallthrough": "error",
     "no-func-assign": "error",
@@ -399,9 +399,9 @@
     "space-unary-ops": "error",
     "spaced-comment": ["error", "always", {
       "block": { "balanced": true },
-      "exceptions": ["-"]
+      "exceptions": ["*"]
     }],
-    
+
     "unicode-bom": "error",
     "use-isnan": "error",
     "valid-typeof": "error",
@@ -415,11 +415,10 @@
       "minLength": 3,
       "skipWords": [
         "johntalton",
-        "todo", "const", "eslint", "bitwise",
-        "fifo", "gpio", "mqtt",
+        "todo", "const", "eslint", "bitwise", "util", "spi",
+        "fifo", "gpio", "mqtt", "frameset", "2xy", "3xy", "6xy",
         "bmp280", "bme280", "bmp388", "bme680"
       ]
     }]
   }
 }
-

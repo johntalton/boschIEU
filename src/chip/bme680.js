@@ -5,8 +5,8 @@ const { Util } = require('./util.js');
 
 // todo move to common enumerations in generic? but its not
 const gwMultipliers = [
-  { name: 1,  value: 0 },
-  { name: 4,  value: 1 },
+  { name: 1, value: 0 },
+  { name: 4, value: 1 },
   { name: 16, value: 2 },
   { name: 64, value: 3 }
 ];
@@ -133,7 +133,7 @@ class bme680 extends genericChip {
 
       const filter = BitUtil.mapbits(config, 4, 3);
       const spi_3w_en = BitUtil.mapbits(config, 0, 1) === 1;
-      const spi_mem_page = BitUtil.mapbits(status, 4, 1);
+      // const spi_mem_page = BitUtil.mapbits(status, 4, 1);
 
       // console.log(heat_off, run_gas, nb_conv);
       // console.log(res_heat, gas_wait);
@@ -199,9 +199,9 @@ class bme680 extends genericChip {
     }
 
     // 320 25 -> 0x74
-    function tempatureToHeaterRes(tempatureC, ambientTempatureC, caliG) {
+    function temperatureToHeaterRes(tempatureC, ambientTempatureC, caliG) {
       if(tempatureC > 400) { throw new Error('max temperature 400 C'); }
-      if(caliG.G.length !== 3){ throw new Error('calibration mismatch'); }
+      if(caliG.G.length !== 3) { throw new Error('calibration mismatch'); }
       const [gh1, gh2, gh3] = caliG.G;
 
       const var1 = (gh1 / 16.0) + 49.0;
@@ -211,18 +211,18 @@ class bme680 extends genericChip {
       const var5 = var4 + (var3 * ambientTempatureC);
       const res_heat = Math.trunc(3.4 * ((var5 * (4 / (4 + caliG.res_heat_range)) * (1 / (1 + (caliG.res_heat_val * 0.002)))) - 25));
 
-      //console.log(var1, var2, var3, var4, var5, res_heat);
-      //console.log('temp2heat', tempatureC, ambientTempatureC, var5, res_heat);
+      // console.log(var1, var2, var3, var4, var5, res_heat);
+      // console.log('temp2heat', temperatureC, ambientTemperatureC, var5, res_heat);
 
       return res_heat;
     }
 
     // console.log(' bme680 set profile', profile);
     const en3wint = false; // todo profile.spi.interrupt;
-    const spi_mem_page = 0; // todo profile.spi.mempage;
+    // const spi_mem_page = 0; // todo profile.spi.mempage;
 
-    if(profile.gas.setpoints === undefined) { throw new Error('missing setpoint'); }
-    if(profile.gas.setpoints.length > 10) { throw new Error('setpoint limit of 10'); }
+    if(profile.gas.setpoints === undefined) { throw new Error('missing set-point'); }
+    if(profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10'); }
 
     const active = profile.gas.setpoints
       .map((sp, idx) => ({ active: sp.active, index: idx }))
@@ -246,7 +246,7 @@ class bme680 extends genericChip {
     const ctrl_meas = BitUtil.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
     const config = BitUtil.packbits([[4, 3], [0, 1]], filter, en3w);
 
-    const status = 0; // todo, we need to redactor all this page stuff Util.packbits([[4, 1]], spi_mem_page);
+    // const status = 0; // todo, we need to redactor all this page stuff Util.packbits([[4, 1]], spi_mem_page);
 
     // console.log('ctrl gas', ctrl_gas0, ctrl_gas1, profile.gas.enabled);
 
@@ -255,7 +255,7 @@ class bme680 extends genericChip {
       false, false, false, false, false
     ]; // todo fix, don't touch values  for now
 
-    // console.log('setting setpoint', heat_off ,nb_conv, profile.gas.setpoints);
+    // console.log('setting set-point', heat_off ,nb_conv, profile.gas.setpoints);
 
     const [res_heat, gas_wait] = profile.gas.setpoints.reduce((out, sp, idx) => {
       if(sp.skip === true) { return [[...out[0], false], [...out[1], false]]; }
@@ -267,7 +267,7 @@ class bme680 extends genericChip {
       const pat = profile.ambientTempatureC !== undefined ? profile.ambientTempatureC : 25; // or 25C
       const ambientTempatureC = sp.ambientTempatureC !== undefined ? sp.ambientTempature : pat;
 
-      const res_heat_x = tempatureToHeaterRes(sp.tempatureC, ambientTempatureC, calibration.G);
+      const res_heat_x = temperatureToHeaterRes(sp.tempatureC, ambientTempatureC, calibration.G);
 
       return [[...out[0], res_heat_x], [...out[1], gas_wait_x]];
     }, [[], []]);
@@ -290,7 +290,7 @@ class bme680 extends genericChip {
   }
 
   static patchProfile(bus, patch) {
-    throw new Error('patch profile impl');
+    throw new Error('patch profile unavailable');
   }
 
   static measurement(bus, calibration) {
@@ -306,7 +306,7 @@ class bme680 extends genericChip {
       const ready = {
         ready: newdata,
         measuringGas: measuringGas, // active gas measurement
-        mesuring: measuring,        // active TPH measurement
+        mesuring: measuring, // active TPH measurement
         active_profile_idx: active_profile_idx
       };
 
@@ -328,6 +328,9 @@ class bme680 extends genericChip {
       const skip0 = buffer.readUInt8(10);
       const skip1 = buffer.readUInt8(11);
       const skip2 = buffer.readUInt8(12);
+      if(skip0 !== 0 || skip1 !== 0 || skip2 !== 0) {
+        console.log('skip 012 non-zero');
+      }
 
       const gas_r_msb = buffer.readUInt8(13);
       const gas_r_ext = buffer.readUInt8(14);
@@ -339,9 +342,9 @@ class bme680 extends genericChip {
 
       const gas_r = BitUtil.reconstruct10bit(gas_r_msb, gas_r_lsb);
 
-      const P = (bme680.skip_value === adcP) ? false : adcP;
-      const T = (bme680.skip_value === adcT) ? false : adcT;
-      const H = (bme680.skip_value === adcH) ? false : adcH;
+      const P = bme680.skip_value === adcP ? false : adcP;
+      const T = bme680.skip_value === adcT ? false : adcT;
+      const H = bme680.skip_value === adcH ? false : adcH;
 
       const G = gas_valid_r ? { resistance: gas_r, range: gas_range_r, stable: heat_stab_r } : false;
 
@@ -370,13 +373,13 @@ class bme680 extends genericChip {
   }
 
   static estimateMeasurementWait(profile) {
-    // converts enum oversample from profile into
+    // converts enumeration oversampling from profile into
     // a known cycles - currently uses the side effect
-    // of the enum layout to map to known cycles (aka 1:1).
+    // of the enumeration layout to map to known cycles (aka 1:1).
     function oversampleToCycles(os) {
       if(os === false) { return 0; }
       const cycles = [0, 1, 2, 4, 8, 16];
-      if(!cycles.includes(os)) { throw new Error('unknown oversample enum'); }
+      if(!cycles.includes(os)) { throw new Error('unknown oversampling enumeration'); }
       return os;
     }
 
@@ -387,9 +390,9 @@ class bme680 extends genericChip {
       oversampleToCycles(profile.oversampling_h);
 
     const tph_durUs = (BASE_PER_CYCLES_US * cycles) +
-      1000 +      // Wake up duration of 1ms
+      1000 + // Wake up duration of 1ms
       (477 * 4) + // TPH switching duration
-      (477 * 5);  // Gas measurement duration (todo gas enabled?)
+      (477 * 5); // Gas measurement duration (todo gas enabled?)
 
     // it takes a while
     let gasWaitMs = 0;
@@ -409,4 +412,3 @@ class bme680 extends genericChip {
 }
 
 module.exports.bme680 = bme680;
-

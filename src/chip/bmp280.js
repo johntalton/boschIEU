@@ -98,7 +98,7 @@ class bmp280 extends genericChip {
   }
 
   static patchProfile(bus, patch) {
-    throw new Error('patch profile impl');
+    throw new Error('patch profile unavailable');
   }
 
   static measurement(bus, calibration) {
@@ -113,8 +113,8 @@ class bmp280 extends genericChip {
       const temp_xlsb = buffer.readUInt8(5);
       const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
 
-      const P = (bmp280.skip_value === adcP) ? false : adcP;
-      const T = (bmp280.skip_value === adcT) ? false : adcT;
+      const P = bmp280.skip_value === adcP ? false : adcP;
+      const T = bmp280.skip_value === adcT ? false : adcT;
 
       return Compensate.from({ adcP: P, adcT: T, adcH: false, type: '2xy' }, calibration);
     });

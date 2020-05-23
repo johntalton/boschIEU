@@ -62,7 +62,7 @@ const PRESS_DISABLED = 0;
 const WATCHDOG_ENABLED = 1;
 const WATCHDOG_DISABLED = 0;
 const SPI3 = 1;
-const SPI4 = 0;
+// const SPI4 = 0;
 
 // const INTERRUPT = {
 const ONREADY_ENABLED = 1;
@@ -80,28 +80,27 @@ const INT_ACTIVE_LOW = 0;
 // };
 
 const FIFO = {
-  TEMP_ENABLED:      1,
-  TEMP_DISABLED:     0,
-  PRESS_ENABLED:     1,
-  PRESS_DISABLED:    0,
-  TIME_ENABLED:      1,
-  TIME_DISABLED:     0,
+  TEMP_ENABLED: 1,
+  TEMP_DISABLED: 0,
+  PRESS_ENABLED: 1,
+  PRESS_DISABLED: 0,
+  TIME_ENABLED: 1,
+  TIME_DISABLED: 0,
   FULL_STOP_ENABLED: 1,
-  FULL_DISABLED:     0,
-  ENABLED:           1,
-  DISABLED:          0
+  FULL_DISABLED: 0,
+  ENABLED: 1,
+  DISABLED: 0
 };
 
 const FIFO_SIZE = 512;
-const MAX_BLOCK_SIZE = 32;
-const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity;
+// const MAX_BLOCK_SIZE = 32;
+// const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity;
 
 /**
  *
  */
 class Util {
   static reconstruct9bit(msb, lsb) {
-    // console.log('reconstruct 9bit', msb, lsb)
     return msb << 8 | lsb;
   }
 
@@ -110,7 +109,7 @@ class Util {
   }
 
   static bestFitPrescaler(ms) {
-    const PRESCALER_HZ = 200; // from spec
+    // const PRESCALER_HZ = 200; // from spec
     // todo
   }
 
@@ -150,25 +149,26 @@ class Bmp3Fifo extends genericFifo {
       })
       .then(fifo_byte_counter => {
         // console.log('fifo buffer byte counter', fifo_byte_counter);
-        if(fifo_byte_counter < 0 || fifo_byte_counter > 512) { throw Error('fifo counter error'); }
+        if(fifo_byte_counter < 0 || fifo_byte_counter > FIFO_SIZE) { throw new Error('fifo counter error'); }
 
         // first-way:
         // single read using command/size call capped to i2c limit
         // ```
-        //   return bus.read(0x14, Math.min(MAX_BLOCK_SIZE, fifo_byte_counter + 4 + 2)).then(buf => [buf]);
+        //   return bus.read(0x14, Math.min(MAX_BLOCK_SIZE, fifo_byte_counter + 4 + 2)).then(returnBuffer => [returnBuffer]);
         // ```
         // second-way
         // using multiple block size reads to emulate continuous read
         // changing block limit to max_block_size * 1 will revert back to the above behavior
         // ```
+        // eslint-disable-next-line spellcheck/spell-checker
         //   return Bmp3Fifo._blockRead(bus, Math.min(BLOCK_LIMIT, fifo_byte_counter + 4 + 2));
         // ```
         // third-way
         // by using the `writeSpecial` (write with on parameter is a proxy) and the
         // `readBuffer` no i2c limit is imposed by the underlying library (or driver? / device?)
-        return bus.write(0x14)
-          .then(() => bus.readBuffer(Math.min(FIFO_SIZE, fifo_byte_counter + 4 + 2)))
-          .then(buf => [buf]);
+        const readSize = fifo_byte_counter + 4 + 2;
+        // eslint-disable-next-line promise/no-nesting
+        return bus.write(0x14).then(() => [bus.readBuffer(readSize)]);
       })
       .then(frameset => Bmp3Fifo.parseFrameSet(frameset))
       .then(msgset => {
@@ -178,14 +178,13 @@ class Bmp3Fifo extends genericFifo {
         return msgs.map(msg => {
           if(msg.type === 'sensor') {
             return {
-              // ...msg,
+              // we do not explode message here as it may not be clean
               type: msg.type,
               ...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
             };
-          }
-          else if(msg.type === 'sensor.time') {
+          } else if(msg.type === 'sensor.time') {
             return {
-              // ...msg,
+              // we do not explode message here as it may not be clean
               type: msg.type,
               ...Compensate.sensortime(msg.time)
             };
@@ -193,7 +192,7 @@ class Bmp3Fifo extends genericFifo {
 
           return msg;
         });
-      })
+      });
   }
 
   /*
@@ -218,12 +217,23 @@ class Bmp3Fifo extends genericFifo {
 
   static parseFrameSet(frameset) {
     // console.log('parse frameset', frameset);
+    // todo a bug here in returning array of arrays add a layer of reduce call in read method
     return frameset.map(frames => {
-      return Bmp3Fifo.parseFrames(frames);
+      return Bmp3Fifo.parseFrames(frames, { size: 0, total: frames.length });
     });
   }
 
-  static parseFrames(frames) {
+  static parseFrames(frames, cursor) { return Bmp3Fifo.parseFramesRecursive(frames, cursor); }
+
+  static parseFramesRecursive(frames, cursor = { size: 0, total: 0 }) {
+    const [size, frame] = Bmp3Fifo.parseFrame(frames);
+    if(size < 0) { console.log('frame under read', size, frame); return []; }
+
+    const updatedCursor = { size: cursor.size + size, total: cursor.total };
+    return [frame, ...Bmp3Fifo.parseFramesRecursive(frames.slice(size), updatedCursor)];
+  }
+
+  static parseFramesLoop(frames) {
     // console.log('parse frames', frames.length, frames);
     const result = [];
 
@@ -252,13 +262,11 @@ class Bmp3Fifo extends genericFifo {
     const mode = (header >> 6) & 0b11;
     const param = (header >> 2) & 0b1111;
     const reserv = header & 0b11;
-    if(reserv !== 0) { console.log('reserve frame bits not zero')}
-    // console.log('frame header', header, mode, param);
+    if(reserv !== 0) { console.log('reserve frame bits not zero'); }
 
     if(mode === 0b10) {
       return Bmp3Fifo.parseSensorFrame(frame, param);
-    }
-    else if(mode === 0b01) {
+    } else if(mode === 0b01) {
       return Bmp3Fifo.parseControlFrame(frame, param);
     }
 
@@ -269,8 +277,8 @@ class Bmp3Fifo extends genericFifo {
   static parseControlFrame(frame, param) {
     if(param === 0b0001) { return Bmp3Fifo.parseControlErrorFrame(frame); }
     if(param === 0b0010) { return Bmp3Fifo.parseControlConfigFrame(frame); }
-    console.log('unknown control frame param', param);
-    throw new Error('unknown control frame param');
+    console.log('unknown control frame type', param);
+    throw new Error('unknown control frame type');
   }
 
   static parseControlErrorFrame(frame) {
@@ -303,7 +311,7 @@ class Bmp3Fifo extends genericFifo {
       return Bmp3Fifo.parseSensorTimeFrame(frame);
     }
 
-    return Bmp3Fifo.parseSensorMeasurementFrame(frame, p ,t);
+    return Bmp3Fifo.parseSensorMeasurementFrame(frame, p, t);
   }
 
   static parseSensorTimeFrame(frame) {
@@ -438,8 +446,6 @@ class bmp388 extends genericChip {
       const fifo_wtm_1 = buffer.readUInt8(1);
       const fifo_wtm_0 = buffer.readUInt8(0);
 
-      // console.log('pwr ctrl', pwr_ctrl);
-
       //
       const iff_filter = BitUtil.mapbits(config, 3, 3);
       const odr_sel = BitUtil.mapbits(odr, 4, 5);
@@ -450,6 +456,7 @@ class bmp388 extends genericChip {
       const press_en = BitUtil.mapbits(pwr_ctrl, 0, 1);
       const i2c_wdt_sel = BitUtil.mapbits(if_conf, 2, 1);
       const i2c_wdt_en = BitUtil.mapbits(if_conf, 1, 1);
+      // eslint-disable-next-line no-unused-vars
       const spi3 = BitUtil.mapbits(if_conf, 0, 1);
       const drdy_en = BitUtil.mapbits(int_ctrl, 6, 1);
       const ffull_en = BitUtil.mapbits(int_ctrl, 4, 1);
@@ -474,11 +481,11 @@ class bmp388 extends genericChip {
       return {
         mode: NameValueUtil.toName(mode, enumMap.modes),
         standby_prescaler: NameValueUtil.toName(odr_sel, prescalers),
-        oversampling_p: (press_en === PRESS_ENABLED) ? NameValueUtil.toName(osr_p, oversamplings) : false,
-        oversampling_t: (temp_en === TEMP_ENABLED) ? NameValueUtil.toName(osr_t, oversamplings) : false,
+        oversampling_p: press_en === PRESS_ENABLED ? NameValueUtil.toName(osr_p, oversamplings) : false,
+        oversampling_t: temp_en === TEMP_ENABLED ? NameValueUtil.toName(osr_t, oversamplings) : false,
         filter_coefficient: NameValueUtil.toName(iff_filter, enumMap.filters),
 
-        watchdog: (i2c_wdt_en === WATCHDOG_ENABLED) ? NameValueUtil.toName(i2c_wdt_sel, watchdogtimes) : false,
+        watchdog: i2c_wdt_en === WATCHDOG_ENABLED ? NameValueUtil.toName(i2c_wdt_sel, watchdogtimes) : false,
 
         interrupt: {
           mode: intMode,
@@ -499,9 +506,9 @@ class bmp388 extends genericChip {
         },
 
         ready: {
-          //ready: !measuring,
-          //measuring: measuring,
-          //updating: updating
+          // ready: !measuring,
+          // measuring: measuring,
+          // updating: updating
         }
       };
     });
@@ -514,7 +521,7 @@ class bmp388 extends genericChip {
     const DEFAULT_MODE = 'SLEEP';
     const DEFAULT_FILTER_COEFFICIENT = false;
     const DEFAULT_PRESCALER = 1;
-    const DEFAULT_OVERSAMPLING_PRESS = 1; // todo datasheet disagrees
+    const DEFAULT_OVERSAMPLING_PRESS = 1; // todo data sheet disagrees
     const DEFAULT_OVERSAMPLING_TEMP = 1;
     const DEFAULT_WATCHDOG = false;
     const DEFAULT_INT_MODE = 'active-high';
@@ -525,7 +532,7 @@ class bmp388 extends genericChip {
     const DEFAULT_FIFO_ACTIVE = false;
     const DEFAULT_FIFO_HIGH_WATERMARK = 1;
     const DEFAULT_FIFO_DATA = 'unfiltered';
-    const DEFAULT_FIFO_SUBSAMPLING = 0; // todo the datasheet sais 2
+    const DEFAULT_FIFO_SUBSAMPLING = 0; // todo the data sheet states 2
     const DEFAULT_FIFO_STOP_ON_FULL = true;
     const DEFAULT_FIFO_TEMP = false;
     const DEFAULT_FIFO_PRESS = false;
@@ -567,8 +574,8 @@ class bmp388 extends genericChip {
       low: profile.fifo.highWatermark & 0xFF
     };
 
-    if(profile.fifo.subsampling < 0 || profile.fifo.subsampling >= Math.pow(2, 3)) { throw new Error('invalid subsamping range'); }
-    // console.log('subsampling', profile.fifo.subsampling);
+    if(profile.fifo.subsampling < 0 || profile.fifo.subsampling >= Math.pow(2, 3)) { throw new Error('invalid sub-sampling range'); }
+    // console.log('sub-sampling', profile.fifo.subSampling);
 
     //
     const iff_filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters_more);
@@ -593,10 +600,10 @@ class bmp388 extends genericChip {
 
     const data_select = NameValueUtil.toValue(profile.fifo.data, dataselects);
     const fifo_subsampling = Number.parseInt(profile.fifo.subsampling, 10);
-    const fifo_temp_en = (profile.fifo.active && profile.fifo.temp) ? FIFO.TEMP_ENABLED : FIFO.TEMP_DISABLED;
-    const fifo_press_en = (profile.fifo.active && profile.fifo.press) ? FIFO.PRESS_ENABLED : FIFO.PRESS_DISABLED;
-    const fifo_time_en = (profile.fifo.active && profile.fifo.time) ? FIFO.TIME_ENABLED : FIFO.TIME_DISABLED;
-    const fifo_stop_on_full = (profile.fifo.active && profile.fifo.stopOnFull) ? FIFO.FULL_STOP_ENABLED : FIFO.FULL_STOP_DISABLED;
+    const fifo_temp_en = profile.fifo.active && profile.fifo.temp ? FIFO.TEMP_ENABLED : FIFO.TEMP_DISABLED;
+    const fifo_press_en = profile.fifo.active && profile.fifo.press ? FIFO.PRESS_ENABLED : FIFO.PRESS_DISABLED;
+    const fifo_time_en = profile.fifo.active && profile.fifo.time ? FIFO.TIME_ENABLED : FIFO.TIME_DISABLED;
+    const fifo_stop_on_full = profile.fifo.active && profile.fifo.stopOnFull ? FIFO.FULL_STOP_ENABLED : FIFO.FULL_STOP_DISABLED;
     const fifo_mode = profile.fifo.active ? FIFO.ENABLED : FIFO.DISABLED;
     const fifo_water_mark_8 = fifoWatermark.high;
     const fifo_water_mark_7_0 = fifoWatermark.low;
@@ -613,46 +620,24 @@ class bmp388 extends genericChip {
     const fifo_wtm_1 = BitUtil.packbits([[0]], fifo_water_mark_8);
     const fifo_wtm_0 = BitUtil.packbits([[7, 8]], fifo_water_mark_7_0);
 
-    // console.log('pwr ctrl', pwr_ctrl)
+    // todo consider using block write
     return bus.write(0x1B, 0)
-        .then(() => {
-          return Promise.all([
-            bus.write(0x15, fifo_wtm_0),
-            bus.write(0x16, fifo_wtm_1),
-            bus.write(0x17, fifo_config_1),
-            bus.write(0x18, fifo_config_2),
-            bus.write(0x19, int_ctrl),
-            bus.write(0x1A, if_conf),
-            // bus.write(0x1B, pwr_ctrl),
-            bus.write(0x1C, osr),
-            bus.write(0x1D, odr),
-            // 0, // reserved
-            bus.write(0x1F, config)
-          ]);
-        })
-        .then(() => bus.write(0x1B, pwr_ctrl));
-
-
-/*
-    const buffer = Buffer.from([
-      fifo_wtm_0,
-      fifo_wtm_1,
-      fifo_config_1,
-      fifo_config_2,
-      int_ctrl,
-      if_conf,
-      pwr_ctrl,
-      osr,
-      odr,
-      0, // reserved
-      config
-    ]);
-
-    console.log('profile set buffer', buffer);
-    return bus.write(0x15, buffer);
-
-*/
-
+      .then(() => {
+        return Promise.all([
+          bus.write(0x15, fifo_wtm_0),
+          bus.write(0x16, fifo_wtm_1),
+          bus.write(0x17, fifo_config_1),
+          bus.write(0x18, fifo_config_2),
+          bus.write(0x19, int_ctrl),
+          bus.write(0x1A, if_conf),
+          // skip power control register here
+          bus.write(0x1C, osr),
+          bus.write(0x1D, odr),
+          // 0, // reserved
+          bus.write(0x1F, config)
+        ]);
+      })
+      .then(() => bus.write(0x1B, pwr_ctrl));
   }
 
   static patchProfile(bus, patch) {
@@ -661,7 +646,7 @@ class bmp388 extends genericChip {
     // power mode sleep
     // set register bulk
     // power mode to final state prof + patch
-    throw new Error('patch profile impl');
+    throw new Error('patch profile not available');
   }
 
   static measurement(bus, calibration) {
@@ -676,24 +661,23 @@ class bmp388 extends genericChip {
       const temp_msb = buffer.readUInt8(5);
       const adcT = Util.reconstruct24bit(temp_msb, temp_lsb, temp_xlsb);
 
-      const time_7_0 = buffer.readUInt8(8);
-      const time_15_8 = buffer.readUInt8(9);
-      const time_23_16 = buffer.readUInt8(10);
-      const time_31_24 = buffer.readUInt8(11);
+      // const time_7_0 = buffer.readUInt8(8);
+      // const time_15_8 = buffer.readUInt8(9);
+      // const time_23_16 = buffer.readUInt8(10);
+      // const time_31_24 = buffer.readUInt8(11);
 
       const time = buffer.readUInt32LE(8);
-      //const time2 = (time_31_24 << 24) | (time_23_16 << 16) | (time_15_8 << 8) | time_7_0
-      //console.log('times', time, time2, buffer.readUInt32LE(8));
+      // const time2 = (time_31_24 << 24) | (time_23_16 << 16) | (time_15_8 << 8) | time_7_0
+      // console.log('times', time, time2, buffer.readUInt32LE(8));
 
-      const P = (bmp388.skip_value === adcP) ? false : adcP;
-      const T = (bmp388.skip_value === adcT) ? false : adcT;
+      const P = bmp388.skip_value === adcP ? false : adcP;
+      const T = bmp388.skip_value === adcT ? false : adcT;
 
       return Compensate.from({ sensortime: time, adcP: P, adcT: T, adcH: false, type: '3xy' }, calibration);
     });
   }
 
   static ready(bus) {
-
     return BusUtil.readblock(bus, [[0x02, 2], [0x10, 2]])
       .then(buffer => {
 
@@ -727,19 +711,6 @@ class bmp388 extends genericChip {
           interrupt: { data_ready: drdy, fifo_full: ffull_int, fifo_watermark: fwm_int }
         };
       });
-
-
-  /*
-    return BusUtil.readblock(bus, [0xF3]).then(buffer => {
-      const status = buffer.readUInt8(0);
-      const measuring = BiUtil.mapbits(status, 3, 1) === 1;
-      const updating = BitUtil.mapbits(status, 0, 1) === 1;
-      return {
-        ready: !measuring,
-        measuring: measuring,
-        updating: updating
-      };
-    });*/
   }
 
   static estimateMeasurementWait(profile) {
