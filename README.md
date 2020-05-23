@@ -17,7 +17,7 @@ The API is organized around simple sensor class `BoschSensor` which provides an 
 
 A simple demo usage follows.
 ```js
-const i2c1 = await i2c.opentPromisified(1);
+const i2c1 = await i2c.openPromisified(1);
 const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77);
 const sensor = await BoschIEU.sensor(addressedI2C1);
 await sensor.detectChip();
