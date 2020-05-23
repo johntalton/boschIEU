@@ -1,13 +1,20 @@
 # Bosch Integrated Environmental Unit
-Sensor level API for Bosch IEU (bmp280 bme280 bme680 bmp388).
+[![npm Version](http://img.shields.io/npm/v/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/johntalton/boschieu)
+![CI](https://github.com/johntalton/boschIEU/workflows/CI/badge.svg?branch=master&event=push)
+![GitHub](https://img.shields.io/github/license/johntalton/boschieu)
+[![Downloads Per Month](http://img.shields.io/npm/dm/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
+![GitHub last commit](https://img.shields.io/github/last-commit/johntalton/boschieu)
 
-Unified API to provide full feature access to all supported chips while still providing rich chip specific features (multiple heater profiles and fifo access).
+Common Unified Sensor API for supported IEU chips.
+
+Povides full feature access to all supported chips (bmp280 bme280 bme680 bmp388) while still providing rich chip specific features (multiple heater profiles and fifo access).
 
 Tested with these products:
-[Adafruit BMP280](https://www.adafruit.com/product/2651)
-[Adafruit BME280](https://www.adafruit.com/product/2652)
-[Adafruit BME680](https://www.adafruit.com/product/3660)
-[Adafruit BMP388](https://www.adafruit.com/product/3966)
+ - [Adafruit BMP280](https://www.adafruit.com/product/2651)
+ - [Adafruit BME280](https://www.adafruit.com/product/2652)
+ - [Adafruit BME680](https://www.adafruit.com/product/3660)
+ - [Adafruit BMP388](https://www.adafruit.com/product/3966)
 
 (note: Adafruit nologer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
