@@ -1,13 +1,15 @@
 # Bosch Integrated Environmental Unit
-Sensor level API for Bosch IEU (bmp280 bme280 bme680 bmp388).
+![CI](https://github.com/johntalton/boschIEU/workflows/CI/badge.svg?branch=master&event=push)
 
-Unified API to provide full feature access to all supported chips while still providing rich chip specific features (multiple heater profiles and fifo access).
+Common Unified Sensor API for supported IEU chips.
+
+Povides full feature access to all supported chips (bmp280 bme280 bme680 bmp388) while still providing rich chip specific features (multiple heater profiles and fifo access).
 
 Tested with these products:
-[Adafruit BMP280](https://www.adafruit.com/product/2651)
-[Adafruit BME280](https://www.adafruit.com/product/2652)
-[Adafruit BME680](https://www.adafruit.com/product/3660)
-[Adafruit BMP388](https://www.adafruit.com/product/3966)
+ - [Adafruit BMP280](https://www.adafruit.com/product/2651)
+ - [Adafruit BME280](https://www.adafruit.com/product/2652)
+ - [Adafruit BME680](https://www.adafruit.com/product/3660)
+ - [Adafruit BMP388](https://www.adafruit.com/product/3966)
 
 (note: Adafruit nologer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
