@@ -14,11 +14,11 @@ class Compensate {
   }
 
   static from_3xy(measurement, calibration) {
-    const t = Compensate.tempature_3xy(measurement.adcT, calibration.T);
+    const t = Compensate.temperature_3xy(measurement.adcT, calibration.T);
     return {
       // ...measurement,
       ...Compensate.sensortime(measurement.sensortime),
-      tempature: t,
+      temperature: t,
       pressure: Compensate.pressure_3xy(measurement.adcP, t.tlin, calibration.P)
     };
   }
@@ -31,7 +31,7 @@ class Compensate {
     };
   }
 
-  static tempature_3xy(adcT, caliT) {
+  static temperature_3xy(adcT, caliT) {
     const [T1, T2, T3] = caliT;
 /*
     const data1 = adcT - (256 * T1);
@@ -74,16 +74,16 @@ class Compensate {
   }
 
   static from_6xy(measurment, calibration) {
-    const t = Compensate.tempature_6xy(measurment.adcT, calibration.T);
+    const t = Compensate.temperature_6xy(measurment.adcT, calibration.T);
     return {
-      tempature: t,
+      temperature: t,
       pressure: Compensate.pressure_6xy(measurment.adcP, t.Tfine, calibration.P),
       humidity: Compensate.humidity_6xy(measurment.adcH, t.Tfine, calibration.H),
       gas: Compensate.gas_6xy(measurment.adcG, calibration.G)
     };
   }
 
-  static tempature_6xy(adcT, caliT) {
+  static temperature_6xy(adcT, caliT) {
     if(adcT === false) { return { adc: false, skip: true }; }
 
     if(caliT.length !== 3) { return { adc: adcT, skip: true, calibration: caliT.length }; }
@@ -212,19 +212,19 @@ class Compensate {
   }
 
   static from_2xy(measurment, calibration) {
-    const ct = Compensate.tempature(measurment.adcT, calibration.T);
+    const ct = Compensate.temperature(measurment.adcT, calibration.T);
     const Tfine = ct.skip ? false : ct.Tfine;
     const cp = Compensate.pressure(measurment.adcP, Tfine, calibration.P);
     const ch = Compensate.humidity(measurment.adcH, Tfine, calibration.H);
 
     return {
-      tempature: ct,
+      temperature: ct,
       pressure: cp,
       humidity: ch
     };
   }
 
-  static tempature(adcT, caliT) {
+  static temperature(adcT, caliT) {
     if(adcT === false) { return { adc: false, skip: true }; }
 
     if(caliT.length !== 3) { return { skip: true, calibration: caliT.length }; }
@@ -557,16 +557,14 @@ class AltComp {
           pressure_hPa = Math.round(p * 100) / 100;
     }
 
-
     //
     return {
       humidity: hum,
-      tempature_C: Math.round(((t_fine * 5 + 128) >> 8) / 10) / 10,
+      temperature_C: Math.round(((t_fine * 5 + 128) >> 8) / 10) / 10,
       tfine: t_fine,
       pressure_hPa: pressure_hPa
     };
   }
 }
-
 
 module.exports = { Compensate };

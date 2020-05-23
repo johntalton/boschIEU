@@ -5,7 +5,7 @@ const { Converter } = require('..');
 class Util {
   static bulkup(chip, raw) {
     const P = raw.pressure;
-    const T = raw.tempature;
+    const T = raw.temperature;
     const H = raw.humidity;
     const G = raw.gas;
 
