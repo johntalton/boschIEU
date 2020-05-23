@@ -1,5 +1,10 @@
 # Bosch Integrated Environmental Unit
+[![npm Version](http://img.shields.io/npm/v/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/johntalton/boschieu)
 ![CI](https://github.com/johntalton/boschIEU/workflows/CI/badge.svg?branch=master&event=push)
+![GitHub](https://img.shields.io/github/license/johntalton/boschieu)
+[![Downloads Per Month](http://img.shields.io/npm/dm/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
+![GitHub last commit](https://img.shields.io/github/last-commit/johntalton/boschieu)
 
 Common Unified Sensor API for supported IEU chips.
 
