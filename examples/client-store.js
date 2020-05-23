@@ -2,12 +2,16 @@ const mqtt = require('mqtt');
 
 const { State } = require('./client-util.js');
 
+const IEU_TOPIC = 'boschieu/result'; // eslint-disable-line spellcheck/spell-checker
+
 /**
  *
  **/
 class Store {
   /**
-   * keep all this stuff, ya, put it here
+   * Setup state handlers for Mqtt connection and messaging.
+   *
+   * @param application Application state.
    */
   static setupStore(application) {
     // console.log('setup store ', application.mqtt.url);
@@ -16,7 +20,7 @@ class Store {
     application.mqtt.client.on('connect', () => { State.to(application.machine, 'mqtt'); });
     // application.mqtt.client.on('reconnect', () => { console.log('mqtt reconnect') });
     // application.mqtt.client.on('close', () => { });
-    application.mqtt.client.on('offline', () => { State.to(application.machine, 'dmqtt'); });
+    application.mqtt.client.on('offline', () => { State.to(application.machine, 'dmqtt'); }); // eslint-disable-line spellcheck/spell-checker
     application.mqtt.client.on('error', error => { console.log(error); throw new Error('mqtt error: ' + error.toString()); });
 
     return Promise.resolve(application);
@@ -40,8 +44,8 @@ class Store {
         humidity: results.humidity,
         gas: results.gas
       };
-      // console.log('publish boschieu/result', msg);
-      application.mqtt.client.publish('boschieu/result', JSON.stringify(msg), {}, err => {
+      // eslint-disable-next-line promise/prefer-await-to-callbacks
+      application.mqtt.client.publish(IEU_TOPIC, JSON.stringify(msg), {}, err => {
         if(err) { reject(err); }
         resolve();
       });

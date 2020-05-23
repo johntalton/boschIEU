@@ -15,11 +15,11 @@ Tested with these products:
 
 The API is organized around simple sensor class `BoschSensor` which provides an object interface for manipulating the sensor.  All method return a Promise.
 
-A simple demo usage follows. 
+A simple demo usage follows.
 ```js
-cosnt i2c1 = await i2c.opentPromisified(1);
-const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77));
-const sensor = await BoschIEU.sensor(addressedI2C1));
+const i2c1 = await i2c.opentPromisified(1);
+const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77);
+const sensor = await BoschIEU.sensor(addressedI2C1);
 await sensor.detectChip();
 await sensor.calibration();
 const result = await sensor.measurement();
@@ -33,13 +33,13 @@ A static factory method to provide access to the `BoschSensor` class.
 
 ## :blue_book: BoschIEU Sensor
 #### :page_facing_up: detectChip()
-After constructing a sensor object, the `detectChip` method is recomended as it will attempt to (get this) detect which version of the chip to use for further register interactions. 
+After constructing a sensor object, the `detectChip` method is recomended as it will attempt to (get this) detect which version of the chip to use for further register interactions.
 ```js
 sensor.detectChip()
    .then(() => { if(sensor.valid()) ... })
 
 ```
-Alternativly, if you are you wish to set the chip during initialization that is also posible 
+Alternativly, if you are you wish to set the chip during initialization that is also posible
 ```js
    // sensor.chipId = Chip.bmp388
 ```
@@ -53,7 +53,7 @@ sensor.id()
 #### :page_facing_up: calibration()
 Fetches the calibration constats from the chip.  These values are unique for each chip and needed to perform compensation of the raw data values into tempature and pressure readings.
 
-Note: This must be called before the `measurment` call will return valid results. 
+Note: This must be called before the `measurment` call will return valid results.
 
 Note: The method itself caches results in the class and is not needed externaly (though returned for user inspection)
 #### :page_facing_up: fifo()
@@ -64,7 +64,7 @@ sensor.fifo.flush( ... ).then(...)
 #### :page_facing_up: profile()
 Returns current chip profile from the device.
 #### :page_facing_up: setProfile(profile)
-Sets the profile for the chip. 
+Sets the profile for the chip.
 
 Note: This will set the entire profile, if fields are not included in `profile` they will be set to the defaults for the `Chip`.
 #### :page_facing_up: reset()

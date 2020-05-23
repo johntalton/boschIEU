@@ -1,4 +1,9 @@
-const { Converter } = require('../')
+const { Converter } = require('../');
+
+const EVENT_NAME_STREAM = 'stream';
+const EVENT_NAME_RE_STREAM = 'restream'; // eslint-disable-line spellcheck/spell-checker
+const EVENT_NAME_STOP_STREAM = 'stopstream'; // eslint-disable-line spellcheck/spell-checker
+const EVENT_NAME_RE_STOP_STREAM = 'restopstream'; // eslint-disable-line spellcheck/spell-checker
 
 const { State } = require('./client-util.js');
 const Store = require('./client-store.js');
@@ -8,22 +13,22 @@ const Config = require('./client-config.js');
 Converter.seaLevelPa = 100700;
 
 function setupStateHandlers(application) {
-  State.on(application.machine, 'stream', () => {
+  State.on(application.machine, EVENT_NAME_STREAM, () => {
     // scans and start any valid client streams
     Device.startStreams(application);
   });
 
-  State.on(application.machine, 'restream', () => {
+  State.on(application.machine, EVENT_NAME_RE_STREAM, () => {
     // scans and start any valid client streams
     Device.startStreams(application);
   });
 
-  State.on(application.machine, 'stopstream', () => {
+  State.on(application.machine, EVENT_NAME_STOP_STREAM, () => {
     // stops all active streams
     Device.stopStreams(application);
   });
 
-  State.on(application.machine, 'restopstream', () => {
+  State.on(application.machine, EVENT_NAME_RE_STOP_STREAM, () => {
     // device is self cleaning on down
   });
 
@@ -42,7 +47,7 @@ Config.config('./client.json')
     console.log('Client up...');
     process.on('SIGINT', () => {
       //
-      process.exit()
+      process.exit(); // eslint-disable-line no-process-exit
     });
     return true;
   })

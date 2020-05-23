@@ -415,7 +415,7 @@
       "minLength": 3,
       "skipWords": [
         "johntalton",
-        "todo", "const", "eslint", "bitwise", "util", "spi",
+        "todo", "const", "eslint", "bitwise", "util", "spi", "md5", "nodejs", "param",
         "fifo", "gpio", "mqtt", "frameset", "2xy", "3xy", "6xy",
         "bmp280", "bme280", "bmp388", "bme680"
       ]

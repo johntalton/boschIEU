@@ -11,9 +11,11 @@ const { BoschIEU } = require('../');
 const { Util, State } = require('./client-util.js');
 const Store = require('./client-store.js');
 
+const SIGNATURE_CRYPTO_MD5 = 'md5';
+
 function signature(devcfg, sensor) {
   if(devcfg.sign === false) { return null; }
-  const algo = (devcfg.sign === true) ? 'md5' : devcfg.sign;
+  const algo = devcfg.sign === true ? SIGNATURE_CRYPTO_MD5 : devcfg.sign;
 
   try {
     const b = Buffer.from([].concat(sensor._p9, sensor._t3, sensor._h6));
@@ -29,7 +31,9 @@ function signature(devcfg, sensor) {
 
 class Device {
   /**
-   * given configruation result in running application state
+   * Calls setup with retry on all active device clients.
+   *
+   * @param application Application state with `devices` list property.
    */
   static setupDevices(application) {
     const clients = application.devices
@@ -38,31 +42,32 @@ class Device {
 
     // console.log('setup devices', clients);
 
-   // return Promise.all(clients.map(foo =>Promise.reject('🦄')))
+    // return Promise.all(clients.map(foo =>Promise.reject('🦄')))
     return Promise.all(clients.map(devcfg => Device.setupDeviceWithRetry(application, devcfg)))
       .then(results => application);
   }
 
-//  static demolishDevices(application) {
-//    return Promise.all(
-//      application.devices.filter(d => d.client !== undefined)
-//        .map(d => Devcie.demolishDevice(d)))
-//    );
-//  }
+  //  static demolishDevices(application) {
+  //    return Promise.all(
+  //      application.devices.filter(d => d.client !== undefined)
+  //        .map(d => Device.demolishDevice(d)))
+  //    );
+  //  }
 
   static setupDeviceWithRetry(application, devcfg) {
     return Device.setupDevice(application, devcfg)
       .then(() => {
         Device._processDevice(application, true);
+        return true;
       })
       .catch(e => {
-        console.log('\u001b[91mdevice (', devcfg.name, ') setup failure', '\u001b[0m');
+        console.log('\u001b[91m device (', devcfg.name, ') setup failure', '\u001b[0m');
         devcfg.client = undefined;
 
         // on initial setup failure we should do a little extra digging
-        // befor we go into a retry mode. such as, if the path / device
+        // before we go into a retry mode. such as, if the path / device
         // does not exist, or if permission denied we have no need to retry
-        // and we should verbosly inform the logs as to the issue.
+        // and we should verbosely inform the logs as to the issue.
         if(e.code !== undefined) {
           if(e.code === 'EACCES') { console.log('Permission denied to device, no-retry'); return; }
           if(e.code === 'ENOENT') { console.log('No such device, no-retry'); return; }
@@ -73,14 +78,14 @@ class Device {
       });
   }
 
-  // top level set intervale, no return
+  // top level set interval, no return
   static async _retrySetupDevice_poll(application, devcfg) {
-    //console.log('Retry device ', devcfg.name, ' setup');
     await Device.setupDevice(application, devcfg)
       .then(() => {
         clearInterval(devcfg.retrytimer);
         devcfg.retrytimer = undefined;
         Device._processDevice(application, true);
+        return true;
       })
       .catch(e => { console.log('reconnect failure', e); });
   }
@@ -89,27 +94,27 @@ class Device {
     const client = {};
     const idary = Array.isArray(devcfg.bus.id) ? devcfg.bus.id : [ devcfg.bus.id ];
 
-    const busNumber = idary[0];
-    const busAddress = idary[1];
+    const [busNumber, busAddress] = idary;
 
     return i2c.openPromisified(busNumber)
       .then(bus => new I2CAddressedBus(bus, busAddress))
-      .then(bus => { client.bus = bus; })
-      .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor }))
+      .then(bus => { client.bus = bus; return true; })
+      .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor; return true; }))
       .then(() => client.sensor.detectChip())
       .then(() => {
         if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
+        return true;
       })
       .then(() => client.sensor.calibration())
       .then(() => {
         // todo skip if forced?
 
         // support suppressing via config (hope you trust the current settings :P)
-        if(!devcfg.onStartSetProfile) { console.log('skiping profile set on startup'); return Promise.resolve(); }
+        if(!devcfg.onStartSetProfile) { console.log('skipping profile set on startup'); return Promise.resolve(); }
 
         return client.sensor.setProfile(devcfg.profile);
       })
-      // .then(() => client.sensor.profile().then(p => console.log('profile after set', p))) // todo remvoe debu
+      // .then(() => client.sensor.profile().then(p => console.log('profile after set', p))) // todo remove
 
       .then(() => {
         devcfg.client = client;
@@ -122,6 +127,7 @@ class Device {
         console.log(' name', client.name);
         console.log(' signature', client.signature);
         console.log();
+        return true;
       });
   }
 
@@ -138,7 +144,7 @@ class Device {
     const none = pending.length === active.length;
 
     // console.log(pending);
-    // console.log('proccess', all, some, none);
+    // console.log('process', all, some, none);
 
     if(all) {
       State.to(application.machine, 'all');
@@ -180,7 +186,7 @@ class Device {
     }
 
     return base.then(() => {
-      // todo not all devices need a poller
+      // todo not all devices need a poll
       d.client.polltimer = setInterval(Device._poll, d.pollIntervalMs, application, d);
       return true;
     });
@@ -194,8 +200,7 @@ class Device {
     if(d.sleepOnStreamStop) {
       console.log('**************');
       d.client.putToSleep = true;
-      // let sleepprofile = Profiles.chipProfile(d.profile);
-      // return d.client.sensor.setProfile(sleepprofile);
+      // todo how do we access the sleep setting profile of the chip
       return Promise.resolve(); // TODO re-add sleep setting
     }
     return Promise.resolve();
@@ -209,26 +214,26 @@ class Device {
         console.log('"' + devcfg.client.name + '"');
         console.log('\tskip on housekeeping request', housekeeping.sleep ? '(in sleep mode)' : '');
         console.log();
-        return Promise.resolve();
+        return true;
       }
 
       let base = Promise.resolve();
       if(housekeeping.delayMs !== undefined) {
-        console.log('introduct delay before read', housekeeping.delayMs)
+        console.log('introducing delay before read', housekeeping.delayMs);
         base = new Promise((resolve) => { setTimeout(resolve, housekeeping.delayMs); });
       }
 
       return base.then(() => {
         const timestamp = new Date(); // todo use forcedAt time also as well as delay etc
-        const meta = {
-          timestamp: timestamp,
-          housekeeping: housekeeping
-        };
+        // const meta = {
+        //   timestamp: timestamp,
+        //   housekeeping: housekeeping
+        // };
         return devcfg.client.sensor.measurement()
           .then(result => {
             if(result.skip !== undefined && result.skip) {
               console.log('measurement skipped', result);
-              return Promise.resolve();
+              return true;
             }
 
             const full = Util.bulkup(devcfg.client.sensor.chip, result);

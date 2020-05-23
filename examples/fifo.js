@@ -5,45 +5,17 @@ const { I2CAddressedBus } = require('@johntalton/and-other-delights');
 
 const { BoschIEU } = require('../');
 
-const profile = {
-  mode: 'NORMAL',
-  standby_prescaler: 512,
+async function dump() {
+  const i2c1 = await i2c.opentPromisified(1);
+  const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77);
+  const sensor = await BoschIEU.sensor(addressedI2C1);
+  await sensor.detectChip();
+  await sensor.calibration();
 
-  interrupt: {
-    mode: 'open-drain',
-    latched: false,
-    onReady: true,
-    onFifoFull: true,
-    onFifoWatermark: false
-  },
+  console.log(sensor.chip.name, 'fifo dump');
 
-  fifo: {
-    active: true,
-    time: false,
-    temp: true,
-    press: true,
+  const fifoData = await sensor.fifo.read();
+  console.log(' => ', fifoData);
+}
 
-    highWatermark: 666,
-    data: 'filtered',
-    subsampling: 666,
-    stopOnFull: false
-  }
-};
-
-i2c.openPromisified(1)
-.then(bus => new I2CAddressedBus(bus, 119))
-.then(bus => {
-  return BoschIEU.sensor(bus).then(s => {
-    return s.detectChip()
-      .then(() => s.calibration())
-      // .then(() => s.setProfile(profile))
-      .then(() => {
-        console.log(s.chip.name, 'fifo dump');
-        return s.fifo.read().then(fifoData => {
-          console.log(' => ', fifoData);
-          return true;
-        });
-      });
-  });
-})
-.catch(e => console.log('top level error', e));
+dump();
