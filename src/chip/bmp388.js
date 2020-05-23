@@ -168,7 +168,7 @@ class Bmp3Fifo extends genericFifo {
         // `readBuffer` no i2c limit is imposed by the underlying library (or driver? / device?)
         const readSize = fifo_byte_counter + 4 + 2;
         // eslint-disable-next-line promise/no-nesting
-        return bus.write(0x14).then(() => [bus.readBuffer(readSize)]);
+        return bus.write(0x14).then(() => bus.readBuffer(readSize)).then(b => [b]);;
       })
       .then(frameset => Bmp3Fifo.parseFrameSet(frameset))
       .then(msgset => {
@@ -224,8 +224,11 @@ class Bmp3Fifo extends genericFifo {
   }
 
   static parseFrames(frames, cursor) { return Bmp3Fifo.parseFramesRecursive(frames, cursor); }
+  // static parseFrames(frames) { return Bmp3Fifo.parseFramesLoop(frames); }
 
   static parseFramesRecursive(frames, cursor = { size: 0, total: 0 }) {
+    // console.log(frames, cursor);
+    if(frames.length <= 0) { return []; }
     const [size, frame] = Bmp3Fifo.parseFrame(frames);
     if(size < 0) { console.log('frame under read', size, frame); return []; }
 
