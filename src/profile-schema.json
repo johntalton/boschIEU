@@ -1,0 +1,63 @@
+{
+	"$schema": "http://json-schema.org/draft/2019-09/schema#",
+
+	"$id": "urn:johntalton/boschIEU/profile",
+	"title": "BoschIEUProfile",
+	"description": "",
+
+	"type": "object",
+	"properties": {
+		"mode": { "type": "string", "enum": ["NORMAL", "FORCED", "SLEEP"] },
+		"oversampling_p": {},
+		"oversampling_t": {},
+		"oversampling_h": {},
+		"filter_coefficient": { "type": ["boolean", "number" ]},
+		"standby_time": {},
+
+		"standby_prescaler": { "type": "number" },
+		"watchdog": {},
+
+		"interrupt": {
+			"properties": {
+				"mode": {},
+				"latched": { "type": "boolean" },
+				"onFifoWatermark": { "type": "boolean" },
+				"onFifoFull": { "type": "boolean" },
+				"onReady": { "type": "boolean" }
+			},
+			"additionalProperties": false
+		},
+		"fifo": {
+			"properties": {
+				"active": { "type": "boolean" },
+				"highWatermark": { "type": "number" },
+				"data": {},
+				"subsampling": { "type": "number" },
+				"stopOnFull": { "type": "boolean" },
+				"temp": { "type": "boolean" },
+				"press": { "type": "boolean" },
+				"time": { "type": "boolean" }
+			},
+			"additionalProperties": false
+		},
+
+		"gas": {
+			"properties": {
+				"enabled": { "type": "boolean" },
+				"setpoints": {
+					"type": "array",
+					"items": {
+						"properties": {
+							"temperatureC": { "type": "number" },
+							"durationMs": {},
+							"active": { "type": "boolean" }
+						},
+						"additionalProperties": false
+					}
+				}
+			}
+		}
+	},
+	"additionalProperties": false,
+	"requiredProperties": ["mode"]
+}
