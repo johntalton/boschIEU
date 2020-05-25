@@ -1,5 +1,10 @@
 # Bosch Integrated Environmental Unit
+[![npm Version](http://img.shields.io/npm/v/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
+![GitHub package.json version](https://img.shields.io/github/package-json/v/johntalton/boschieu)
 ![CI](https://github.com/johntalton/boschIEU/workflows/CI/badge.svg?branch=master&event=push)
+![GitHub](https://img.shields.io/github/license/johntalton/boschieu)
+[![Downloads Per Month](http://img.shields.io/npm/dm/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
+![GitHub last commit](https://img.shields.io/github/last-commit/johntalton/boschieu)
 
 Common Unified Sensor API for supported IEU chips.
 
@@ -19,7 +24,7 @@ The API is organized around simple sensor class `BoschSensor` which provides an 
 
 A simple demo usage follows.
 ```js
-const i2c1 = await i2c.opentPromisified(1);
+const i2c1 = await i2c.openPromisified(1);
 const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77);
 const sensor = await BoschIEU.sensor(addressedI2C1);
 await sensor.detectChip();
