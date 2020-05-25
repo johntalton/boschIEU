@@ -124,7 +124,14 @@ class Util {
           'none': { next: '1init', event: '' },
           // some
           'dsome': { next: '2some', event: '' },
-          // all
+          // all (becuase the providing layer can detect active
+          // devices in a single reporting/event cycle, but it can
+          // not detect (yet?) that all devices have reported, it
+          // will send the `all` event for each repprting device
+          // And thus, if all devices become active prior to the
+          // async tick that checks for status and generates events,
+          // the all message will be sent once for every device.
+          'all': { next: '3all' },
           'mqtt': { next: '4active', event: 'stream' },
           'dmqtt': { next: '3all', event: '' } }, // we know, thanks
         '4active': { // streaming state
@@ -156,7 +163,7 @@ class Util {
 class State {
   static to(machine, state) {
     const transition = machine.states[machine.state][state];
-    // console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
+    console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
 
     const on = machine.ons[transition.event];
     if(on !== undefined) {

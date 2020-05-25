@@ -4,12 +4,14 @@ const crypto = require('crypto');
 
 const i2c = require('i2c-bus');
 
-const { I2CAddressedBus } = require('@johntalton/and-other-delights');
+const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
 
 const { BoschIEU } = require('../');
 
 const { Util, State } = require('./client-util.js');
 const Store = require('./client-store.js');
+
+const { deviceDef_bmp388 } = require('./deviceDefs.js');
 
 const SIGNATURE_CRYPTO_MD5 = 'md5';
 
@@ -96,7 +98,15 @@ class Device {
 
     const [busNumber, busAddress] = idary;
 
-    return i2c.openPromisified(busNumber)
+    //
+    if(devcfg.mock === true) {
+      console.log('MOCK Device', devcfg.nameq);
+      // setup for mock
+      I2CMockBus.addDevice(busNumber, busAddress, deviceDef_bmp388); // todo ... alwasy bmp388
+    }
+    devcfg.provider = devcfg.mock === true ? I2CMockBus : i2c;
+
+    return devcfg.provider.openPromisified(busNumber)
       .then(bus => new I2CAddressedBus(bus, busAddress))
       .then(bus => { client.bus = bus; return true; })
       .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor; return true; }))

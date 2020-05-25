@@ -35,6 +35,7 @@ class Config {
         const name = rawDevCfg.name ? rawDevCfg.name : index;
 
         const active = rawDevCfg.active !== false;
+        const mock = rawDevCfg.mock === true;
 
         const sign = rawDevCfg.sign !== undefined ? rawDevCfg.sign : 'md5';
 
@@ -78,6 +79,7 @@ class Config {
 
         return {
           active: active,
+          mock: mock,
           name: name,
           sign: sign,
           bus: {

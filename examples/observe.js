@@ -7,9 +7,11 @@ const Observable = require('zen-observable');
 const i2c = require('i2c-bus');
 const { Gpio } = require('onoff');
 
-const { I2CAddressedBus } = require('@johntalton/and-other-delights');
+const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
 
 const { BoschIEU, Converter } = require('../');
+
+const { deviceDef_bmp388 } = require('./deviceDefs.js');
 
 const seaLevelPa = 100700; // Converter.seaLevelPa
 
@@ -104,7 +106,15 @@ function observeFifo(fifo, triggerStream) {
   });
 }
 
-i2c.openPromisified(1)
+//
+const mock = process.argv.includes('--mock');
+const provider = mock ? I2CMockBus : i2c;
+if(mock) {
+  I2CMockBus.addDevice(1, 119, deviceDef_bmp388);
+}
+
+
+provider.openPromisified(1)
 .then(bus => new I2CAddressedBus(bus, 119))
 .then(bus => {
   return BoschIEU.sensor(bus).then(s => {

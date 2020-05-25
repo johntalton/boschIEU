@@ -1,0 +1,27 @@
+{
+        "mode": "NORMAL",
+        "standby_prescaler": 256,
+        "filter_coefficient": false,
+
+        "watchdog": "LONG",
+
+        "interrupt": {
+          "mode": "open-drain",
+          "latched": false,
+
+          "onFifoWatermark": true,
+          "onFifoFull": true,
+          "onReady": true
+        },
+
+        "fifo": {
+          "active": true,
+          "highWatermark": 10,
+          "data": "unfiltered",
+          "subsampling": 1,
+          "stopOnFull": false,
+          "temp": true,
+          "press": true,
+          "time": true
+        }
+}
