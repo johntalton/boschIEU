@@ -1,10 +1,11 @@
-# Bosch Integrated Environmental Unit
 [![npm Version](http://img.shields.io/npm/v/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
 ![GitHub package.json version](https://img.shields.io/github/package-json/v/johntalton/boschieu)
 ![CI](https://github.com/johntalton/boschIEU/workflows/CI/badge.svg?branch=master&event=push)
 ![GitHub](https://img.shields.io/github/license/johntalton/boschieu)
 [![Downloads Per Month](http://img.shields.io/npm/dm/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
 ![GitHub last commit](https://img.shields.io/github/last-commit/johntalton/boschieu)
+
+# Bosch Integrated Environmental Unit
 
 Common Unified Sensor API for supported IEU chips.
 
@@ -17,6 +18,8 @@ Tested with these products:
  - [Adafruit BMP388](https://www.adafruit.com/product/3966)
 
 (note: Adafruit nologer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
+
+## :triangular_ruler: [Example Usagage](examples/README.md)
 
 # :wrench: API
 

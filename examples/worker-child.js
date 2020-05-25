@@ -1,8 +1,9 @@
 /* eslint-disable import/no-nodejs-modules */
 /* eslint-disable promise/no-nesting */
 const {
-  Worker, isMainThread, parentPort,
-  MessageChannel, workerData
+  // Worker, MessageChannel,
+  isMainThread, parentPort,
+  workerData
 } = require('worker_threads');
 
 const i2c = require('i2c-bus');
@@ -50,17 +51,15 @@ provider.openPromisified(bus_number)
           console.log('chip up... ');
           let run = true;
 
-          //await bus.close()
-
-          //parentPort.on('online', () => { console.log('online - parentPort');});
-          //parentPort.on('error', (err) => { console.log('error', err);});
-          //parentPort.on('exit', (code) => { console.log('code', code); });
+          // parentPort.on('online', () => { console.log('online - parentPort');});
+          // parentPort.on('error', (err) => { console.log('error', err);});
+          // parentPort.on('exit', (code) => { console.log('code', code); });
 
           parentPort.on('message', message => {
-            //console.log('message - parentPort', message);
+            // console.log('message - parentPort', message);
 
             const port2 = message.port;
-            //port2.on('online', () => { console.log('online - side port'); });
+            // port2.on('online', () => { console.log('online - side port'); });
             port2.on('message', msg => { console.log('message - port2', msg); });
             port2.on('error', err => { console.log('error', err); });
             port2.on('exit', code => { console.log('exit', code); });
@@ -75,9 +74,9 @@ provider.openPromisified(bus_number)
               }
               console.log('after run while');
             });
+            // after setting up the side-channel we un-reference from the
+            // parent port. This allows clean shutdown of calling worker
             parentPort.unref();
-            // parentPort.close()
-            // parentPort.removeAllListeners(['message', 'error']);
           });
 
           return true;
@@ -85,4 +84,3 @@ provider.openPromisified(bus_number)
     });
   })
   .catch(e => console.log('top level error', e));
-
