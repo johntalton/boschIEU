@@ -54,6 +54,7 @@
     },
     {
       "active": true,
+      "mock": true,
       "name": "ThreeEightyEight",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
 
