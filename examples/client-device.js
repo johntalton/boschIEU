@@ -100,7 +100,7 @@ class Device {
 
     //
     if(devcfg.mock === true) {
-      console.log('MOCK Device', devcfg.nameq);
+      console.log('MOCK Device', devcfg.name);
       // setup for mock
       I2CMockBus.addDevice(busNumber, busAddress, deviceDef_bmp388); // todo ... alwasy bmp388
     }

@@ -39,7 +39,9 @@ class BoschSensor {
   //   for generic chip detection has been abstracted here
   // @return promise that resolves to chip implementation class selected by id
   _detectChip() {
-    function readid(bus, reg) { return BusUtil.readblock(bus, [reg]).then(buffer => buffer.readInt8(0)); }
+    function readid(bus, reg) {
+      return BusUtil.readblock(bus, [reg]).then(buffer => buffer.readInt8(0));
+    }
 
     return readid(this._bus, 0xD0) // standard `generic` register id
       .then(result => {
@@ -47,6 +49,7 @@ class BoschSensor {
           console.log('detect: initial buffer Zero, read alt register');
           return readid(this._bus, 0x00); // bmp388 register
         }
+        console.log('detect: via legacy register read');
         return result;
       })
       .then(result => {
