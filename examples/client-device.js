@@ -112,7 +112,7 @@ class Device {
       .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor; return true; }))
       .then(() => client.sensor.detectChip())
       .then(() => {
-        if(!client.sensor.valid()){ throw Error('invalid device on', client.bus.name); }
+        if(!client.sensor.valid()) { throw new Error('invalid device on', client.bus.name); }
         return true;
       })
       .then(() => client.sensor.calibration())
