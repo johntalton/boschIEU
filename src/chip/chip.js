@@ -16,13 +16,6 @@ const Ahoy = [
   bmp388
 ];
 
-const ID_NAME_PREFIX = '';
-const ID_NAME_SUFIX = '_ID';
-const IDS = Ahoy.reduce((acc, item) => {
-  acc[(ID_NAME_PREFIX + item.name + ID_NAME_SUFIX).toUpperCase()] = item.chipId;
-  return acc;
-}, {} );
-
 /**
  * Factory for discovering Chips.
  */
@@ -33,11 +26,17 @@ class Chip {
    **/
   static generic() { return genericChip; }
 
+  static get BMP280_ID() { return bmp280.chipId; }
+  static get BME280_ID() { return bme280.chipId; }
+  static get BME680_ID() { return bme680.chipId; }
+  static get BMP388_ID() { return bmp388.chipId; }
+
   /**
    * Reconvers a specific Chip implementation by its ID.,
    * @returns An Object that extends `genericChip`
    **/
   static fromId(id) {
+    if(id === undefined) { return Chip.generic(); }
     const chip = Ahoy.find(c => c.chipId === id);
     if(chip === undefined) { throw new Error('unknown chip id: ' + id.toString()); }
     return chip;
@@ -53,4 +52,4 @@ class Chip {
   }
 }
 
-module.exports = { Chip, ...IDS };
+module.exports = { Chip };

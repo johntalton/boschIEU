@@ -67,8 +67,8 @@ const enumMap = {
 
 //
 class genericFifo {
-  static flush(bus) { throw new Error('fifo flush not supported'); }
-  static read(bus) { throw new Error('fifo read not supported'); }
+  static flush(bus) { throw new Error('fifo flush not supported by generic chip'); }
+  static read(bus) { throw new Error('fifo read not supported by generic chip'); }
 }
 
 //
@@ -92,7 +92,7 @@ class genericChip {
   static id(bus) { return BusUtil.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); } // todo remove and add detectChip
   static reset(bus) { return bus.write(0xE0, 0xB6); }
 
-  static get fifo() { return genericChip; } // return the class as a shorthand
+  static get fifo() { return genericFifo; } // return the class as a shorthand
 
   // calibrate
   // profile

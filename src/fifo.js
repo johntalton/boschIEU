@@ -1,5 +1,5 @@
 /**
- * Fifo abstraction class.
+ * Instance Helper for Interacting with static chips via the Sensor.
  * Wrap calls into the chips static fifo methods and is accessible
  *   via the sensors fifo property (creating a name space for higher level
  *   API).

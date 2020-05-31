@@ -6,15 +6,27 @@ const { Chip } = require('./chip/chip.js');
  * Acts as a cache around the Chip implementation.
  */
 class BoschSensor {
-  constructor(bus) {
+  constructor(bus, options) {
     this._bus = bus;
-    this._chip = Chip.generic();
+    this._options = options;
+
+    this._chip = options.chipId === undefined ? Chip.generic() : Chip.fromId(options.chipId);
     this._calibration = undefined;
 
     this._fifo = new BoschFifo(this);
   }
 
   get chip() { return this._chip; }
+
+  /**
+   * Attempts to look up and set the chip based on the passed Id.
+   * This will also invalidate the `calibration` data as it is
+   * chip specific. Thus, requiring caller to call `calibration`.
+   **/
+  setChip(chipId) {
+    this._chip = Chip.fromId(chipId);
+    this._calibration = undefined;
+  }
 
   get fifo() { return this._fifo; }
 

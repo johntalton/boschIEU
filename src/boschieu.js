@@ -7,8 +7,8 @@ const { Chip } = require('./chip/chip.js');
  *  Supports (bmp280 / bme280 / bme680 / bpm388) chips.
  */
 class BoschIEU {
-  static sensor(bus) {
-    return Promise.resolve(new BoschSensor(bus));
+  static sensor(bus, options) {
+    return Promise.resolve(new BoschSensor(bus, options));
   }
 }
 
