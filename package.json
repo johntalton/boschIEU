@@ -8,14 +8,14 @@
     "lint": "./node_modules/.bin/eslint ."
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "github:johntalton/and-other-delights"
+    "@johntalton/and-other-delights": "^2.0.0"
   },
   "devDependencies": {
     "eslint": "^7.1.0",
     "eslint-plugin-fp": "^2.3.0",
     "eslint-plugin-immutable": "^1.0.0",
     "eslint-plugin-import": "^2.16.0",
-    "eslint-plugin-jsdoc": "^26.0.1",
+    "eslint-plugin-jsdoc": "^28.5.1",
     "eslint-plugin-no-loops": "^0.3.0",
     "eslint-plugin-no-use-extend-native": "^0.5.0",
     "eslint-plugin-promise": "^4.0.1",
