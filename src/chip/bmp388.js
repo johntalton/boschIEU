@@ -168,7 +168,7 @@ class Bmp3Fifo extends genericFifo {
         // `readBuffer` no i2c limit is imposed by the underlying library (or driver? / device?)
         const readSize = fifo_byte_counter + 4 + 2;
         // eslint-disable-next-line promise/no-nesting
-        return bus.write(0x14).then(() => bus.readBuffer(readSize)).then(b => [b]);;
+        return bus.write(0x14).then(() => bus.readBuffer(readSize)).then(b => [b]);
       })
       .then(frameset => Bmp3Fifo.parseFrameSet(frameset))
       .then(msgset => {
@@ -224,7 +224,6 @@ class Bmp3Fifo extends genericFifo {
   }
 
   static parseFrames(frames, cursor) { return Bmp3Fifo.parseFramesRecursive(frames, cursor); }
-  // static parseFrames(frames) { return Bmp3Fifo.parseFramesLoop(frames); }
 
   static parseFramesRecursive(frames, cursor = { size: 0, total: 0 }) {
     // console.log(frames, cursor);
@@ -236,29 +235,6 @@ class Bmp3Fifo extends genericFifo {
     return [frame, ...Bmp3Fifo.parseFramesRecursive(frames.slice(size), updatedCursor)];
   }
 
-  static parseFramesLoop(frames) {
-    // console.log('parse frames', frames.length, frames);
-    const result = [];
-
-    let [size, frame] = Bmp3Fifo.parseFrame(frames);
-    if(size < 0) { console.log('frame under read', size, frame); return result; }
-
-    result.push(frame);
-
-    //let totalb = size;
-    let buf = frames;
-    while((buf.length - size) > 0) {
-      buf = buf.slice(size);
-      [size, frame] = Bmp3Fifo.parseFrame(buf);
-      if(size < 0) { console.log('frame underread (loop)', size, buf); break; }
-      //totalb += size;
-      result.push(frame);
-    }
-
-    // console.log('totalb', totalb);
-    return result;
-  }
-
   static parseFrame(frame) {
     if(frame.length < 1) { return [-1]; }
     const header = frame.readUInt8(0);
@@ -267,6 +243,10 @@ class Bmp3Fifo extends genericFifo {
     const reserv = header & 0b11;
     if(reserv !== 0) { console.log('reserve frame bits not zero'); }
 
+    // todo note that because we are splitting the execution path here
+    // the effort of adding +1 to both returned [size, frameObj] results
+    // wold be over-burdensome as written.  Thus, each method is expected to
+    // return the additional byte read as part of its total read size.
     if(mode === 0b10) {
       return Bmp3Fifo.parseSensorFrame(frame, param);
     } else if(mode === 0b01) {
@@ -329,34 +309,30 @@ class Bmp3Fifo extends genericFifo {
   }
 
   static parseSensorMeasurementFrame(frame, p, t) {
-    let press, temp;
-    let offset = 0
+    const frameObj = { type: 'sensor', temp: NaN, press: NaN };
+
+    function read24(frame24, offset24 = 0) {
+      const xlsb = frame24.readUInt8(1 + offset24);
+      const lsb = frame24.readUInt8(2 + offset24);
+      const msb = frame24.readUInt8(3 + offset24);
+      return Util.reconstruct24bit(msb, lsb, xlsb);
+    }
 
     if(t) {
       if(frame.length < 4) { console.log('unexpected measurement frame'); return [-4]; }
-      const xlsb = frame.readUInt8(1);
-      const lsb = frame.readUInt8(2);
-      const msb = frame.readUInt8(3);
-      temp = Util.reconstruct24bit(msb, lsb, xlsb);
-      offset += 3;
+      frameObj.temp = read24(frame);
     }
 
     if(p) {
       if(t && frame.length < 7) { console.log('unexpected pressure '); return [-7]; }
       if(!t && frame.length < 4) { console.log('unexpected pressure '); return [-4]; }
-      const xlsb = frame.readUInt8(offset + 1);
-      const lsb = frame.readUInt8(offset + 2);
-      const msb = frame.readUInt8(offset + 3);
-      press = Util.reconstruct24bit(msb, lsb, xlsb);
-      offset += 3;
+      frameObj.press = read24(frame, t ? 3 : 0);
     }
 
     //
-    return [ 1 + offset, {
-      type: 'sensor',
-      press: press,
-      temp: temp
-    }];
+    // const bytesRead = 1 + (t ? (p ? 6 : 3) : (p ? 3 : 0));
+    const bytesRead = 1 + (t ? 3 : 0) + (p ? 3 : 0);
+    return [ bytesRead, frameObj ];
   }
 }
 

@@ -22,7 +22,9 @@ class BoschSensor {
    * Attempts to look up and set the chip based on the passed Id.
    * This will also invalidate the `calibration` data as it is
    * chip specific. Thus, requiring caller to call `calibration`.
-   **/
+   *
+   * @param chipId A valid numeric chip id. Or `undefined` for Generic.
+   */
   setChip(chipId) {
     this._chip = Chip.fromId(chipId);
     this._calibration = undefined;

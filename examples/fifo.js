@@ -1,25 +1,22 @@
-const i2c = require('i2c-bus');
+// eslint-disable-next-line init-declarations
+let i2c; // eslint-disable-line fp/no-let
+// eslint-disable-next-line global-require
+try { i2c = require('i2c-bus'); } catch (e) { console.log('i2c-bus unavailable', e.toString()); }
 
 const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
 
 const { BoschIEU, Chip } = require('../');
 
-const { deviceDef_bmp388 } = require('./deviceDefs.js');
-
-async function tryDumpFifo(mock, options) {
-  try {
-    await dumpFifo(mock, options);
-  }
-  catch(e) {
-    console.log('Error in dumpFifo', e);
-  }
-}
+const { deviceDef_bmp388 } = require('./deviceDefs.js'); // eslint-disable-line spellcheck/spell-checker
 
 async function dumpFifo(mock, options) {
-  const provider = mock ? I2CMockBus : i2c
+  const provider = mock ? I2CMockBus : i2c;
 
   // install a mock device
-  if(mock) { I2CMockBus.addDevice(options.busNumber, options.busAddress, deviceDef_bmp388); }
+  if(mock) {
+    console.log('Adding Mock device');
+    I2CMockBus.addDevice(options.busNumber, options.busAddress, deviceDef_bmp388);
+  }
 
   // setup steps needed to access the bus
   const i2c1 = await provider.openPromisified(options.busNumber);
@@ -39,6 +36,14 @@ async function dumpFifo(mock, options) {
   // single shot read
   const fifoData = await sensor.fifo.read();
   console.log(fifoData);
+}
+
+async function tryDumpFifo(mock, options) {
+  try {
+    await dumpFifo(mock, options);
+  } catch (e) {
+    console.log('Error in dumpFifo', e);
+  }
 }
 
 if(!module.parent) {

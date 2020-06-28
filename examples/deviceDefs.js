@@ -1,3 +1,4 @@
+/* eslint-disable spellcheck/spell-checker */
 
 const deviceDef_bmp388 = {
   commandMask: 0xFF,
@@ -55,13 +56,13 @@ const deviceDef_bmp388 = {
     }, readOnly: true },
     0x12: { name: 'FIFO_LENGHT_0', properties: {
       'fifo_byte_counter_7_0': { bits: [0, 7] }
-    }, readOnly: true  },
+    }, readOnly: true },
     0x13: { name: 'FIFO_LENGTH_1', properties: {
       'fifo_byte_counter_8': { bit: 0 }
     }, readOnly: true },
     0x14: { name: 'FIFO_DATA', properties: {
       'fifo_data': { bits: [0, 7] }
-    }, readOnly: true  },
+    }, readOnly: true, data: 0xFF },
     0x15: { name: 'FIFO_WTM_O', properties: {
       'fifo_water_mark_7_0': { bits: [0, 7] }
     }, data: 0x01 },
@@ -86,9 +87,9 @@ const deviceDef_bmp388 = {
       'int_latch': { bit: 2 },
       'int_level': { bit: 1 },
       'int_od': { bit: 0 }
-    },  data: 0x02 },
+    }, data: 0x02 },
     0x1A: { name: 'IF_CONF', properties: {
-      'i2c_wdt_sel' : { bit: 2 },
+      'i2c_wdt_sel': { bit: 2 },
       'i2c_wdt_en': { bit: 1 },
       'spi3': { bit: 0 }
     } },

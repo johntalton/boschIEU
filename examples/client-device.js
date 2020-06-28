@@ -102,7 +102,8 @@ class Device {
     if(devcfg.mock === true) {
       console.log('MOCK Device', devcfg.name);
       // setup for mock
-      I2CMockBus.addDevice(busNumber, busAddress, deviceDef_bmp388); // todo ... alwasy bmp388
+      // todo does setup only happen once, move this to main?
+      I2CMockBus.addDevice(busNumber, busAddress, deviceDef_bmp388); // todo ... always bmp388
     }
     devcfg.provider = devcfg.mock === true ? I2CMockBus : i2c;
 
@@ -130,6 +131,8 @@ class Device {
         devcfg.client = client;
         client.name = devcfg.name;
         client.signature = signature(devcfg, client.sensor);
+
+        // todo also publish message here
 
         console.log();
         console.log('Chip Up:', client.sensor.chip.name);

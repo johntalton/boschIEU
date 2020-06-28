@@ -133,10 +133,7 @@ class bme680 extends genericChip {
 
       const filter = BitUtil.mapbits(config, 4, 3);
       const spi_3w_en = BitUtil.mapbits(config, 0, 1) === 1;
-      // const spi_mem_page = BitUtil.mapbits(status, 4, 1);
-
-      // console.log(heat_off, run_gas, nb_conv);
-      // console.log(res_heat, gas_wait);
+      const spi_mem_page = BitUtil.mapbits(status, 4, 1); // eslint-disable-line no-unused-vars
 
       const setpoints = res_heat.map((v, i) => ({
         index: i,
@@ -219,7 +216,7 @@ class bme680 extends genericChip {
 
     // console.log(' bme680 set profile', profile);
     const en3wint = false; // todo profile.spi.interrupt;
-    // const spi_mem_page = 0; // todo profile.spi.mempage;
+    const spi_mem_page = 0; // todo profile.spi.mempage;
 
     if(profile.gas.setpoints === undefined) { throw new Error('missing set-point'); }
     if(profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10'); }
@@ -246,16 +243,12 @@ class bme680 extends genericChip {
     const ctrl_meas = BitUtil.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
     const config = BitUtil.packbits([[4, 3], [0, 1]], filter, en3w);
 
-    // const status = 0; // todo, we need to redactor all this page stuff Util.packbits([[4, 1]], spi_mem_page);
-
-    // console.log('ctrl gas', ctrl_gas0, ctrl_gas1, profile.gas.enabled);
+    const status = 0; // todo, we need to redactor all this page stuff Util.packbits([[4, 1]], spi_mem_page);
 
     const idac_heat = [
       false, false, false, false, false,
       false, false, false, false, false
     ]; // todo fix, don't touch values  for now
-
-    // console.log('setting set-point', heat_off ,nb_conv, profile.gas.setpoints);
 
     const [res_heat, gas_wait] = profile.gas.setpoints.reduce((out, sp, idx) => {
       if(sp.skip === true) { return [[...out[0], false], [...out[1], false]]; }

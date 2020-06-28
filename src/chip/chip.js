@@ -22,7 +22,8 @@ const Ahoy = [
 class Chip {
   /**
    * Provides direct access to the `genericChip` class.
-   * @returns The `genericeChip` implementation.
+   *
+   * @returns The `genericChip` implementation.
    **/
   static generic() { return genericChip; }
 
@@ -32,8 +33,10 @@ class Chip {
   static get BMP388_ID() { return bmp388.chipId; }
 
   /**
-   * Reconvers a specific Chip implementation by its ID.,
-   * @returns An Object that extends `genericChip`
+   * Recovers a specific Chip implementation by its ID.
+   *
+   * @param id A valid Bosch chip id.
+   * @returns An Object that extends `genericChip`.
    **/
   static fromId(id) {
     if(id === undefined) { return Chip.generic(); }
@@ -44,6 +47,7 @@ class Chip {
 
   /**
    * Access to the full list of known chips.
+   *
    * @returns An array of objects with `name` and `chip_id` properties.
    **/
   static chips() {
