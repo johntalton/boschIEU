@@ -9,7 +9,7 @@ Common Unified Sensor API for supported IEU chips.
 [![Downloads Per Month](http://img.shields.io/npm/dm/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
 ![GitHub last commit](https://img.shields.io/github/last-commit/johntalton/boschieu)
 
-Povides full feature access to all supported chips (bmp280 bme280 bme680 bmp388) while still providing rich chip specific features (multiple heater profiles and fifo access).
+Provides full feature access to all supported chips (bmp280 bme280 bme680 bmp388) while still providing rich chip specific features (multiple heater profiles and fifo access).
 
 Tested with these products:
  - [Adafruit BMP280](https://www.adafruit.com/product/2651)
@@ -17,9 +17,9 @@ Tested with these products:
  - [Adafruit BME680](https://www.adafruit.com/product/3660)
  - [Adafruit BMP388](https://www.adafruit.com/product/3966)
 
-(note: Adafruit nologer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
+(note: Adafruit no-longer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
-## :triangular_ruler: [Example Usagage](examples/README.md)
+## :triangular_ruler: [Example Usage](examples/README.md)
 
 # :wrench: API
 
@@ -43,13 +43,13 @@ A static factory method to provide access to the `BoschSensor` class.
 
 ## :blue_book: BoschIEU Sensor
 #### :page_facing_up: detectChip()
-After constructing a sensor object, the `detectChip` method is recomended as it will attempt to (get this) detect which version of the chip to use for further register interactions.
+After constructing a sensor object, the `detectChip` method is recommended as it will attempt to (get this) detect which version of the chip to use for further register interactions.
 ```js
 sensor.detectChip()
    .then(() => { if(sensor.valid()) ... })
 
 ```
-Alternativly, if you are you wish to set the chip during initialization that is also posible
+Alternatively, if you are you wish to set the chip during initialization that is also possible
 ```js
    // sensor.chipId = Chip.bmp388
 ```
@@ -61,13 +61,13 @@ sensor.id()
    .then(id => console.log('sensors Id', id);
 ```
 #### :page_facing_up: calibration()
-Fetches the calibration constats from the chip.  These values are unique for each chip and needed to perform compensation of the raw data values into tempature and pressure readings.
+Fetches the calibration constants from the chip.  These values are unique for each chip and needed to perform compensation of the raw data values into temperature and pressure readings.
 
 Note: This must be called before the `measurment` call will return valid results.
 
-Note: The method itself caches results in the class and is not needed externaly (though returned for user inspection)
+Note: The method itself caches results in the class and is not needed externally (though returned for user inspection)
 #### :page_facing_up: fifo()
-The `fifo` getter method returns a static `Fifo` class implementation. This provides a namesapce for fifo functionality.
+The `fifo` getter method returns a static `Fifo` class implementation. This provides a namespace for fifo functionality.
 ```js
 sensor.fifo.flush( ... ).then(...)
 ```
@@ -97,4 +97,4 @@ Flushes the fifo buffer using command register.
 #### :page_facing_up: read()
 Reads the current fifo buffer in full (as specified by size) and parses and compensates frame data.
 ## :blue_book: Converter
-Converter class of common helps are included (ft to meters, alttitude from Pa, etc)
+Converter class of common helps are included (ft to meters, altitude from Pa, etc)
