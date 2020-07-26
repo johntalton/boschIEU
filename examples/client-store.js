@@ -40,6 +40,7 @@ class Store {
 
         pressure: results.pressure,
         altitude: results.altitude,
+        temperature: results.temperature,
         tempature: results.tempature,
         humidity: results.humidity,
         gas: results.gas

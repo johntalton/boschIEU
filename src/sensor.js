@@ -6,7 +6,7 @@ const { Chip } = require('./chip/chip.js');
  * Acts as a cache around the Chip implementation.
  */
 class BoschSensor {
-  constructor(bus, options) {
+  constructor(bus, options = {}) {
     this._bus = bus;
     this._options = options;
 
@@ -54,7 +54,7 @@ class BoschSensor {
   // @return promise that resolves to chip implementation class selected by id
   _detectChip() {
     function readid(bus, reg) {
-      return BusUtil.readblock(bus, [reg]).then(buffer => buffer.readInt8(0));
+      return BusUtil.readBlock(bus, [reg]).then(buffer => buffer.readInt8(0));
     }
 
     return readid(this._bus, 0xD0) // standard `generic` register id

@@ -1,9 +1,14 @@
 {
   "name": "@johntalton/boschieu",
-  "version": "3.0.1",
+  "version": "4.0.0",
   "description": "",
   "license": "MIT",
   "main": "src/boschieu.js",
+  "type": "commonjs",
+  "exports": {
+    "import": "./src/boschieu.js",
+    "require": "./src/boschieu.js"
+  },
   "scripts": {
     "lint": "./node_modules/.bin/eslint ."
   },
@@ -11,7 +16,7 @@
     "@johntalton/and-other-delights": "^3.0.2"
   },
   "devDependencies": {
-    "eslint": "^7.1.0",
+    "eslint": "^7.5.0",
     "eslint-plugin-fp": "^2.3.0",
     "eslint-plugin-immutable": "^1.0.0",
     "eslint-plugin-import": "^2.16.0",

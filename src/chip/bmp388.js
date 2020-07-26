@@ -136,7 +136,7 @@ class Util {
 class Bmp3Fifo extends genericFifo {
 
   static flush(bus) {
-    return bus.write(0x7E, 0xB0);
+    return bus.write(0x7E, Buffer.from([0xB0]));
   }
 
   static read(bus, calibration) {
@@ -357,17 +357,17 @@ class bmp388 extends genericChip {
   }
 
   // unique to the 388 (aka, @override generic)
-  static id(bus) { return BusUtil.readblock(bus, [0x00]).then(buffer => buffer.readInt8(0)); }
-  static reset(bus) { return bus.write(0x7E, 0xB6); }
+  static id(bus) { return BusUtil.readBlock(bus, [0x00]).then(buffer => buffer.readInt8(0)); }
+  static reset(bus) { return bus.write(0x7E, Buffer.from([0xB6])); }
 
   static get fifo() { return Bmp3Fifo; } // return class / aka scope
 
   static sensorTime(bus) {
-    return BusUtil.readblock(bus, [[0xC0, 4]]).then(buffer => buffer.readInt32LE(0));
+    return BusUtil.readBlock(bus, [[0xC0, 4]]).then(buffer => buffer.readInt32LE(0));
   }
 
   static calibration(bus) {
-    return BusUtil.readblock(bus, [[0x31, 21]]).then(buffer => {
+    return BusUtil.readBlock(bus, [[0x31, 21]]).then(buffer => {
       const nvm_par_T1 = buffer.readUInt16LE(0);
       const nvm_par_T2 = buffer.readUInt16LE(2);
       const nvm_par_T3 = buffer.readInt8(4);
@@ -411,7 +411,7 @@ class bmp388 extends genericChip {
   }
 
   static profile(bus) {
-    return BusUtil.readblock(bus, [[0x15, 11]]).then(buffer => {
+    return BusUtil.readBlock(bus, [[0x15, 11]]).then(buffer => {
       // console.log('profile buffer', buffer);
 
       const config = buffer.readUInt8(10);
@@ -426,31 +426,31 @@ class bmp388 extends genericChip {
       const fifo_wtm_0 = buffer.readUInt8(0);
 
       //
-      const iff_filter = BitUtil.mapbits(config, 3, 3);
-      const odr_sel = BitUtil.mapbits(odr, 4, 5);
-      const osr_p = BitUtil.mapbits(osr, 2, 3);
-      const osr_t = BitUtil.mapbits(osr, 5, 3);
-      const mode = BitUtil.mapbits(pwr_ctrl, 5, 2);
-      const temp_en = BitUtil.mapbits(pwr_ctrl, 1, 1);
-      const press_en = BitUtil.mapbits(pwr_ctrl, 0, 1);
-      const i2c_wdt_sel = BitUtil.mapbits(if_conf, 2, 1);
-      const i2c_wdt_en = BitUtil.mapbits(if_conf, 1, 1);
+      const iff_filter = BitUtil.mapBits(config, 3, 3);
+      const odr_sel = BitUtil.mapBits(odr, 4, 5);
+      const osr_p = BitUtil.mapBits(osr, 2, 3);
+      const osr_t = BitUtil.mapBits(osr, 5, 3);
+      const mode = BitUtil.mapBits(pwr_ctrl, 5, 2);
+      const temp_en = BitUtil.mapBits(pwr_ctrl, 1, 1);
+      const press_en = BitUtil.mapBits(pwr_ctrl, 0, 1);
+      const i2c_wdt_sel = BitUtil.mapBits(if_conf, 2, 1);
+      const i2c_wdt_en = BitUtil.mapBits(if_conf, 1, 1);
       // eslint-disable-next-line no-unused-vars
-      const spi3 = BitUtil.mapbits(if_conf, 0, 1);
-      const drdy_en = BitUtil.mapbits(int_ctrl, 6, 1);
-      const ffull_en = BitUtil.mapbits(int_ctrl, 4, 1);
-      const fwtm_en = BitUtil.mapbits(int_ctrl, 3, 1);
-      const int_latch = BitUtil.mapbits(int_ctrl, 2, 1);
-      const int_level = BitUtil.mapbits(int_ctrl, 1, 1);
-      const int_od = BitUtil.mapbits(int_ctrl, 0, 1);
-      const data_select = BitUtil.mapbits(fifo_config_2, 4, 2);
-      const fifo_subsampling = BitUtil.mapbits(fifo_config_2, 2, 3);
-      const fifo_temp_en = BitUtil.mapbits(fifo_config_1, 4, 1);
-      const fifo_press_en = BitUtil.mapbits(fifo_config_1, 3, 1);
-      const fifo_time_en = BitUtil.mapbits(fifo_config_1, 2, 1);
-      const fifo_stop_on_full = BitUtil.mapbits(fifo_config_1, 1, 1);
-      const fifo_mode = BitUtil.mapbits(fifo_config_1, 0, 1);
-      const fifo_water_mark_8 = BitUtil.mapbits(fifo_wtm_1, 0, 1);
+      const spi3 = BitUtil.mapBits(if_conf, 0, 1);
+      const drdy_en = BitUtil.mapBits(int_ctrl, 6, 1);
+      const ffull_en = BitUtil.mapBits(int_ctrl, 4, 1);
+      const fwtm_en = BitUtil.mapBits(int_ctrl, 3, 1);
+      const int_latch = BitUtil.mapBits(int_ctrl, 2, 1);
+      const int_level = BitUtil.mapBits(int_ctrl, 1, 1);
+      const int_od = BitUtil.mapBits(int_ctrl, 0, 1);
+      const data_select = BitUtil.mapBits(fifo_config_2, 4, 2);
+      const fifo_subsampling = BitUtil.mapBits(fifo_config_2, 2, 3);
+      const fifo_temp_en = BitUtil.mapBits(fifo_config_1, 4, 1);
+      const fifo_press_en = BitUtil.mapBits(fifo_config_1, 3, 1);
+      const fifo_time_en = BitUtil.mapBits(fifo_config_1, 2, 1);
+      const fifo_stop_on_full = BitUtil.mapBits(fifo_config_1, 1, 1);
+      const fifo_mode = BitUtil.mapBits(fifo_config_1, 0, 1);
+      const fifo_water_mark_8 = BitUtil.mapBits(fifo_wtm_1, 0, 1);
       const fifo_water_mark_7_0 = fifo_wtm_0;
 
       //
@@ -588,35 +588,35 @@ class bmp388 extends genericChip {
     const fifo_water_mark_7_0 = fifoWatermark.low;
 
     //
-    const config = BitUtil.packbits([[3, 3]], iff_filter);
-    const odr = BitUtil.packbits([[4, 5]], odr_sel);
-    const osr = BitUtil.packbits([[5, 3], [2, 3]], osr_t, osr_p);
-    const pwr_ctrl = BitUtil.packbits([[5, 2], [1], [0]], mode, temp_en, press_en);
-    const if_conf = BitUtil.packbits([[2], [1], [0]], i2c_wdt_sel, i2c_wdt_en, spi3);
-    const int_ctrl = BitUtil.packbits([[6], [4], [3], [2], [1], [0]], drdy_en, ffull_en, fwtm_en, int_latch, int_level, int_od);
-    const fifo_config_2 = BitUtil.packbits([[4, 2], [2, 3]], data_select, fifo_subsampling);
-    const fifo_config_1 = BitUtil.packbits([[4], [3], [2], [1], [0]], fifo_temp_en, fifo_press_en, fifo_time_en, fifo_stop_on_full, fifo_mode);
-    const fifo_wtm_1 = BitUtil.packbits([[0]], fifo_water_mark_8);
-    const fifo_wtm_0 = BitUtil.packbits([[7, 8]], fifo_water_mark_7_0);
+    const config = BitUtil.packBits([[3, 3]], [iff_filter]);
+    const odr = BitUtil.packBits([[4, 5]], [odr_sel]);
+    const osr = BitUtil.packBits([[5, 3], [2, 3]], [osr_t, osr_p]);
+    const pwr_ctrl = BitUtil.packBits([[5, 2], [1], [0]], [mode, temp_en, press_en]);
+    const if_conf = BitUtil.packBits([[2], [1], [0]], [i2c_wdt_sel, i2c_wdt_en, spi3]);
+    const int_ctrl = BitUtil.packBits([[6], [4], [3], [2], [1], [0]], [drdy_en, ffull_en, fwtm_en, int_latch, int_level, int_od]);
+    const fifo_config_2 = BitUtil.packBits([[4, 2], [2, 3]], [data_select, fifo_subsampling]);
+    const fifo_config_1 = BitUtil.packBits([[4], [3], [2], [1], [0]], [fifo_temp_en, fifo_press_en, fifo_time_en, fifo_stop_on_full, fifo_mode]);
+    const fifo_wtm_1 = BitUtil.packBits([[0]], [fifo_water_mark_8]);
+    const fifo_wtm_0 = BitUtil.packBits([[7, 8]], [fifo_water_mark_7_0]);
 
     // todo consider using block write
-    return bus.write(0x1B, 0)
+    return bus.write(0x1B, Buffer.from([0]))
       .then(() => {
         return Promise.all([
-          bus.write(0x15, fifo_wtm_0),
-          bus.write(0x16, fifo_wtm_1),
-          bus.write(0x17, fifo_config_1),
-          bus.write(0x18, fifo_config_2),
-          bus.write(0x19, int_ctrl),
-          bus.write(0x1A, if_conf),
+          bus.write(0x15, Buffer.from([fifo_wtm_0])),
+          bus.write(0x16, Buffer.from([fifo_wtm_1])),
+          bus.write(0x17, Buffer.from([fifo_config_1])),
+          bus.write(0x18, Buffer.from([fifo_config_2])),
+          bus.write(0x19, Buffer.from([int_ctrl])),
+          bus.write(0x1A, Buffer.from([if_conf])),
           // skip power control register here
-          bus.write(0x1C, osr),
-          bus.write(0x1D, odr),
+          bus.write(0x1C, Buffer.from([osr])),
+          bus.write(0x1D, Buffer.from([odr])),
           // 0, // reserved
-          bus.write(0x1F, config)
+          bus.write(0x1F, Buffer.from([config]))
         ]);
       })
-      .then(() => bus.write(0x1B, pwr_ctrl));
+      .then(() => bus.write(0x1B, Buffer.from([pwr_ctrl])));
   }
 
   static patchProfile(bus, patch) {
@@ -629,7 +629,7 @@ class bmp388 extends genericChip {
   }
 
   static measurement(bus, calibration) {
-    return BusUtil.readblock(bus, [[0x04, 12]]).then(buffer => {
+    return BusUtil.readBlock(bus, [[0x04, 12]]).then(buffer => {
       const pres_xlsb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
       const pres_msb = buffer.readUInt8(2);
@@ -657,7 +657,7 @@ class bmp388 extends genericChip {
   }
 
   static ready(bus) {
-    return BusUtil.readblock(bus, [[0x02, 2], [0x10, 2]])
+    return BusUtil.readBlock(bus, [[0x02, 2], [0x10, 2]])
       .then(buffer => {
 
         const err_reg = buffer.readUInt8(0);
@@ -667,19 +667,19 @@ class bmp388 extends genericChip {
 
         const BIT_SET = 1;
 
-        const conf_err =  BitUtil.mapbits(err_reg, 2, 1) === BIT_SET;
-        const cmd_err =  BitUtil.mapbits(err_reg, 1, 1) === BIT_SET;
-        const fatal_err =  BitUtil.mapbits(err_reg, 0, 1) === BIT_SET;
+        const conf_err =  BitUtil.mapBits(err_reg, 2, 1) === BIT_SET;
+        const cmd_err =  BitUtil.mapBits(err_reg, 1, 1) === BIT_SET;
+        const fatal_err =  BitUtil.mapBits(err_reg, 0, 1) === BIT_SET;
 
-        const drdy_temp =  BitUtil.mapbits(status, 6, 1) === BIT_SET;
-        const drdy_press =  BitUtil.mapbits(status, 5, 1) === BIT_SET;
-        const cmd_rdy =  BitUtil.mapbits(status, 4, 1) === BIT_SET;
+        const drdy_temp =  BitUtil.mapBits(status, 6, 1) === BIT_SET;
+        const drdy_press =  BitUtil.mapBits(status, 5, 1) === BIT_SET;
+        const cmd_rdy =  BitUtil.mapBits(status, 4, 1) === BIT_SET;
 
-        const por_detected = BitUtil.mapbits(event, 0, 1) === BIT_SET;
+        const por_detected = BitUtil.mapBits(event, 0, 1) === BIT_SET;
 
-        const drdy =  BitUtil.mapbits(int_status, 3, 1) === BIT_SET;
-        const ffull_int =  BitUtil.mapbits(int_status, 1, 1) === BIT_SET;
-        const fwm_int =  BitUtil.mapbits(int_status, 0, 1) === BIT_SET;
+        const drdy =  BitUtil.mapBits(int_status, 3, 1) === BIT_SET;
+        const ffull_int =  BitUtil.mapBits(int_status, 1, 1) === BIT_SET;
+        const fwm_int =  BitUtil.mapBits(int_status, 0, 1) === BIT_SET;
 
         return {
           // ready:

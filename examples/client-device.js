@@ -110,7 +110,7 @@ class Device {
     return devcfg.provider.openPromisified(busNumber)
       .then(bus => new I2CAddressedBus(bus, busAddress))
       .then(bus => { client.bus = bus; return true; })
-      .then(() => BoschIEU.sensor(client.bus).then(sensor => { client.sensor = sensor; return true; }))
+      .then(() => BoschIEU.sensor(client.bus, {}).then(sensor => { client.sensor = sensor; return true; }))
       .then(() => client.sensor.detectChip())
       .then(() => {
         if(!client.sensor.valid()) { throw new Error('invalid device on', client.bus.name); }

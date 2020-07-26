@@ -15,7 +15,7 @@
       "pollIntervalS": 5
     },
     {
-      "active": true,
+      "active": false,
       "name": "front room",
       "bus": { "driver": "i2c", "id": [ 1, 118 ] },
       "profile": {
@@ -58,7 +58,7 @@
       "name": "ThreeEightyEight",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
 
-      "pollIntervalS": 2,
+      "pollIntervalS": 10,
       "onStartSetProfile": true,
 
 
