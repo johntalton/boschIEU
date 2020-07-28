@@ -243,7 +243,7 @@ class bme680 extends genericChip {
     const ctrl_meas = BitUtil.packBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode]);
     const config = BitUtil.packBits([[4, 3], [0, 1]], [filter, en3w]);
 
-    const status = 0; // todo, we need to redactor all this page stuff Util.packbits([[4, 1]], spi_mem_page);
+    const status = 0; // todo, we need to redactor all this page stuff Util.packBits([[4, 1]], [spi_mem_page]);
 
     const idac_heat = [
       false, false, false, false, false,

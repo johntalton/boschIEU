@@ -118,18 +118,18 @@ class bme280 extends genericChip {
       const ctrl_meas = buffer.readUInt8(2);
       const config = buffer.readUInt8(3);
 
-      const osrs_h = BitUtil.mapbits(ctrl_hum, 2, 3);
+      const osrs_h = BitUtil.mapBits(ctrl_hum, [2, 3]);
 
-      const measuring = BitUtil.mapbits(status, 3, 1) === 1;
-      const updating = BitUtil.mapbits(status, 0, 1) === 1;
+      const measuring = BitUtil.mapBits(status, [3, 1]) === 1;
+      const updating = BitUtil.mapBits(status, [0, 1]) === 1;
 
-      const osrs_t = BitUtil.mapbits(ctrl_meas, 7, 3);
-      const osrs_p = BitUtil.mapbits(ctrl_meas, 4, 3);
-      const mode = BitUtil.mapbits(ctrl_meas, 1, 2);
+      const osrs_t = BitUtil.mapBits(ctrl_meas, [7, 3]);
+      const osrs_p = BitUtil.mapBits(ctrl_meas, [4, 3]);
+      const mode = BitUtil.mapBits(ctrl_meas, [1, 2]);
 
-      const t_sb = BitUtil.mapbits(config, 7, 3);
-      const filter = BitUtil.mapbits(config, 4, 3);
-      const spi_3w_en = BitUtil.mapbits(config, 0, 1) === 1;
+      const t_sb = BitUtil.mapBits(config, [7, 3]);
+      const filter = BitUtil.mapBits(config, [4, 3]);
+      const spi_3w_en = BitUtil.mapBits(config, [0, 1]) === 1;
 
       return {
         mode: NameValueUtil.toName(mode, enumMap.modes),
@@ -160,9 +160,9 @@ class bme280 extends genericChip {
     const filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters);
     const en3w = profile.spi !== undefined ? profile.spi.enable3w : false;
 
-    const ctrl_hum = BitUtil.packbits([[2, 3]], os_h);
-    const ctrl_meas = BitUtil.packbits([[7, 3], [4, 3], [1, 2]], os_t, os_p, mode);
-    const config = BitUtil.packbits([[7, 3], [4, 3], [0, 1]], sb_t, filter, en3w);
+    const ctrl_hum = BitUtil.packBits([[2, 3]], [os_h]);
+    const ctrl_meas = BitUtil.packBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode]);
+    const config = BitUtil.packBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w]);
 
     return Promise.all([
       bus.write(REGISTER.CTRL_HUM, ctrl_hum),
@@ -202,8 +202,8 @@ class bme280 extends genericChip {
   static ready(bus) {
     return BusUtil.readblock(bus, STATUS_BLOCK).then(buffer => {
       const status = buffer.readUInt8(0);
-      const measuring = BitUtil.mapbits(status, 3, 1) === 1;
-      const updating = BitUtil.mapbits(status, 0, 1) === 1;
+      const measuring = BitUtil.mapBits(status, [3, 1]) === 1;
+      const updating = BitUtil.mapBits(status, [0, 1]) === 1;
       return {
         ready: !measuring,
         measuring: measuring,
