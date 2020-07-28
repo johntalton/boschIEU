@@ -541,7 +541,7 @@ class AltComp {
     var1 = (1 + var1 / 32768) * dig_P1;
 
     // need to avoid division by zero
-    const pressure_hPa  = NaN; // uh oh, we must be in deep space
+    let pressure_hPa  = NaN; // uh oh, we must be in deep space
 
     if(var1 !== 0) {
       let p = 1048576 - adc_P;
