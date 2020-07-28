@@ -324,7 +324,7 @@ class Compensate {
 
 class AltComp {
   static fivdiCompensate(raw, coefficients) {
-    return compensateRawData(raw, coefficients);
+    return AltComp.compensateRawData(raw, coefficients);
   }
   static compensateTemperature(adcT, coef) {
     const c = { t1: coef[0], t2: coef[1], t3: coef[2] };
@@ -347,214 +347,214 @@ class AltComp {
       (c.h2 / 65536 * (1 + c.h6 / 67108864 * h * (1 + c.h3 / 67108864 * h)));
     h = h * (1 - c.h1 * h / 524288);
 
-    if (h > 100) {
+    if(h > 100) {
       h = 100;
-    } else if (h < 0) {
+    } else if(h < 0) {
       h = 0;
     }
 
     return h;
   }
 
-  static  compensatePressure(adcP, tFine, coef) {
-        const c = {
-          p1: coef[0],
-          p2: coef[1],
-          p3: coef[2],
-          p4: coef[3],
-          p5: coef[4],
-          p6: coef[5],
-          p7: coef[6],
-          p8: coef[7],
-          p9: coef[8]
-        };
+  static compensatePressure(adcP, tFine, coef) {
+    const c = {
+      p1: coef[0],
+      p2: coef[1],
+      p3: coef[2],
+      p4: coef[3],
+      p5: coef[4],
+      p6: coef[5],
+      p7: coef[6],
+      p8: coef[7],
+      p9: coef[8]
+    };
 
-        let var1 = tFine / 2 - 64000;
-        let var2 = var1 * var1 * c.p6 / 32768;
-        var2 = var2 + var1 * c.p5 * 2;
-        var2 = (var2 / 4) + (c.p4 * 65536);
-        var1 = (c.p3 * var1 * var1 / 524288 + c.p2 * var1) / 524288;
-        var1 = (1 + var1 / 32768) * c.p1;
+    let var1 = tFine / 2 - 64000;
+    let var2 = var1 * var1 * c.p6 / 32768;
+    var2 = var2 + var1 * c.p5 * 2;
+    var2 = (var2 / 4) + (c.p4 * 65536);
+    var1 = (c.p3 * var1 * var1 / 524288 + c.p2 * var1) / 524288;
+    var1 = (1 + var1 / 32768) * c.p1;
 
-        if (var1 === 0) {
-          return 0; // avoid exception caused by division by zero
-        }
+    if(var1 === 0) {
+      return 0; // avoid exception caused by division by zero
+    }
 
-        let p = 1048576 - adcP;
-        p = (p - (var2 / 4096)) * 6250 / var1;
-        var1 = c.p9 * p * p / 2147483648;
-        var2 = p * c.p8 / 32768;
-        p = p + (var1 + var2 + c.p7) / 16;
+    let p = 1048576 - adcP;
+    p = (p - (var2 / 4096)) * 6250 / var1;
+    var1 = c.p9 * p * p / 2147483648;
+    var2 = p * c.p8 / 32768;
+    p = p + (var1 + var2 + c.p7) / 16;
 
-        return p;
+    return p;
   }
 
   static compensateRawData(rawData, coefficients) {
-        const tFine = compensateTemperature(rawData.adcT, coefficients.T);
-        let pressure = compensatePressure(rawData.adcP, tFine, coefficients.P);
-        let humidity = compensateHumidity(rawData.adcH, tFine, coefficients.H);
+    const tFine = AltComp.compensateTemperature(rawData.adcT, coefficients.T);
+    let pressure = AltComp.compensatePressure(rawData.adcP, tFine, coefficients.P);
+    let humidity = AltComp.compensateHumidity(rawData.adcH, tFine, coefficients.H);
 
-        let temperature = tFine / 5120;
-        //if (this._opts.temperatureOversampling === OVERSAMPLE.SKIPPED) {
-        //  temperature = undefined;
-        //}
+    let temperature = tFine / 5120;
+    //if (this._opts.temperatureOversampling === OVERSAMPLE.SKIPPED) {
+    //  temperature = undefined;
+    //}
 
-        pressure = pressure / 100;
-        //if (this._opts.pressureOversampling === OVERSAMPLE.SKIPPED) {
-        //  pressure = undefined;
-        //}
+    pressure = pressure / 100;
+    //if (this._opts.pressureOversampling === OVERSAMPLE.SKIPPED) {
+    //  pressure = undefined;
+    //}
 
-        //if (this._opts.humidityOversampling === OVERSAMPLE.SKIPPED) {
-        //  humidity = undefined;
-        //}
+    //if (this._opts.humidityOversampling === OVERSAMPLE.SKIPPED) {
+    //  humidity = undefined;
+    //}
 
-        return {
-          adc: rawData,
-          temperature: temperature,
-          pressure: pressure,
-          humidity: humidity
-        };
+    return {
+      adc: rawData,
+      temperature: temperature,
+      pressure: pressure,
+      humidity: humidity
+    };
   }
 
   static skyCompensate(raw, calib) {
-        let adc_T = raw.adcT;
-        let adc_P = raw.adcP;
-        let adc_H = raw.adcH;
+    let adc_T = raw.adcT;
+    let adc_P = raw.adcP;
+    let adc_H = raw.adcH;
 
 
-        const dig_T1 = calib.T[0];
-        const dig_T2 = calib.T[1];
-        const dig_T3 = calib.T[2];
+    const dig_T1 = calib.T[0];
+    const dig_T2 = calib.T[1];
+    const dig_T3 = calib.T[2];
 
-        const dig_P1 = calib.P[0];
-        const dig_P2 = calib.P[1];
-        const dig_P3 = calib.P[2];
-        const dig_P4 = calib.P[3];
-        const dig_P5 = calib.P[4];
-        const dig_P6 = calib.P[5];
-        const dig_P7 = calib.P[6];
-        const dig_P8 = calib.P[7];
-        const dig_P9 = calib.P[8];
+    const dig_P1 = calib.P[0];
+    const dig_P2 = calib.P[1];
+    const dig_P3 = calib.P[2];
+    const dig_P4 = calib.P[3];
+    const dig_P5 = calib.P[4];
+    const dig_P6 = calib.P[5];
+    const dig_P7 = calib.P[6];
+    const dig_P8 = calib.P[7];
+    const dig_P9 = calib.P[8];
 
-        const dig_H1 = calib.H[0];
-        const dig_H2 = calib.H[1];
-        const dig_H3 = calib.H[2];
-        const dig_H4 = calib.H[3];
-        const dig_H5 = calib.H[4];
-        const dig_H6 = calib.H[5];
+    const dig_H1 = calib.H[0];
+    const dig_H2 = calib.H[1];
+    const dig_H3 = calib.H[2];
+    const dig_H4 = calib.H[3];
+    const dig_H5 = calib.H[4];
+    const dig_H6 = calib.H[5];
 
-        // Temperature (temperature first since we need t_fine for pressure and humidity)
-        //
-        //let adc_T = BME280.uint20(buffer[3], buffer[4], buffer[5]);
-        let tvar1 = ((((adc_T >> 3) - (dig_T1 << 1))) * dig_T2) >> 11;
-        let tvar2  = (((((adc_T >> 4) - dig_T1) * ((adc_T >> 4) - dig_T1)) >> 12) * dig_T3) >> 14;
-        let t_fine = tvar1 + tvar2;
+    // Temperature (temperature first since we need t_fine for pressure and humidity)
+    //
+    //let adc_T = BME280.uint20(buffer[3], buffer[4], buffer[5]);
+    let tvar1 = ((((adc_T >> 3) - (dig_T1 << 1))) * dig_T2) >> 11;
+    let tvar2  = (((((adc_T >> 4) - dig_T1) * ((adc_T >> 4) - dig_T1)) >> 12) * dig_T3) >> 14;
+    let t_fine = tvar1 + tvar2;
 
-        let temperature_C = ((t_fine * 5 + 128) >> 8) / 100;
+    let temperature_C = ((t_fine * 5 + 128) >> 8) / 100;
 
-        // Pressure
-        //
-        //let adc_P = BME280.uint20(buffer[0], buffer[1], buffer[2]);
-        let pvar1 = t_fine / 2 - 64000;
-        let pvar2 = pvar1 * pvar1 * dig_P6 / 32768;
-        pvar2 = pvar2 + pvar1 * dig_P5 * 2;
-        pvar2 = pvar2 / 4 + dig_P4 * 65536;
-        pvar1 = (dig_P3 * pvar1 * pvar1 / 524288 + dig_P2 * pvar1) / 524288;
-        pvar1 = (1 + pvar1 / 32768) * dig_P1;
+    // Pressure
+    //
+    //let adc_P = BME280.uint20(buffer[0], buffer[1], buffer[2]);
+    let pvar1 = t_fine / 2 - 64000;
+    let pvar2 = pvar1 * pvar1 * dig_P6 / 32768;
+    pvar2 = pvar2 + pvar1 * dig_P5 * 2;
+    pvar2 = pvar2 / 4 + dig_P4 * 65536;
+    pvar1 = (dig_P3 * pvar1 * pvar1 / 524288 + dig_P2 * pvar1) / 524288;
+    pvar1 = (1 + pvar1 / 32768) * dig_P1;
 
-        let pressure_hPa = 0;
+    let pressure_hPa = 0;
 
-        if(pvar1 !== 0) {
-          let p = 1048576 - adc_P;
-          p = ((p - pvar2 / 4096) * 6250) / pvar1;
-          pvar1 = dig_P9 * p * p / 2147483648;
-          pvar2 = p * dig_P8 / 32768;
-          p = p + (pvar1 + pvar2 + dig_P7) / 16;
+    if(pvar1 !== 0) {
+      let p = 1048576 - adc_P;
+      p = ((p - pvar2 / 4096) * 6250) / pvar1;
+      pvar1 = dig_P9 * p * p / 2147483648;
+      pvar2 = p * dig_P8 / 32768;
+      p = p + (pvar1 + pvar2 + dig_P7) / 16;
 
-          pressure_hPa = p / 100;
-        }
+      pressure_hPa = p / 100;
+    }
 
-        // Humidity (available on the BME280, will be zero on the BMP280 since it has no humidity sensor)
-        //
-        //let adc_H = BME280.uint16(buffer[6], buffer[7]);
+    // Humidity (available on the BME280, will be zero on the BMP280 since it has no humidity sensor)
+    //
+    //let adc_H = BME280.uint16(buffer[6], buffer[7]);
 
-        let h = t_fine - 76800;
-        h = (adc_H - (dig_H4 * 64 + dig_H5 / 16384 * h)) *
-            (dig_H2 / 65536 * (1 + dig_H6 / 67108864 * h * (1 + dig_H3 / 67108864 * h)));
-        h = h * (1 - dig_H1 * h / 524288);
+    let h = t_fine - 76800;
+    h = (adc_H - (dig_H4 * 64 + dig_H5 / 16384 * h)) *
+        (dig_H2 / 65536 * (1 + dig_H6 / 67108864 * h * (1 + dig_H3 / 67108864 * h)));
+    h = h * (1 - dig_H1 * h / 524288);
 
-        let humidity = (h > 100) ? 100 : (h < 0 ? 0 : h);
+    let humidity = (h > 100) ? 100 : (h < 0 ? 0 : h);
 
-        return {
-          temperature_C : temperature_C,
-          humidity      : humidity,
-          pressure_hPa  : pressure_hPa
-        };
+    return {
+      temperature_C : temperature_C,
+      humidity      : humidity,
+      pressure_hPa  : pressure_hPa
+    };
   }
 
   static agsysCompensate(raw, calib) {
-        let adc_T = raw.adcT;
-        let adc_P = raw.adcP;
-        let adc_H = raw.adcH;
+    const adc_T = raw.adcT;
+    const adc_P = raw.adcP;
+    const adc_H = raw.adcH;
 
-        const dig_T1 = calib.T[0];
-        const dig_T2 = calib.T[1];
-        const dig_T3 = calib.T[2];
+    const dig_T1 = calib.T[0];
+    const dig_T2 = calib.T[1];
+    const dig_T3 = calib.T[2];
 
-        const dig_P1 = calib.P[0];
-        const dig_P2 = calib.P[1];
-        const dig_P3 = calib.P[2];
-        const dig_P4 = calib.P[3];
-        const dig_P5 = calib.P[4];
-        const dig_P6 = calib.P[5];
-        const dig_P7 = calib.P[6];
-        const dig_P8 = calib.P[7];
-        const dig_P9 = calib.P[8];
+    const dig_P1 = calib.P[0];
+    const dig_P2 = calib.P[1];
+    const dig_P3 = calib.P[2];
+    const dig_P4 = calib.P[3];
+    const dig_P5 = calib.P[4];
+    const dig_P6 = calib.P[5];
+    const dig_P7 = calib.P[6];
+    const dig_P8 = calib.P[7];
+    const dig_P9 = calib.P[8];
 
-        const dig_H1 = calib.H[0];
-        const dig_H2 = calib.H[1];
-        const dig_H3 = calib.H[2];
-        const dig_H4 = calib.H[3];
-        const dig_H5 = calib.H[4];
-        const dig_H6 = calib.H[5];
+    const dig_H1 = calib.H[0];
+    const dig_H2 = calib.H[1];
+    const dig_H3 = calib.H[2];
+    const dig_H4 = calib.H[3];
+    const dig_H5 = calib.H[4];
+    const dig_H6 = calib.H[5];
 
-        // temperature
-        let var1 = ((((adc_T >> 3) - (dig_T1 << 1))) * dig_T2) >> 11;
-        let var2 = (((((adc_T >> 4) - dig_T1) * ((adc_T >> 4) - dig_T1)) >> 12) * dig_T3) >> 14;
-        const t_fine = var1 + var2;
+    // temperature
+    let var1 = ((((adc_T >> 3) - (dig_T1 << 1))) * dig_T2) >> 11;
+    let var2 = (((((adc_T >> 4) - dig_T1) * ((adc_T >> 4) - dig_T1)) >> 12) * dig_T3) >> 14;
+    const t_fine = var1 + var2;
 
-        // humidity
-        var1 = t_fine - 76800;
-        var1 = (adc_H - (dig_H4 * 64 + dig_H5 / 16384 * var1)) *
-            (dig_H2 / 65536 * (1 + dig_H6 / 67108864 * var1 * (1 + dig_H3 / 67108864 * var1)));
-        var1 = var1 * (1 - dig_H1 * var1 / 524288);
+    // humidity
+    var1 = t_fine - 76800;
+    var1 = (adc_H - (dig_H4 * 64 + dig_H5 / 16384 * var1)) *
+      (dig_H2 / 65536 * (1 + dig_H6 / 67108864 * var1 * (1 + dig_H3 / 67108864 * var1)));
+    var1 = var1 * (1 - dig_H1 * var1 / 524288);
 
-        let hum = (var1 > 100) ? 100 : (var1 < 0 ? 0 : var1);
-        hum =  Math.round(hum * 10) / 10;
+    let hum = (var1 > 100) ? 100 : (var1 < 0 ? 0 : var1);
+    hum =  Math.round(hum * 10) / 10;
 
-        // pressure
-        var1 = t_fine / 2 - 64000;
-        var2 = var1 * var1 * dig_P6 / 32768;
-        var2 = var2 + var1 * dig_P5 * 2;
-        var2 = var2 / 4 + dig_P4 * 65536;
-        var1 = (dig_P3 * var1 * var1 / 524288 + dig_P2 * var1) / 524288;
-        var1 = (1 + var1 / 32768) * dig_P1;
+    // pressure
+    var1 = t_fine / 2 - 64000;
+    var2 = var1 * var1 * dig_P6 / 32768;
+    var2 = var2 + var1 * dig_P5 * 2;
+    var2 = var2 / 4 + dig_P4 * 65536;
+    var1 = (dig_P3 * var1 * var1 / 524288 + dig_P2 * var1) / 524288;
+    var1 = (1 + var1 / 32768) * dig_P1;
 
-        // need to avoid division by zero
-        let pressure_hPa  = NaN; // uh oh, we must be in deep space
+    // need to avoid division by zero
+    const pressure_hPa  = NaN; // uh oh, we must be in deep space
 
-        if (var1 !== 0) {
-          let p = 1048576 - adc_P;
-          p = ((p - var2 / 4096) * 6250) / var1;
-          var1 = dig_P9 * p * p / 2147483648;
-          var2 = p * dig_P8 / 32768;
-          p = (p + (var1 + var2 + dig_P7) / 16) / 100;
+    if(var1 !== 0) {
+      let p = 1048576 - adc_P;
+      p = ((p - var2 / 4096) * 6250) / var1;
+      var1 = dig_P9 * p * p / 2147483648;
+      var2 = p * dig_P8 / 32768;
+      p = (p + (var1 + var2 + dig_P7) / 16) / 100;
 
-         // if (this.device.elevation > 0) {
-         //     p = this._seaLevelPressure(p);
-         // }
+      // if (this.device.elevation > 0) {
+      //     p = this._seaLevelPressure(p);
+      // }
 
-          pressure_hPa = Math.round(p * 100) / 100;
+      pressure_hPa = Math.round(p * 100) / 100;
     }
 
     //
@@ -567,4 +567,4 @@ class AltComp {
   }
 }
 
-module.exports = { Compensate };
+module.exports = { Compensate, AltComp };
