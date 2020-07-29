@@ -16,10 +16,5 @@ jobs:
       with:
         languages: javascript
         config-file: ./.github/codeql-config.yml
-          
-    - uses: actions/setup-node@v2.1.1
-    - run: npm install
-    # - run: npm run build
-    # - run: npm run format
       
     - uses: github/codeql-action/analyze@v1
