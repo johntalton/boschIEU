@@ -3,6 +3,7 @@ const { bmp280 } = require('./bmp280.js');
 const { bme280 } = require('./bme280.js');
 const { bme680 } = require('./bme680.js');
 const { bmp388 } = require('./bmp388.js');
+const { bmp390 } = require('./bmp390.js');
 
 // Package up our Chips into a nice array for later
 // note: this is left outside the class to add
@@ -13,7 +14,8 @@ const Ahoy = [
   bmp280,
   bme280,
   bme680,
-  bmp388
+  bmp388,
+  bmp390
 ];
 
 /**
@@ -31,6 +33,7 @@ class Chip {
   static get BME280_ID() { return bme280.chipId; }
   static get BME680_ID() { return bme680.chipId; }
   static get BMP388_ID() { return bmp388.chipId; }
+  static get BMP390_ID() { return bmp390.chipId; }
 
   /**
    * Recovers a specific Chip implementation by its ID.
