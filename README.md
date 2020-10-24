@@ -18,6 +18,7 @@ Tested with these products:
  - [Adafruit BME280](https://www.adafruit.com/product/2652)
  - [Adafruit BME680](https://www.adafruit.com/product/3660)
  - [Adafruit BMP388](https://www.adafruit.com/product/3966)
+ - BMP390
 
 (note: Adafruit no-longer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
