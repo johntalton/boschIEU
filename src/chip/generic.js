@@ -89,7 +89,7 @@ class genericChip {
   static get name() { return 'generic'; }
   static get chipId() { return undefined; }
   static get skip_value() { return 0x80000; }
-  static id(bus) { return BusUtil.readblock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); } // todo remove and add detectChip
+  static id(bus) { return BusUtil.readBlock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); } // todo remove and add detectChip
   static reset(bus) { return bus.write(0xE0, 0xB6); }
 
   static get fifo() { return genericFifo; } // return the class as a shorthand

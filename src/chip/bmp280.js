@@ -20,7 +20,7 @@ class bmp280 extends genericChip {
   }
 
   static calibration(bus) {
-    return BusUtil.readblock(bus, [[0x88, 25]]).then(buffer => {
+    return BusUtil.readBlock(bus, [[0x88, 25]]).then(buffer => {
       const dig_T1 = buffer.readUInt16LE(0);
       const dig_T2 = buffer.readInt16LE(2);
       const dig_T3 = buffer.readInt16LE(4);
@@ -46,7 +46,7 @@ class bmp280 extends genericChip {
   }
 
   static profile(bus) {
-    return BusUtil.readblock(bus, [[0xF3, 3]]).then(buffer => {
+    return BusUtil.readBlock(bus, [[0xF3, 3]]).then(buffer => {
       const status = buffer.readUInt8(0);
       const ctrl_meas = buffer.readUInt8(1);
       const config = buffer.readUInt8(2);
@@ -102,7 +102,7 @@ class bmp280 extends genericChip {
   }
 
   static measurement(bus, calibration) {
-    return BusUtil.readblock(bus, [[0xF7, 6]]).then(buffer => {
+    return BusUtil.readBlock(bus, [[0xF7, 6]]).then(buffer => {
       const pres_msb = buffer.readUInt8(0);
       const pres_lsb = buffer.readUInt8(1);
       const pres_xlsb = buffer.readUInt8(2);
@@ -121,7 +121,7 @@ class bmp280 extends genericChip {
   }
 
   static ready(bus) {
-    return BusUtil.readblock(bus, [0xF3]).then(buffer => {
+    return BusUtil.readBlock(bus, [0xF3]).then(buffer => {
       const status = buffer.readUInt8(0);
       const measuring = BitUtil.mapBits(status, [3, 1]) === 1;
       const updating = BitUtil.mapBits(status, [0, 1]) === 1;
