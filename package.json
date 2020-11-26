@@ -16,21 +16,21 @@
     "@johntalton/and-other-delights": "^3.0.2"
   },
   "devDependencies": {
-    "eslint": "^7.5.0",
+    "eslint": "^7.14.0",
     "eslint-plugin-fp": "^2.3.0",
     "eslint-plugin-immutable": "^1.0.0",
-    "eslint-plugin-import": "^2.16.0",
+    "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-jsdoc": "^30.0.3",
     "eslint-plugin-no-loops": "^0.3.0",
     "eslint-plugin-no-use-extend-native": "^0.5.0",
     "eslint-plugin-promise": "^4.0.1",
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-spellcheck": "0.0.17",
-    "i2c-bus": "^5.2.0",
-    "mqtt": "^4.1.0",
-    "onoff": "^6.0.0",
+    "i2c-bus": "^5.2.1",
+    "mqtt": "^4.2.6",
+    "onoff": "^6.0.1",
     "repler": "github:johntalton/repler",
-    "rxjs": "^6.4.0",
+    "rxjs": "^6.6.3",
     "zen-observable": "^0.8.13"
   },
   "repository": {
