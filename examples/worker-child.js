@@ -15,18 +15,16 @@ const { deviceDef_bmp388 } = require('./deviceDefs.js');
 
 if(isMainThread) { throw new Error('worker child called as main'); }
 
-const bus_number = 1;
-const address = 119;
-
-console.log(workerData);
+//console.log(workerData);
 const provider = workerData.mock ? I2CMockBus : i2c;
 
-I2CMockBus.addDevice(bus_number, address, deviceDef_bmp388);
+I2CMockBus.addDevice(workerData.busNumber, workerData.busAddress, deviceDef_bmp388);
 
-provider.openPromisified(bus_number)
-  .then(i2c1 => new I2CAddressedBus(i2c1, address))
+provider.openPromisified(workerData.busNumber)
+  .then(i2c1 => new I2CAddressedBus(i2c1, workerData.busAddress))
   .then(bus => {
     return BoschIEU.sensor(bus).then(s => {
+      //console.log(s);
       return s.detectChip()
         // .then(() => s.reset())
         .then(() => s.calibration())
