@@ -81,4 +81,4 @@ provider.openPromisified(workerData.busNumber)
         });
     });
   })
-  .catch(e => console.log('top level error', e));
+  .catch(e => console.log('top level error', workerData.name, e));

@@ -20,7 +20,8 @@ const devices = [
 
 const workers = devices.map(device => {
   // create our new worked and pass workerData configuration
-  const worker = new Worker('./worker-child.js', { workerData: {
+  const worker = new Worker(__dirname + '/worker-child.js', { workerData: {
+    name: device.name,
     mock,
     busNumber: device.busNumber,
     busAddress: device.busAddress
