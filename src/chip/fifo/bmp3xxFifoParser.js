@@ -58,12 +58,14 @@ class bmp3xxFifoParser {
   static parseControlErrorFrame(frame) {
     if(frame.length < 2) { return [-2]; }
     const opcode = frame.readUInt8(1);
+    // opcode === 1
     return [ 1 + 1, { type: 'control.error', opcode: opcode }];
   }
 
   static parseControlConfigFrame(frame) {
     if(frame.length < 2) { return [-2]; }
     const opcode = frame.readUInt8(1);
+    // opcode === 1
     return [ 1 + 1, { type: 'control.config', opcode: opcode }];
   }
 

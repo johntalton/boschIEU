@@ -214,6 +214,7 @@ class bmp3xx extends genericChip {
 
       //
       const iff_filter = BitUtil.mapBits(config, 3, 3);
+      const short_in = BitUtil.mapBits(config, 0, 1);)
       const odr_sel = BitUtil.mapBits(odr, 4, 5);
       const osr_p = BitUtil.mapBits(osr, 2, 3);
       const osr_t = BitUtil.mapBits(osr, 5, 3);
@@ -225,6 +226,7 @@ class bmp3xx extends genericChip {
       // eslint-disable-next-line no-unused-vars
       const spi3 = BitUtil.mapBits(if_conf, 0, 1);
       const drdy_en = BitUtil.mapBits(int_ctrl, 6, 1);
+      const int_ds = BitUtil.mapBits(int_ctrl, 5, 1); // bmp390
       const ffull_en = BitUtil.mapBits(int_ctrl, 4, 1);
       const fwtm_en = BitUtil.mapBits(int_ctrl, 3, 1);
       const int_latch = BitUtil.mapBits(int_ctrl, 2, 1);
@@ -432,6 +434,9 @@ class bmp3xx extends genericChip {
       // const time_23_16 = buffer.readUInt8(10);
       // const time_31_24 = buffer.readUInt8(11);
 
+      // register 0x0f marked as reserved for bmp390
+      // TODO the following int32 read assumes that the
+      //   now reserved byte will return 0x00 which is not always true
       const time = buffer.readUInt32LE(8);
       // const time2 = (time_31_24 << 24) | (time_23_16 << 16) | (time_15_8 << 8) | time_7_0
       // console.log('times', time, time2, buffer.readUInt32LE(8));
@@ -462,6 +467,7 @@ class bmp3xx extends genericChip {
         const drdy_press =  BitUtil.mapBits(status, 5, 1) === BIT_SET;
         const cmd_rdy =  BitUtil.mapBits(status, 4, 1) === BIT_SET;
 
+        const itf_act_pt = BitUtil.mapBits(event, 1, 1) === BIT_SET; // only for bmp390
         const por_detected = BitUtil.mapBits(event, 0, 1) === BIT_SET;
 
         const drdy =  BitUtil.mapBits(int_status, 3, 1) === BIT_SET;

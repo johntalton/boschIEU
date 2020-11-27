@@ -24,6 +24,8 @@ class bmp3xxFifo extends genericFifo {
         // console.log('fifo counter buffer', buffer);
         const fifo_byte_counter_7_0 = buffer.readUInt8(0);
         const fifo_byte_counter_8 = buffer.readUInt8(1);
+
+        // TODO this is nolonger correct for bmp390, it uses all 16bits
         return reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
       })
       .then(fifo_byte_counter => {
