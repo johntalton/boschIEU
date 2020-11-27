@@ -20,23 +20,28 @@ const devices = [
 
 const workers = devices.map(device => {
   // create our new worked and pass workerData configuration
-  const worker = new Worker(__dirname + '/worker-child.js', { workerData: {
+  const workerData = {
     name: device.name,
     mock,
     busNumber: device.busNumber,
     busAddress: device.busAddress
-  } });
+  };
+
+  const worker = new Worker(__dirname + '/worker-child.js', { workerData });
   worker.on('online', () => { console.log('online - worker', device.name); });
   worker.on('error', e => { console.log('error - worker', device.name, e); });
 
   // create a side-channel for worker communication
   // setup response message handler and pass the port to worker.
   const mc = new MessageChannel();
-  mc.port1.on('message', message => { console.log('message', device.name, message); });
-  mc.port1.on('close', () => { console.log('close port1', device.name); });
   worker.postMessage({ port: mc.port2 }, [mc.port2]);
 
-  return { worker, port: mc.port1 };
+  return { workerData, worker, port: mc.port1 };
+});
+
+workers.forEach(({ workerData, port }) => {
+  port.on('message', message => { console.log('message', workerData.name, message); });
+  port.on('close', () => { console.log('close port1', workerData.name); });
 });
 
 // setup primary and secondary signal handlers to cleanly exit worker.
@@ -48,7 +53,7 @@ function secondSig(sig) {
 function firstSig(sig) {
   console.log('first signal - cleanup');
 
-  workers.forEach(({ worker, port }) => {
+  workers.forEach(({ port }) => {
     // by closing side-channel the worker will cleanup
     port.close();
   });

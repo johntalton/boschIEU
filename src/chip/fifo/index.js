@@ -1,3 +1,3 @@
-const { bmp3Fifo } = require('./bmp3Fifo.js');
+const { Bmp3Fifo } = require('./bmp3Fifo.js');
 
-module.exports = { bmp3Fifo };
+module.exports = { Bmp3Fifo };

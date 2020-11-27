@@ -1,7 +1,13 @@
-const { genericFifo } = require('./generic.js');
-const { Compensate } = require('./compensate.js');
+const { genericFifo } = require('../generic.js');
+const { Compensate } = require('../compensate.js');
 
 const FIFO_SIZE = 512;
+
+class Util {
+  static reconstruct9bit(msb, lsb) {
+    return msb << 8 | lsb;
+  }
+}
 
 /**
  *

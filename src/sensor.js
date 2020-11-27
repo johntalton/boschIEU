@@ -58,18 +58,17 @@ class BoschSensor {
     }
 
     return readid(this._bus, 0xD0) // standard `generic` register id
-      .then(result => {
-        if(result === 0) {
-          console.log('detect: initial buffer Zero, read alt register');
-          return readid(this._bus, 0x00); // bmp388 register
+      .then(id => {
+        if(id !== 0) {
+          console.log('detect: via legacy register read');
+          return { id, legacy: true};
         }
-        console.log('detect: via legacy register read');
-        return result;
+
+        console.log('detect: legacy resuted in Zero, atempt standard register');
+        return readid(this._bus, 0x00) // bmp388/bmp390 register
+          .then(id => ({ id, legacy: false }));
       })
-      .then(result => {
-        const c = Chip.fromId(result);
-        return c;
-      });
+      .then(({ id, legacy }) => Chip.fromId(id, legacy));
   }
 
   valid() { return this._chip.chipId !== Chip.generic().chipId; }
