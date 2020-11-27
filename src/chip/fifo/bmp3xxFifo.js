@@ -1,6 +1,6 @@
 const { genericFifo } = require('../generic.js');
 const { Compensate } = require('../compensate.js');
-const { bmp3xxFifoParser } = require('./');
+const { bmp3xxFifoParser } = require('./bmp3xxFifoParser.js');
 
 const FIFO_SIZE = 512;
 
