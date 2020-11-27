@@ -1,7 +1,7 @@
 const { BusUtil } = require('@johntalton/and-other-delights');
 
 const { genericChip } = require('./generic.js');
-const { Bmp3Fifo } = require('./fifo');
+const { bmp3xxFifo } = require('./fifo');
 
 /**
  *
@@ -23,7 +23,7 @@ class bmp3xx extends genericChip {
   static id(bus) { return BusUtil.readBlock(bus, [0x00]).then(buffer => buffer.readInt8(0)); }
   static reset(bus) { return bus.write(0x7E, Buffer.from([0xB6])); }
 
-  static get fifo() { return Bmp3Fifo; }
+  static get fifo() { return bmp3xxFifo; }
 
   static calibration(bus) {
     console.log('bmp3xx calibration');
@@ -73,4 +73,3 @@ class bmp3xx extends genericChip {
 }
 
 module.exports = { bmp3xx };
-

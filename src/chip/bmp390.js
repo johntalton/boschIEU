@@ -13,7 +13,6 @@ class bmp390 extends bmp3xx {
     return BusUtil.readBlock(bus, [[0xC0, 3]]).then(buffer => { throw new Error('read24'); });
   }
 
-
   static profile(bus) {
     return BusUtil.readBlock(bus, [[0x15, 11]]).then(buffer => {
       return {};

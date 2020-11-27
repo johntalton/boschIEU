@@ -6,8 +6,6 @@ const { Compensate } = require('./compensate.js');
 const { enumMap } = require('./generic.js');
 const { bmp3xx } = require('./bmp3xx.js');
 
-const { Bmp3Fifo } = require('./fifo');
-
 const oversamplings = [
   { name: 1, value: 0x0 },
   { name: 2, value: 0x1 },
