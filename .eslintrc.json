@@ -417,7 +417,7 @@
         "johntalton",
         "todo", "const", "eslint", "bitwise", "util", "spi", "md5", "nodejs", "param",
         "fifo", "gpio", "mqtt", "frameset", "2xy", "3xy", "6xy",
-        "bmp280", "bme280", "bmp388", "bmp390", "bme680"
+        "bmp280", "bme280", "bmp3xx", "bmp388", "bmp390", "bme680"
       ]
     }]
   }
