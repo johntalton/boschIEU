@@ -214,7 +214,7 @@ class bmp3xx extends genericChip {
 
       //
       const iff_filter = BitUtil.mapBits(config, 3, 3);
-      const short_in = BitUtil.mapBits(config, 0, 1);)
+      const short_in = BitUtil.mapBits(config, 0, 1);
       const odr_sel = BitUtil.mapBits(odr, 4, 5);
       const osr_p = BitUtil.mapBits(osr, 2, 3);
       const osr_t = BitUtil.mapBits(osr, 5, 3);
@@ -223,7 +223,6 @@ class bmp3xx extends genericChip {
       const press_en = BitUtil.mapBits(pwr_ctrl, 0, 1);
       const i2c_wdt_sel = BitUtil.mapBits(if_conf, 2, 1);
       const i2c_wdt_en = BitUtil.mapBits(if_conf, 1, 1);
-      // eslint-disable-next-line no-unused-vars
       const spi3 = BitUtil.mapBits(if_conf, 0, 1);
       const drdy_en = BitUtil.mapBits(int_ctrl, 6, 1);
       const int_ds = BitUtil.mapBits(int_ctrl, 5, 1); // bmp390
