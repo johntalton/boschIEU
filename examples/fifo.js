@@ -32,6 +32,12 @@ async function dumpFifo(mock, options) {
 
   await sensor.calibration(); // needed, do not forget
 
+  //await sensor.setProfile({ mode: 'NORMAL', fifo: {
+  //  active: true,
+  //  temp: true,
+  //  press: true,
+  //  time: true
+  //}});
 
   console.log(await sensor.profile());
   console.log(sensor.chip.name, 'fifo dump');

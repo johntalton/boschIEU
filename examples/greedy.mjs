@@ -15,7 +15,7 @@ const options = {
 
 const i2c1 = await i2c.openPromisified(options.busNumber)
 const addressedI2C1 = new I2CAddressedBus(i2c1, options.busAddress)
-const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP388_ID })
+const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID })
 await sensor.calibration()
 
 await sensor.fifo.flush()
