@@ -27,6 +27,7 @@ provider.openPromisified(workerData.busNumber)
       //console.log(s);
       return s.detectChip()
         // .then(() => s.reset())
+        //.then(() => console.log('hello world'))
         .then(() => s.calibration())
         .then(() => s.fifo.flush())
         // .then(() => s.profile()).then(p => console.log(p))
@@ -81,4 +82,4 @@ provider.openPromisified(workerData.busNumber)
         });
     });
   })
-  .catch(e => console.log('top level error', e));
+  .catch(e => console.error('top level error', workerData.name, e));

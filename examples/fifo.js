@@ -21,7 +21,8 @@ async function dumpFifo(mock, options) {
   // setup steps needed to access the bus
   const i2c1 = await provider.openPromisified(options.busNumber);
   const addressedI2C1 = new I2CAddressedBus(i2c1, options.busAddress);
-  const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP388_ID });
+  const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID });
+
 
   // we could use the following code await sensor.detectChip();
   // but it might be more interesting to show the use of
@@ -31,6 +32,14 @@ async function dumpFifo(mock, options) {
 
   await sensor.calibration(); // needed, do not forget
 
+  //await sensor.setProfile({ mode: 'NORMAL', fifo: {
+  //  active: true,
+  //  temp: true,
+  //  press: true,
+  //  time: true
+  //}});
+
+  console.log(await sensor.profile());
   console.log(sensor.chip.name, 'fifo dump');
 
   // single shot read

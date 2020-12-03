@@ -53,7 +53,7 @@
       "pollIntervalS": 7
     },
     {
-      "active": true,
+      "active": false,
       "mock": false,
       "name": "ThreeEightyEight",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
@@ -89,7 +89,32 @@
           "time": true
         }
       }
+    },
+    {
+      "active": true,
+      "mock": false,
+      "name": "tree ninny",
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+
+      "pollIntervalS": 10,
+      "onStartSetProfile": true,
+
+      "profile": {
+        "mode": "NORMAL",
+
+        "fifo": {
+          "active": true,
+          "highWatermark": 10,
+          "data": "unfiltered",
+          "subsampling": 1,
+          "stopOnFull": false,
+          "temp": true,
+          "press": true,
+          "time": true
+        }
+      }
     }
+
   ],
   "mqtt": {
     "reconnectMs": 30000

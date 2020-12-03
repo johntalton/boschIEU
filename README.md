@@ -11,13 +11,14 @@ Common Unified Sensor API for supported IEU chips.
 ![GitHub last commit](https://img.shields.io/github/last-commit/johntalton/boschieu)
 [![Package Quality](https://npm.packagequality.com/shield/%40johntalton%2Fboschieu.svg)](https://packagequality.com/#?package=@johntalton/boschieu)
 
-Provides full feature access to all supported chips (bmp280 bme280 bme680 bmp388) while still providing rich chip specific features (multiple heater profiles and fifo access).
+Provides full feature access to all supported chips (bmp280 bme280 bme680 bmp388 bmp390) while still providing rich chip specific features (multiple heater profiles and fifo access).
 
 Tested with these products:
  - [Adafruit BMP280](https://www.adafruit.com/product/2651)
  - [Adafruit BME280](https://www.adafruit.com/product/2652)
  - [Adafruit BME680](https://www.adafruit.com/product/3660)
  - [Adafruit BMP388](https://www.adafruit.com/product/3966)
+ - [Adafruit BMP390](https://www.adafruit.com/product/4816)
 
 (note: Adafruit no-longer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
