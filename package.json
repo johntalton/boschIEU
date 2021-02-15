@@ -60,7 +60,7 @@
     }
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "^3.0.2"
+    "@johntalton/and-other-delights": "^5.0.0"
   },
   "devDependencies": {
     "@johntalton/eslint-config": "github:johntalton/eslint-config",
