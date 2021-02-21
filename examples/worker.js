@@ -14,8 +14,8 @@ console.log(process.argv);
 const mock = process.argv.includes('--mock');
 
 const devices = [
-  { name: '388', busNumber: 1, busAddress: 118 },
-  { name: '390', busNumber: 1, busAddress: 119 }
+  { name: 'p388', busNumber: 1, busAddress: 118 },
+  { name: 'e280', busNumber: 1, busAddress: 119 }
 ];
 
 const workers = devices.map(device => {

@@ -1,7 +1,4 @@
-// eslint-disable-next-line init-declarations
-let i2c; // eslint-disable-line fp/no-let
-// eslint-disable-next-line global-require
-try { i2c = require('i2c-bus'); } catch (e) { console.log('i2c-bus unavailable', e.toString()); }
+const { FivdiBusProvider } = require('./fivdi-bus.js')
 
 const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
 
@@ -10,7 +7,7 @@ const { BoschIEU, Chip } = require('../');
 const { deviceDef_bmp388 } = require('./deviceDefs.js'); // eslint-disable-line spellcheck/spell-checker
 
 async function dumpFifo(mock, options) {
-  const provider = mock ? I2CMockBus : i2c;
+  const provider = mock ? I2CMockBus : FivdiBusProvider;
 
   // install a mock device
   if(mock) {
@@ -21,7 +18,7 @@ async function dumpFifo(mock, options) {
   // setup steps needed to access the bus
   const i2c1 = await provider.openPromisified(options.busNumber);
   const addressedI2C1 = new I2CAddressedBus(i2c1, options.busAddress);
-  const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID });
+  const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP388_ID });
 
 
   // we could use the following code await sensor.detectChip();

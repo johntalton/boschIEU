@@ -17,7 +17,7 @@
     {
       "active": false,
       "name": "front room",
-      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -30,10 +30,10 @@
       "retryIntervalS": 60
     },
     {
-      "active": false,
+      "active": true,
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
-      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
         "mode": "FORCED",
         "oversampling_p": 2,
@@ -56,7 +56,7 @@
       "active": false,
       "mock": false,
       "name": "ThreeEightyEight",
-      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
 
       "pollIntervalS": 10,
       "onStartSetProfile": true,
@@ -91,7 +91,7 @@
       }
     },
     {
-      "active": true,
+      "active": false,
       "mock": false,
       "name": "tree ninny",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },

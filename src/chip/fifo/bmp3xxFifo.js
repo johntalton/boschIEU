@@ -21,47 +21,47 @@ function reconstruct9bit(msb, lsb) {
 class bmp3xxFifo extends genericFifo {
 
   static flush(bus) {
-    return bus.write(CMD_REGISTER, Buffer.from([ CMD_FIFO_FLUSH ]));
+    return bus.writeI2cBlock(CMD_REGISTER, Buffer.from([ CMD_FIFO_FLUSH ]));
   }
 
-  static read(bus, calibration) {
-    return bus.read(FIFO_LENGTH_REGISTER, 2)
-      .then(buffer => {
-        const fifo_byte_counter_7_0 = buffer.readUInt8(0);
-        const fifo_byte_counter_8 = buffer.readUInt8(1);
+  static async read(bus, calibration) {
+    const abuffer = await bus.readI2cBlock(FIFO_LENGTH_REGISTER, 2)
 
-        // TODO this is no longer correct for bmp390, it uses all 16bits
-        return reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
-      })
-      .then(fifo_byte_counter => {
-        if(fifo_byte_counter < 0 || fifo_byte_counter > FIFO_SIZE) { throw new Error('fifo counter error'); }
-        const readSize = fifo_byte_counter + 4 + 2;
-        // eslint-disable-next-line promise/no-nesting
-        return bus.write(FIFO_DATA_REGISTER).then(() => bus.readBuffer(readSize)).then(b => [b]);
-      })
-      .then(frameset => bmp3xxFifoParser.parseFrameSet(frameset))
-      .then(msgset => {
-        return msgset.reduce((acu, msg) => acu.concat(msg), []);
-      })
-      .then(msgs => {
-        return msgs.map(msg => {
-          if(msg.type === 'sensor') {
-            return {
-              // we do not explode message here as it may not be clean
-              type: msg.type,
-              ...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
-            };
-          } else if(msg.type === 'sensor.time') {
-            return {
-              // we do not explode message here as it may not be clean
-              type: msg.type,
-              ...Compensate.sensortime(msg.time)
-            };
-          }
+    const buffer = Buffer.from(abuffer)
+    const fifo_byte_counter_7_0 = buffer.readUInt8(0);
+    const fifo_byte_counter_8 = buffer.readUInt8(1);
+    // TODO this is no longer correct for bmp390, it uses all 16bits
+    const fifo_byte_counter =  reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
 
-          return msg;
-        });
-      });
+    if(fifo_byte_counter < 0 || fifo_byte_counter > FIFO_SIZE) {
+      throw new Error('fifo counter error')
+    }
+
+    //
+    const readSize = fifo_byte_counter + 4 + 2;
+
+    await bus.sendByte(FIFO_DATA_REGISTER)
+    const frames = await bus.i2cRead(readSize)
+
+    const messages = bmp3xxFifoParser.parseFrames(frames)
+
+    return messages.map(msg => {
+      if(msg.type === 'sensor') {
+        return {
+          // we do not explode message here as it may not be clean
+          type: msg.type,
+          ...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
+        };
+      } else if(msg.type === 'sensor.time') {
+        return {
+          // we do not explode message here as it may not be clean
+          type: msg.type,
+          ...Compensate.sensortime(msg.time)
+        };
+      }
+
+      return msg;
+    })
   }
 }
 

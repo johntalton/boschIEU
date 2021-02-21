@@ -1,5 +1,4 @@
-/* eslint-disable promise/no-nesting */
-const i2c = require('i2c-bus');
+const { FivdiBusProvider } = require('./fivdi-bus.js');
 
 const Repler = require('repler');
 
@@ -54,7 +53,7 @@ Repler.addCommand({
       const busNumber = parseInt(prams.shift(), 10);
       const busAddress = parseInt(prams.shift(), 10);
 
-      return i2c.openPromisified(busNumber)
+      return FivdiBusProvider.openPromisified(busNumber)
       .then(bus => new I2CAddressedBus(bus, busAddress))
       .then(bus => {
         console.log('bus inited');
@@ -245,6 +244,8 @@ Repler.addCommand({
       oversampling_h: 1,
       standby_time: true,
       standby_prescaler: 256,
+
+      filter_coefficient: false,
 
       interrupt: {
         mode: 'open-drain',

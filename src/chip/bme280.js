@@ -1,8 +1,9 @@
 const {
   BusUtil,
   BitUtil,
-  NameValueUtil
 } = require('@johntalton/and-other-delights');
+
+const { NameValueUtil } = require('../nvutil.js')
 
 const { genericChip, enumMap, Compensate } = require('./generic.js');
 
@@ -74,85 +75,88 @@ class bme280 extends genericChip {
     };
   }
 
-  static calibration(bus) {
-    return BusUtil.readBlock(bus, CALIBRATION_BLOCK).then(buffer => {
-      const dig_T1 = buffer.readUInt16LE(0);
-      const dig_T2 = buffer.readInt16LE(2);
-      const dig_T3 = buffer.readInt16LE(4);
+  static async calibration(bus) {
+    const abuffer = await BusUtil.readBlock(bus, CALIBRATION_BLOCK)
+    const buffer = Buffer.from(abuffer)
 
-      const dig_P1 = buffer.readUInt16LE(6);
-      const dig_P2 = buffer.readInt16LE(8);
-      const dig_P3 = buffer.readInt16LE(10);
-      const dig_P4 = buffer.readInt16LE(12);
-      const dig_P5 = buffer.readInt16LE(14);
-      const dig_P6 = buffer.readInt16LE(16);
-      const dig_P7 = buffer.readInt16LE(18);
-      const dig_P8 = buffer.readInt16LE(20);
-      const dig_P9 = buffer.readInt16LE(22);
+    const dig_T1 = buffer.readUInt16LE(0);
+    const dig_T2 = buffer.readInt16LE(2);
+    const dig_T3 = buffer.readInt16LE(4);
 
-      const T = [dig_T1, dig_T2, dig_T3];
-      const P = [dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9];
+    const dig_P1 = buffer.readUInt16LE(6);
+    const dig_P2 = buffer.readInt16LE(8);
+    const dig_P3 = buffer.readInt16LE(10);
+    const dig_P4 = buffer.readInt16LE(12);
+    const dig_P5 = buffer.readInt16LE(14);
+    const dig_P6 = buffer.readInt16LE(16);
+    const dig_P7 = buffer.readInt16LE(18);
+    const dig_P8 = buffer.readInt16LE(20);
+    const dig_P9 = buffer.readInt16LE(22);
 
-      const dig_H1 = buffer.readUInt8(24);
-      // boundary packed
-      const dig_H2 = buffer.readInt16LE(25);
-      const dig_H3 = buffer.readUInt8(27);
-      const e4 = buffer.readUInt8(28);
-      const e5 = buffer.readUInt8(29);
-      const e6 = buffer.readUInt8(30);
-      const dig_H6 = buffer.readInt8(31);
+    const T = [dig_T1, dig_T2, dig_T3];
+    const P = [dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9];
 
-      const dig_H4 = (e4 << 4) | (e5 & 0b1111);
-      const dig_H5 = (e6 << 4) | (e5 >> 4);
+    const dig_H1 = buffer.readUInt8(24);
+    // boundary packed
+    const dig_H2 = buffer.readInt16LE(25);
+    const dig_H3 = buffer.readUInt8(27);
+    const e4 = buffer.readUInt8(28);
+    const e5 = buffer.readUInt8(29);
+    const e6 = buffer.readUInt8(30);
+    const dig_H6 = buffer.readInt8(31);
 
-      const H = [dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6];
+    const dig_H4 = (e4 << 4) | (e5 & 0b1111);
+    const dig_H5 = (e6 << 4) | (e5 >> 4);
 
-      return { T: T, P: P, H: H, G: [] };
-    });
+    const H = [dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6];
+
+    return { T, P, H, G: [] };
   }
 
-  static profile(bus) {
-    return BusUtil.readBlock(bus, PROFILE_BLOCK).then(buffer => {
-      const ctrl_hum = buffer.readUInt8(0);
-      const status = buffer.readUInt8(1);
-      const ctrl_meas = buffer.readUInt8(2);
-      const config = buffer.readUInt8(3);
+  static async profile(bus) {
+    const abuffer = await BusUtil.readBlock(bus, PROFILE_BLOCK)
+    const buffer = Buffer.from(abuffer)
 
-      const osrs_h = BitUtil.mapBits(ctrl_hum, [2, 3]);
+    const ctrl_hum = buffer.readUInt8(0);
+    const status = buffer.readUInt8(1);
+    const ctrl_meas = buffer.readUInt8(2);
+    const config = buffer.readUInt8(3);
 
-      const measuring = BitUtil.mapBits(status, [3, 1]) === 1;
-      const updating = BitUtil.mapBits(status, [0, 1]) === 1;
+    const osrs_h = BitUtil.mapBits(ctrl_hum, 2, 3);
 
-      const osrs_t = BitUtil.mapBits(ctrl_meas, [7, 3]);
-      const osrs_p = BitUtil.mapBits(ctrl_meas, [4, 3]);
-      const mode = BitUtil.mapBits(ctrl_meas, [1, 2]);
+    const measuring = BitUtil.mapBits(status, 3, 1) === 1;
+    const updating = BitUtil.mapBits(status, 0, 1) === 1;
 
-      const t_sb = BitUtil.mapBits(config, [7, 3]);
-      const filter = BitUtil.mapBits(config, [4, 3]);
-      const spi_3w_en = BitUtil.mapBits(config, [0, 1]) === 1;
+    const osrs_t = BitUtil.mapBits(ctrl_meas, 7, 3);
+    const osrs_p = BitUtil.mapBits(ctrl_meas, 4, 3);
+    const mode = BitUtil.mapBits(ctrl_meas, 1, 2);
 
-      return {
-        mode: NameValueUtil.toName(mode, enumMap.modes),
-        oversampling_p: NameValueUtil.toName(osrs_p, enumMap.oversamples),
-        oversampling_t: NameValueUtil.toName(osrs_t, enumMap.oversamples),
-        oversampling_h: NameValueUtil.toName(osrs_h, enumMap.oversamples),
-        filter_coefficient: NameValueUtil.toName(filter, enumMap.filters),
-        standby_time: NameValueUtil.toName(t_sb, enumMap.standbys_hires),
+    const t_sb = BitUtil.mapBits(config, 7, 3);
+    const filter = BitUtil.mapBits(config, 4, 3);
+    const spi_3w_en = BitUtil.mapBits(config, 0, 1) === 1;
 
-        spi: {
-          enable3w: spi_3w_en
-        },
-        ready: {
-          ready: !measuring,
-          measuring: measuring,
-          updating: updating
-        }
-      };
-    });
+    return {
+      mode: NameValueUtil.toName(mode, enumMap.modes),
+      oversampling_p: NameValueUtil.toName(osrs_p, enumMap.oversamples),
+      oversampling_t: NameValueUtil.toName(osrs_t, enumMap.oversamples),
+      oversampling_h: NameValueUtil.toName(osrs_h, enumMap.oversamples),
+      filter_coefficient: NameValueUtil.toName(filter, enumMap.filters),
+      standby_time: NameValueUtil.toName(t_sb, enumMap.standbys_hires),
+
+      spi: {
+        enable3w: spi_3w_en
+      },
+      ready: {
+        ready: !measuring,
+        measuring: measuring,
+        updating: updating
+      }
+    };
   }
 
-  static setProfile(bus, profile) {
+  static async setProfile(bus, profile) {
     const mode = NameValueUtil.toValue(profile.mode, enumMap.modes);
+
     const os_p = NameValueUtil.toValue(profile.oversampling_p, enumMap.oversamples);
     const os_t = NameValueUtil.toValue(profile.oversampling_t, enumMap.oversamples);
     const os_h = NameValueUtil.toValue(profile.oversampling_h, enumMap.oversamples);
@@ -164,10 +168,10 @@ class bme280 extends genericChip {
     const ctrl_meas = BitUtil.packBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode]);
     const config = BitUtil.packBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w]);
 
-    return Promise.all([
-      bus.write(REGISTER.CTRL_HUM, ctrl_hum),
-      bus.write(REGISTER.CTRL_MEAS, ctrl_meas),
-      bus.write(REGISTER.CONFIG, config)
+    return await Promise.all([
+      bus.writeI2cBlock(REGISTER.CTRL_HUM, Uint8Array.from([ ctrl_hum ])),
+      bus.writeI2cBlock(REGISTER.CTRL_MEAS, Uint8Array.from([ ctrl_meas ])),
+      bus.writeI2cBlock(REGISTER.CONFIG, Uint8Array.from([ config ]))
     ]);
   }
 
@@ -175,41 +179,44 @@ class bme280 extends genericChip {
     throw new Error('patch profile unavailable');
   }
 
-  static measurement(bus, calibration) {
-    return BusUtil.readBlock(bus, MEASUREMENT_BLOCK).then(buffer => {
-      const pres_msb = buffer.readUInt8(0);
-      const pres_lsb = buffer.readUInt8(1);
-      const pres_xlsb = buffer.readUInt8(2);
-      const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
+  static async measurement(bus, calibration) {
+    const abuffer = await BusUtil.readBlock(bus, MEASUREMENT_BLOCK)
+    const buffer = Buffer.from(abuffer)
 
-      const temp_msb = buffer.readUInt8(3);
-      const temp_lsb = buffer.readUInt8(4);
-      const temp_xlsb = buffer.readUInt8(5);
-      const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
+    const pres_msb = buffer.readUInt8(0);
+    const pres_lsb = buffer.readUInt8(1);
+    const pres_xlsb = buffer.readUInt8(2);
+    const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
 
-      const adcH = buffer.readUInt16BE(6);
+    const temp_msb = buffer.readUInt8(3);
+    const temp_lsb = buffer.readUInt8(4);
+    const temp_xlsb = buffer.readUInt8(5);
+    const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
 
-      const P = bme280.skip_value === adcP ? false : adcP;
-      const T = bme280.skip_value === adcT ? false : adcT;
-      const H = bme280.skip_value === adcH ? false : adcH;
+    const adcH = buffer.readUInt16BE(6);
 
-      const base = { adcP: P, adcT: T, adcH: H, type: '2xy' };
+    const P = bme280.skip_value === adcP ? false : adcP;
+    const T = bme280.skip_value === adcT ? false : adcT;
+    const H = bme280.skip_value === adcH ? false : adcH;
 
-      return Compensate.from(base, calibration);
-    });
+    const base = { adcP: P, adcT: T, adcH: H, type: '2xy' };
+
+    return Compensate.from(base, calibration);
   }
 
-  static ready(bus) {
-    return BusUtil.readBlock(bus, STATUS_BLOCK).then(buffer => {
-      const status = buffer.readUInt8(0);
-      const measuring = BitUtil.mapBits(status, [3, 1]) === 1;
-      const updating = BitUtil.mapBits(status, [0, 1]) === 1;
-      return {
-        ready: !measuring,
-        measuring: measuring,
-        updating: updating
-      };
-    });
+  static async ready(bus) {
+    const abuffer = await BusUtil.readBlock(bus, STATUS_BLOCK)
+    const buffer = Buffer.from(abuffer)
+
+    const status = buffer.readUInt8(0);
+    const measuring = BitUtil.mapBits(status, 3, 1) === 1;
+    const updating = BitUtil.mapBits(status, 0, 1) === 1;
+
+    return {
+      ready: !measuring,
+      measuring: measuring,
+      updating: updating
+    };
   }
 
   static estimateMeasurementWait(profile) {

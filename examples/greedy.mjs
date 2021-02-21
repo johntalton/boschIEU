@@ -1,7 +1,7 @@
-import i2c from 'i2c-bus'
+import fb from './fivdi-bus.js'
+const { FivdiBusProvider } = fb
 
-import aod  from '@johntalton/and-other-delights'
-const { I2CAddressedBus, I2CMockBus } = aod
+import { I2CAddressedBus, I2CMockBus } from '@johntalton/and-other-delights'
 
 import ieu from '@johntalton/boschieu'
 const { BoschIEU, Chip } = ieu
@@ -13,7 +13,7 @@ const options = {
   busAddress: 0x77
 }
 
-const i2c1 = await i2c.openPromisified(options.busNumber)
+const i2c1 = await FivdiBusProvider.openPromisified(options.busNumber)
 const addressedI2C1 = new I2CAddressedBus(i2c1, options.busAddress)
 const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID })
 await sensor.calibration()

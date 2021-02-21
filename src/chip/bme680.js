@@ -1,4 +1,5 @@
-const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
+const { BusUtil, BitUtil } = require('@johntalton/and-other-delights');
+const { NameValueUtil } = require('../nvutil.js')
 
 const { genericChip, enumMap, Compensate } = require('./generic.js');
 const { Util } = require('./util.js');
@@ -29,143 +30,145 @@ class bme680 extends genericChip {
     };
   }
 
-  static calibration(bus) {
-    return BusUtil.readBlock(bus, [[0x89, 25], [0xE1, 16], 0x00, 0x02, 0x04]).then(buffer => {
-      // console.log(buffer);
-      const t1 = buffer.readUInt16LE(33);
-      const t2 = buffer.readInt16LE(1);
-      const t3 = buffer.readInt8(3);
+  static async calibration(bus) {
+    const abuffer = await BusUtil.readBlock(bus, [[0x89, 25], [0xE1, 16], 0x00, 0x02, 0x04])
+    const buffer = Buffer.from(abuffer)
 
-      const T = [t1, t2, t3];
+    // console.log(buffer);
+    const t1 = buffer.readUInt16LE(33);
+    const t2 = buffer.readInt16LE(1);
+    const t3 = buffer.readInt8(3);
 
-      const p1 = buffer.readUInt16LE(5);
-      const p2 = buffer.readInt16LE(7);
-      const p3 = buffer.readInt8(9);
-      const p4 = buffer.readInt16LE(11);
-      const p5 = buffer.readInt16LE(13);
-      const p6 = buffer.readInt8(16);
-      const p7 = buffer.readInt8(15);
-      const p8 = buffer.readInt16LE(19);
-      const p9 = buffer.readInt16LE(21);
-      const p10 = buffer.readInt8(23);
+    const T = [t1, t2, t3];
 
-      const P = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10];
+    const p1 = buffer.readUInt16LE(5);
+    const p2 = buffer.readInt16LE(7);
+    const p3 = buffer.readInt8(9);
+    const p4 = buffer.readInt16LE(11);
+    const p5 = buffer.readInt16LE(13);
+    const p6 = buffer.readInt8(16);
+    const p7 = buffer.readInt8(15);
+    const p8 = buffer.readInt16LE(19);
+    const p9 = buffer.readInt16LE(21);
+    const p10 = buffer.readInt8(23);
 
-      const h2_msb = buffer.readUInt8(25);
-      const h1_2_lsb = buffer.readUInt8(26);
-      const h1_msb = buffer.readUInt8(27);
+    const P = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10];
 
-      const h1_lsb = BitUtil.mapBits(h1_2_lsb, [3, 4]);
-      const h2_lsb = BitUtil.mapBits(h1_2_lsb, [7, 4]);
+    const h2_msb = buffer.readUInt8(25);
+    const h1_2_lsb = buffer.readUInt8(26);
+    const h1_msb = buffer.readUInt8(27);
 
-      const h1 = BitUtil.reconstruct12bit(h1_msb, h1_lsb);
-      const h2 = BitUtil.reconstruct12bit(h2_msb, h2_lsb);
-      const h3 = buffer.readInt8(28);
-      const h4 = buffer.readInt8(29);
-      const h5 = buffer.readInt8(30);
-      const h6 = buffer.readUInt8(31);
-      const h7 = buffer.readInt8(32);
+    const h1_lsb = BitUtil.mapBits(h1_2_lsb, 3, 4);
+    const h2_lsb = BitUtil.mapBits(h1_2_lsb, 7, 4);
 
-      const H = [h1, h2, h3, h4, h5, h6, h7];
+    const h1 = BitUtil.reconstruct12bit(h1_msb, h1_lsb);
+    const h2 = BitUtil.reconstruct12bit(h2_msb, h2_lsb);
+    const h3 = buffer.readInt8(28);
+    const h4 = buffer.readInt8(29);
+    const h5 = buffer.readInt8(30);
+    const h6 = buffer.readUInt8(31);
+    const h7 = buffer.readInt8(32);
 
-      const g1 = buffer.readInt8(37);
-      const g2 = buffer.readInt16LE(35);
-      const g3 = buffer.readInt8(38);
+    const H = [h1, h2, h3, h4, h5, h6, h7];
 
-      const G = [g1, g2, g3];
+    const g1 = buffer.readInt8(37);
+    const g2 = buffer.readInt16LE(35);
+    const g3 = buffer.readInt8(38);
 
-      // console.log('\tcalibration', T, P, H, G);
+    const G = [g1, g2, g3];
 
-      const anon0 = buffer.readUInt8(42); // what else is in here?
-      const anon1 = buffer.readInt8(43); // what else is in here?
+    // console.log('\tcalibration', T, P, H, G);
 
-      const res_heat_val = buffer.readInt8(41);
-      const res_heat_range = BitUtil.mapBits(anon0, [5, 2]);
-      const range_switching_error = BitUtil.decodeTwos(BitUtil.mapBits(anon1, [7, 4]), 4);
+    const anon0 = buffer.readUInt8(42); // what else is in here?
+    const anon1 = buffer.readInt8(43); // what else is in here?
 
-      // console.log('res heat val', res_heat_val);
-      // console.log('res heat range', res_heat_range);
-      // console.log('range switching error', range_switching_error);
+    const res_heat_val = buffer.readInt8(41);
+    const res_heat_range = BitUtil.mapBits(anon0, 5, 2);
+    const range_switching_error = BitUtil.decodeTwos(BitUtil.mapBits(anon1, 7, 4), 4);
+
+    // console.log('res heat val', res_heat_val);
+    // console.log('res heat range', res_heat_range);
+    // console.log('range switching error', range_switching_error);
 
 
-      return {
-        T: T, P: P, H: H,
-        G: {
-          G: G,
-          res_heat_val: res_heat_val,
-          res_heat_range: res_heat_range,
-          range_switching_error: range_switching_error
-        }
-      };
-    });
+    return {
+      T: T, P: P, H: H,
+      G: {
+        G: G,
+        res_heat_val: res_heat_val,
+        res_heat_range: res_heat_range,
+        range_switching_error: range_switching_error
+      }
+    };
   }
 
-  static profile(bus) {
+  static async profile(bus) {
     function gasWaitToDuration(gaswait) {
-      const multiplyer = NameValueUtil.toName(BitUtil.mapBits(gaswait, [7, 2]), gwMultipliers);
-      const baseMs = BitUtil.mapBits(gaswait, [5, 6]);
+      const multiplyer = NameValueUtil.toName(BitUtil.mapBits(gaswait, 7, 2), gwMultipliers);
+      const baseMs = BitUtil.mapBits(gaswait, 5, 6);
       return baseMs * multiplyer;
     }
 
-    return BusUtil.readBlock(bus, [[0x50, 30], [0x70, 6]]).then(buffer => {
-      // console.log(buffer);
-      const idac_heat = Util.range(0, 9).map(idx => buffer.readUInt8(idx));
-      const res_heat = Util.range(10, 19).map(idx => buffer.readUInt8(idx));
-      const gas_wait = Util.range(20, 29).map(idx => buffer.readUInt8(idx));
-      const ctrl_gas0 = buffer.readUInt8(30);
-      const ctrl_gas1 = buffer.readUInt8(31);
-      const ctrl_hum = buffer.readUInt8(32);
-      const status = buffer.readUInt8(33);
-      const ctrl_meas = buffer.readUInt8(34);
-      const config = buffer.readUInt8(35);
+    const abuffer = await BusUtil.readBlock(bus, [[0x50, 30], [0x70, 6]])
+    const buffer = Buffer.from(abuffer)
 
-      const heat_off = BitUtil.mapBits(ctrl_gas0, [3, 1]) === 1;
-      const run_gas = BitUtil.mapBits(ctrl_gas1, [4, 1]) === 1;
-      const nb_conv = BitUtil.mapBits(ctrl_gas1, [3, 4]);
+    // console.log(buffer);
+    const idac_heat = Util.range(0, 9).map(idx => buffer.readUInt8(idx));
+    const res_heat = Util.range(10, 19).map(idx => buffer.readUInt8(idx));
+    const gas_wait = Util.range(20, 29).map(idx => buffer.readUInt8(idx));
+    const ctrl_gas0 = buffer.readUInt8(30);
+    const ctrl_gas1 = buffer.readUInt8(31);
+    const ctrl_hum = buffer.readUInt8(32);
+    const status = buffer.readUInt8(33);
+    const ctrl_meas = buffer.readUInt8(34);
+    const config = buffer.readUInt8(35);
 
-      const spi_3w_int_en = BitUtil.mapBits(ctrl_hum, [6, 1]) === 1;
+    const heat_off = BitUtil.mapBits(ctrl_gas0, 3, 1) === 1;
+    const run_gas = BitUtil.mapBits(ctrl_gas1, 4, 1) === 1;
+    const nb_conv = BitUtil.mapBits(ctrl_gas1, 3, 4);
 
-      const osrs_h = BitUtil.mapBits(ctrl_hum, [2, 3]);
-      const osrs_t = BitUtil.mapBits(ctrl_meas, [7, 3]);
-      const osrs_p = BitUtil.mapBits(ctrl_meas, [4, 3]);
+    const spi_3w_int_en = BitUtil.mapBits(ctrl_hum, 6, 1) === 1;
 
-      const mode = BitUtil.mapBits(ctrl_meas, [1, 2]);
+    const osrs_h = BitUtil.mapBits(ctrl_hum, 2, 3);
+    const osrs_t = BitUtil.mapBits(ctrl_meas, 7, 3);
+    const osrs_p = BitUtil.mapBits(ctrl_meas, 4, 3);
 
-      const filter = BitUtil.mapBits(config, [4, 3]);
-      const spi_3w_en = BitUtil.mapBits(config, [0, 1]) === 1;
-      const spi_mem_page = BitUtil.mapBits(status, [4, 1]); // eslint-disable-line no-unused-vars
+    const mode = BitUtil.mapBits(ctrl_meas, 1, 2);
 
-      const setpoints = res_heat.map((v, i) => ({
-        index: i,
-        active: i === nb_conv,
-        ohms: v,
-        durationMs: gasWaitToDuration(gas_wait[i]),
-        lastIdac: idac_heat[i]
-      }))
-        .filter(v => (v.ohms !== 0) || (v.durationMs !== 0));
+    const filter = BitUtil.mapBits(config, 4, 3);
+    const spi_3w_en = BitUtil.mapBits(config, 0, 1) === 1;
+    const spi_mem_page = BitUtil.mapBits(status, 4, 1); // eslint-disable-line no-unused-vars
+
+    const setpoints = res_heat.map((v, i) => ({
+      index: i,
+      active: i === nb_conv,
+      ohms: v,
+      durationMs: gasWaitToDuration(gas_wait[i]),
+      lastIdac: idac_heat[i]
+    }))
+    .filter(v => (v.ohms !== 0) || (v.durationMs !== 0));
 
 
-      return {
-        mode: NameValueUtil.toName(mode, enumMap.modes_sans_normal),
-        oversampling_p: NameValueUtil.toName(osrs_p, enumMap.oversamples),
-        oversampling_t: NameValueUtil.toName(osrs_t, enumMap.oversamples),
-        oversampling_h: NameValueUtil.toName(osrs_h, enumMap.oversamples),
-        filter_coefficient: NameValueUtil.toName(filter, enumMap.filters_more),
+    return {
+      mode: NameValueUtil.toName(mode, enumMap.modes_sans_normal),
+      oversampling_p: NameValueUtil.toName(osrs_p, enumMap.oversamples),
+      oversampling_t: NameValueUtil.toName(osrs_t, enumMap.oversamples),
+      oversampling_h: NameValueUtil.toName(osrs_h, enumMap.oversamples),
+      filter_coefficient: NameValueUtil.toName(filter, enumMap.filters_more),
 
-        gas: {
-          enabled: run_gas && !heat_off,
-          setpoints: setpoints
-        },
-        spi: {
-          // mempage: spi_mem_page,
-          enable3w: spi_3w_en,
-          interrupt: spi_3w_int_en
-        }
-      };
-    });
+      gas: {
+        enabled: run_gas && !heat_off,
+        setpoints: setpoints
+      },
+      spi: {
+        // mempage: spi_mem_page,
+        enable3w: spi_3w_en,
+        interrupt: spi_3w_int_en
+      }
+    };
   }
 
-  static setProfile(bus, profile, calibration) {
+  static async setProfile(bus, profile, calibration) {
     function durationToGasWait(durationMs) {
       if(durationMs < 30) { console.log('low wait duration not recommended', durationMs); }
 
@@ -268,99 +271,102 @@ class bme680 extends genericChip {
     // console.log(res_heat, gas_wait);
 
     // we no longer bulk write,
-    return bus.write(0x74, ctrl_meas & ~0b11) // sleep
-      .then(() => Promise.all([
-        bus.write(0x72, ctrl_hum),
-        bus.write(0x75, config),
-        bus.write(0x71, ctrl_gas1),
-        bus.write(0x70, ctrl_gas0),
+    await bus.writeI2cBlock(0x74, Uint8Array.from([ ctrl_meas & ~0b11 ])) // sleep
+    await Promise.all([
+      bus.writeI2cBlock(0x72, Uint8Array.from([ ctrl_hum ])),
+      bus.writeI2cBlock(0x75, Uint8Array.from([ config ])),
+      bus.writeI2cBlock(0x71, Uint8Array.from([ ctrl_gas1 ])),
+      bus.writeI2cBlock(0x70, Uint8Array.from([ ctrl_gas0 ])),
 
-        ...idac_heat.filter(x => x !== false).map((x, idx) => bus.write(0x50 + idx, x)),
-        ...res_heat.filter(x => x !== false).map((x, idx) => bus.write(0x5A + idx, x)),
-        ...gas_wait.filter(x => x !== false).map((x, idx) => bus.write(0x64 + idx, x))
-      ]))
-      .then(() => bus.write(0x74, ctrl_meas));
+      ...idac_heat.filter(x => x !== false).map((x, idx) => bus.writeI2cBlock(0x50 + idx, Uint8Array.from([ x ]))),
+      ...res_heat.filter(x => x !== false).map((x, idx) => bus.writeI2cBlock(0x5A + idx, Uint8Array.from([ x ]))),
+      ...gas_wait.filter(x => x !== false).map((x, idx) => bus.writeI2cBlock(0x64 + idx, Uint8Array.from([ x ])))
+    ])
+
+    // now set valid mode
+    await bus.writeI2cBlock(0x74, Uint8Array.from([ ctrl_meas ] ));
   }
 
   static patchProfile(bus, patch) {
     throw new Error('patch profile unavailable');
   }
 
-  static measurement(bus, calibration) {
-    return BusUtil.readBlock(bus, [[0x1D, 15]]).then(buffer => {
-      const meas_status = buffer.readUInt8(0);
-      const meas_index = buffer.readUInt8(1);
-      console.log('\tmeas_index?', meas_index);
+  static async measurement(bus, calibration) {
+    const abuffer = await BusUtil.readBlock(bus, [[0x1D, 15]])
+    const buffer = Buffer.from(abuffer)
 
-      const newdata = BitUtil.mapBits(meas_status, [7, 1]) === 1;
-      const measuringGas = BitUtil.mapBits(meas_status, [6, 1]) === 1;
-      const measuring = BitUtil.mapBits(meas_status, [5, 1]) === 1;
-      const active_profile_idx = BitUtil.mapBits(meas_status, [3, 4]);
-      const ready = {
-        ready: newdata,
-        measuringGas: measuringGas, // active gas measurement
-        mesuring: measuring, // active TPH measurement
-        active_profile_idx: active_profile_idx
-      };
+    const meas_status = buffer.readUInt8(0);
+    const meas_index = buffer.readUInt8(1);
+    console.log('\tmeas_index?', meas_index);
 
-      // console.log(ready);
-      if(!ready.ready) { return { skip: true, ready: false }; }
+    const newdata = BitUtil.mapBits(meas_status, 7, 1) === 1;
+    const measuringGas = BitUtil.mapBits(meas_status, 6, 1) === 1;
+    const measuring = BitUtil.mapBits(meas_status, 5, 1) === 1;
+    const active_profile_idx = BitUtil.mapBits(meas_status, 3, 4);
+    const ready = {
+      ready: newdata,
+      measuringGas: measuringGas, // active gas measurement
+      mesuring: measuring, // active TPH measurement
+      active_profile_idx: active_profile_idx
+    };
 
-      const pres_msb = buffer.readUInt8(2);
-      const pres_lsb = buffer.readUInt8(3);
-      const pres_xlsb = buffer.readUInt8(4);
-      const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
+    // console.log(ready);
+    if(!ready.ready) { return { skip: true, ready: false }; }
 
-      const temp_msb = buffer.readUInt8(5);
-      const temp_lsb = buffer.readUInt8(6);
-      const temp_xlsb = buffer.readUInt8(7);
-      const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
+    const pres_msb = buffer.readUInt8(2);
+    const pres_lsb = buffer.readUInt8(3);
+    const pres_xlsb = buffer.readUInt8(4);
+    const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb);
 
-      const adcH = buffer.readUInt16BE(8);
+    const temp_msb = buffer.readUInt8(5);
+    const temp_lsb = buffer.readUInt8(6);
+    const temp_xlsb = buffer.readUInt8(7);
+    const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb);
 
-      const skip0 = buffer.readUInt8(10);
-      const skip1 = buffer.readUInt8(11);
-      const skip2 = buffer.readUInt8(12);
-      if(skip0 !== 0 || skip1 !== 0 || skip2 !== 0) {
-        console.log('skip 012 non-zero');
-      }
+    const adcH = buffer.readUInt16BE(8);
 
-      const gas_r_msb = buffer.readUInt8(13);
-      const gas_r_ext = buffer.readUInt8(14);
+    const skip0 = buffer.readUInt8(10);
+    const skip1 = buffer.readUInt8(11);
+    const skip2 = buffer.readUInt8(12);
+    if(skip0 !== 0 || skip1 !== 0 || skip2 !== 0) {
+      console.log('skip 012 non-zero');
+    }
 
-      const gas_r_lsb = BitUtil.mapBits(gas_r_ext, [7, 2]);
-      const gas_valid_r = BitUtil.mapBits(gas_r_ext, [5, 1]) === 1;
-      const heat_stab_r = BitUtil.mapBits(gas_r_ext, [4, 1]) === 1;
-      const gas_range_r = BitUtil.mapBits(gas_r_ext, [3, 4]);
+    const gas_r_msb = buffer.readUInt8(13);
+    const gas_r_ext = buffer.readUInt8(14);
 
-      const gas_r = BitUtil.reconstruct10bit(gas_r_msb, gas_r_lsb);
+    const gas_r_lsb = BitUtil.mapBits(gas_r_ext, 7, 2);
+    const gas_valid_r = BitUtil.mapBits(gas_r_ext, 5, 1) === 1;
+    const heat_stab_r = BitUtil.mapBits(gas_r_ext, 4, 1) === 1;
+    const gas_range_r = BitUtil.mapBits(gas_r_ext, 3, 4);
 
-      const P = bme680.skip_value === adcP ? false : adcP;
-      const T = bme680.skip_value === adcT ? false : adcT;
-      const H = bme680.skip_value === adcH ? false : adcH;
+    const gas_r = BitUtil.reconstruct10bit(gas_r_msb, gas_r_lsb);
 
-      const G = gas_valid_r ? { resistance: gas_r, range: gas_range_r, stable: heat_stab_r } : false;
+    const P = bme680.skip_value === adcP ? false : adcP;
+    const T = bme680.skip_value === adcT ? false : adcT;
+    const H = bme680.skip_value === adcH ? false : adcH;
 
-      console.log('\tgas valid?', gas_valid_r);
-      console.log('\theater stable?', heat_stab_r);
+    const G = gas_valid_r ? { resistance: gas_r, range: gas_range_r, stable: heat_stab_r } : false;
 
-      // console.log(calibration);
-      // console.log(P, T, H);
-      // console.log(G);
-      // console.log(ready, meas_index, gas_valid_r, heat_stab_r, gas_r, gas_range_r);
+    console.log('\tgas valid?', gas_valid_r);
+    console.log('\theater stable?', heat_stab_r);
 
-      return Compensate.from({ adcP: P, adcT: T, adcH: H, adcG: G, type: '6xy' }, calibration);
-    });
+    // console.log(calibration);
+    // console.log(P, T, H);
+    // console.log(G);
+    // console.log(ready, meas_index, gas_valid_r, heat_stab_r, gas_r, gas_range_r);
+
+    return Compensate.from({ adcP: P, adcT: T, adcH: H, adcG: G, type: '6xy' }, calibration);
   }
 
   static ready(bus) {
     return BusUtil.readBlock(bus, [0x1D]).then(buffer => {
       const meas_status = buffer.readUInt8(0);
       return {
-        ready: BitUtil.mapBits(meas_status, [7, 1]) === 1,
-        measuringGas: BitUtil.mapBits(meas_status, [6, 1]) === 1,
-        measuring: BitUtil.mapBits(meas_status, [5, 1]) === 1,
-        active_profile_idx: BitUtil.mapBits(meas_status, [3, 4])
+        ready: BitUtil.mapBits(meas_status, 7, 1) === 1,
+        measuringGas: BitUtil.mapBits(meas_status, 6, 1) === 1,
+        measuring: BitUtil.mapBits(meas_status, 5, 1) === 1,
+        active_profile_idx: BitUtil.mapBits(meas_status, 3, 4)
       };
     });
   }

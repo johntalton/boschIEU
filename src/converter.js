@@ -42,6 +42,15 @@ class Converter {
   }
 }
 
-Converter.seaLevelPa = 101325.0; // a normal guess
+
+// record low of 870 mbar (87 kPa; 26 inHg).
+// record highs close to 1085 mbar (108.5 kPa; 32.0 inHg
+
+const PA_PER_KPA = 1000
+
+Converter.minSeaLevelPa =   87 * PA_PER_KPA
+Converter.maxSeaLevelPa = 1085 * PA_PER_KPA
+
+Converter.seaLevelPa = 101.325 * PA_PER_KPA; // a normal guess
 
 module.exports.Converter = Converter;

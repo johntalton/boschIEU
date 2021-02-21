@@ -12,7 +12,7 @@ const { bmp390 } = require('./bmp390.js');
 const Ahoy = [
   genericChip,
   bmp280,
-  // TODO removed as legacy address conflics with bmp390 address for bme280,
+  bme280,
   bme680,
   bmp388,
   bmp390
@@ -43,7 +43,7 @@ class Chip {
    **/
   static fromId(id, legacy) {
     if(id === undefined) { return Chip.generic(); }
-    const chip = Ahoy.find(c => c.chipId === id);
+    const chip = Ahoy.find(c => c.chipId === id && c.isChipIdAtZero() !== legacy);
     if(chip === undefined) { throw new Error('unknown chip id: ' + id.toString()); }
     return chip;
   }

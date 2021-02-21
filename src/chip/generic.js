@@ -86,6 +86,8 @@ class genericChip {
     };
   }
 
+  static isChipIdAtZero() { return false }
+
   static get name() { return 'generic'; }
   static get chipId() { return undefined; }
   static get skip_value() { return 0x80000; }

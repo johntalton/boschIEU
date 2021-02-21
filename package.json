@@ -1,6 +1,6 @@
 {
   "name": "@johntalton/boschieu",
-  "version": "4.0.0",
+  "version": "5.0.0",
   "description": "",
   "license": "MIT",
   "main": "src/boschieu.js",
@@ -60,10 +60,10 @@
     }
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "^3.0.2"
+    "@johntalton/and-other-delights": "^5.0.0"
   },
   "devDependencies": {
-    "@johntalton/eslint-config": "github:johntalton/eslint-config",
+    "@johntalton/eslint-config": "^2.0.0",
     "eslint": "^7.16.0",
     "eslint-plugin-fp": "^2.3.0",
     "eslint-plugin-functional": "^3.1.0",

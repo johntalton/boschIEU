@@ -52,23 +52,22 @@ class BoschSensor {
   //   supports a wider version of chip detection and thus appropriate location
   //   for generic chip detection has been abstracted here
   // @return promise that resolves to chip implementation class selected by id
-  _detectChip() {
-    function readid(bus, reg) {
-      return BusUtil.readBlock(bus, [reg]).then(buffer => buffer.readInt8(0));
+  async _detectChip() {
+    async function readid(bus, reg) {
+      const abuffer = await BusUtil.readBlock(bus, [reg])
+      const buffer = new Uint8Array(abuffer)
+      return buffer[0]
     }
 
-    return readid(this._bus, 0xD0) // standard `generic` register id
-      .then(id => {
-        if(id !== 0) {
-          console.log('detect: via legacy register read');
-          return { id, legacy: true};
-        }
+    const legacyReadId = await readid(this._bus, 0xD0) // standard `generic` register id
+    if(legacyReadId !== 0) {
+      console.log('detect: via legacy register read');
+      return Chip.fromId(legacyReadId, true)
+    }
 
-        console.log('detect: legacy resuted in Zero, atempt standard register');
-        return readid(this._bus, 0x00) // bmp388/bmp390 register
-          .then(id => ({ id, legacy: false }));
-      })
-      .then(({ id, legacy }) => Chip.fromId(id, legacy));
+    console.log('detect: legacy resuted in Zero, atempt standard register');
+    const atZeroReadId = await readid(this._bus, 0x00) // bmp388/bmp390 register
+    return Chip.fromId(atZeroReadId, false)
   }
 
   valid() { return this._chip.chipId !== Chip.generic().chipId; }

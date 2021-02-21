@@ -1,10 +1,13 @@
-const { BusUtil, BitUtil, NameValueUtil } = require('@johntalton/and-other-delights');
+const { BusUtil, BitUtil } = require('@johntalton/and-other-delights');
+const { NameValueUtil } = require('../nvutil.js')
 
 const { Compensate } = require('./compensate.js');
 const { enumMap } = require('./generic.js');
 
 const { genericChip } = require('./generic.js');
 const { bmp3xxFifo } = require('./fifo');
+
+
 
 
 const oversamplings = [
@@ -142,146 +145,150 @@ class bmp3xx extends genericChip {
     };
   }
 
+  static isChipIdAtZero() { return true }
+
   static id(bus) { return BusUtil.readBlock(bus, [0x00]).then(buffer => buffer.readInt8(0)); }
-  static reset(bus) { return bus.write(0x7E, Buffer.from([0xB6])); }
+  static reset(bus) { return bus.writeI2cBlock(0x7E, Buffer.from([0xB6])); }
 
   static get fifo() { return bmp3xxFifo; }
 
-  static sensorTime(bus) {
-    return BusUtil.readBlock(bus, [[0xC0, 3]]).then(buffer => { throw new Error('read24'); });
+  static async sensorTime(bus) {
+    const abuffer = await BusUtil.read(bus, [[0xC0, 3]])
+    throw new Error('read24')
   }
 
-  static calibration(bus) {
+  static async calibration(bus) {
     console.log('bmp3xx calibration');
-    return BusUtil.readBlock(bus, [[0x31, 21]]).then(buffer => {
-      const nvm_par_T1 = buffer.readUInt16LE(0);
-      const nvm_par_T2 = buffer.readUInt16LE(2);
-      const nvm_par_T3 = buffer.readInt8(4);
+    const abuffer = await BusUtil.readBlock(bus, [[0x31, 21]])
+    const buffer = Buffer.from(abuffer)
 
-      const nvm_par_P1 = buffer.readInt16LE(5);
-      const nvm_par_P2 = buffer.readInt16LE(7);
-      const nvm_par_P3 = buffer.readInt8(9);
-      const nvm_par_P4 = buffer.readInt8(10);
-      const nvm_par_P5 = buffer.readUInt16LE(11);
-      const nvm_par_P6 = buffer.readUInt16LE(13);
-      const nvm_par_P7 = buffer.readInt8(15);
-      const nvm_par_P8 = buffer.readInt8(16);
-      const nvm_par_P9 = buffer.readInt16LE(17);
-      const nvm_par_P10 = buffer.readInt8(19);
-      const nvm_par_P11 = buffer.readInt8(20);
+    const nvm_par_T1 = buffer.readUInt16LE(0);
+    const nvm_par_T2 = buffer.readUInt16LE(2);
+    const nvm_par_T3 = buffer.readInt8(4);
 
-      const par_T1 = nvm_par_T1 / Math.pow(2, -8);
-      const par_T2 = nvm_par_T2 / Math.pow(2, 30);
-      const par_T3 = nvm_par_T3 / Math.pow(2, 48);
+    const nvm_par_P1 = buffer.readInt16LE(5);
+    const nvm_par_P2 = buffer.readInt16LE(7);
+    const nvm_par_P3 = buffer.readInt8(9);
+    const nvm_par_P4 = buffer.readInt8(10);
+    const nvm_par_P5 = buffer.readUInt16LE(11);
+    const nvm_par_P6 = buffer.readUInt16LE(13);
+    const nvm_par_P7 = buffer.readInt8(15);
+    const nvm_par_P8 = buffer.readInt8(16);
+    const nvm_par_P9 = buffer.readInt16LE(17);
+    const nvm_par_P10 = buffer.readInt8(19);
+    const nvm_par_P11 = buffer.readInt8(20);
 
-      const par_P1 = (nvm_par_P1 - Math.pow(2, 14)) / Math.pow(2, 20);
-      const par_P2 = (nvm_par_P2 - Math.pow(2, 14)) / Math.pow(2, 29);
-      const par_P3 = nvm_par_P3 / Math.pow(2, 32);
-      const par_P4 = nvm_par_P4 / Math.pow(2, 37);
-      const par_P5 = nvm_par_P5 / Math.pow(2, -3);
-      const par_P6 = nvm_par_P6 / Math.pow(2, 6);
-      const par_P7 = nvm_par_P7 / Math.pow(2, 8);
-      const par_P8 = nvm_par_P8 / Math.pow(2, 15);
-      const par_P9 = nvm_par_P9 / Math.pow(2, 48);
-      const par_P10 = nvm_par_P10 / Math.pow(2, 48);
-      const par_P11 = nvm_par_P11 / Math.pow(2, 65);
+    const par_T1 = nvm_par_T1 / Math.pow(2, -8);
+    const par_T2 = nvm_par_T2 / Math.pow(2, 30);
+    const par_T3 = nvm_par_T3 / Math.pow(2, 48);
 
-      const T = [par_T1, par_T2, par_T3];
-      const P = [par_P1, par_P2, par_P3, par_P4, par_P5, par_P6, par_P7, par_P8, par_P9, par_P10, par_P11];
+    const par_P1 = (nvm_par_P1 - Math.pow(2, 14)) / Math.pow(2, 20);
+    const par_P2 = (nvm_par_P2 - Math.pow(2, 14)) / Math.pow(2, 29);
+    const par_P3 = nvm_par_P3 / Math.pow(2, 32);
+    const par_P4 = nvm_par_P4 / Math.pow(2, 37);
+    const par_P5 = nvm_par_P5 / Math.pow(2, -3);
+    const par_P6 = nvm_par_P6 / Math.pow(2, 6);
+    const par_P7 = nvm_par_P7 / Math.pow(2, 8);
+    const par_P8 = nvm_par_P8 / Math.pow(2, 15);
+    const par_P9 = nvm_par_P9 / Math.pow(2, 48);
+    const par_P10 = nvm_par_P10 / Math.pow(2, 48);
+    const par_P11 = nvm_par_P11 / Math.pow(2, 65);
 
-      return {
-        T: T, P: P,
-        H: [], G: []
-      };
-    });
+    const T = [par_T1, par_T2, par_T3];
+    const P = [par_P1, par_P2, par_P3, par_P4, par_P5, par_P6, par_P7, par_P8, par_P9, par_P10, par_P11];
+
+    return {
+      T, P,
+      H: [], G: []
+    };
   }
 
 
-  static profile(bus) {
-    return BusUtil.readBlock(bus, [[0x15, 11]]).then(buffer => {
-      // console.log('profile buffer', buffer);
+  static async profile(bus) {
+    const abuffer = await BusUtil.readBlock(bus, [[0x15, 11]])
+    const buffer = Buffer.from(abuffer)
+    // console.log('profile buffer', buffer);
 
-      const config = buffer.readUInt8(10);
-      const odr = buffer.readUInt8(8);
-      const osr = buffer.readUInt8(7);
-      const pwr_ctrl = buffer.readUInt8(6);
-      const if_conf = buffer.readUInt8(5);
-      const int_ctrl = buffer.readUInt8(4);
-      const fifo_config_2 = buffer.readUInt8(3);
-      const fifo_config_1 = buffer.readUInt8(2);
-      const fifo_wtm_1 = buffer.readUInt8(1);
-      const fifo_wtm_0 = buffer.readUInt8(0);
+    const config = buffer.readUInt8(10);
+    const odr = buffer.readUInt8(8);
+    const osr = buffer.readUInt8(7);
+    const pwr_ctrl = buffer.readUInt8(6);
+    const if_conf = buffer.readUInt8(5);
+    const int_ctrl = buffer.readUInt8(4);
+    const fifo_config_2 = buffer.readUInt8(3);
+    const fifo_config_1 = buffer.readUInt8(2);
+    const fifo_wtm_1 = buffer.readUInt8(1);
+    const fifo_wtm_0 = buffer.readUInt8(0);
 
-      //
-      const iff_filter = BitUtil.mapBits(config, 3, 3);
-      const short_in = BitUtil.mapBits(config, 0, 1);
-      const odr_sel = BitUtil.mapBits(odr, 4, 5);
-      const osr_p = BitUtil.mapBits(osr, 2, 3);
-      const osr_t = BitUtil.mapBits(osr, 5, 3);
-      const mode = BitUtil.mapBits(pwr_ctrl, 5, 2);
-      const temp_en = BitUtil.mapBits(pwr_ctrl, 1, 1);
-      const press_en = BitUtil.mapBits(pwr_ctrl, 0, 1);
-      const i2c_wdt_sel = BitUtil.mapBits(if_conf, 2, 1);
-      const i2c_wdt_en = BitUtil.mapBits(if_conf, 1, 1);
-      const spi3 = BitUtil.mapBits(if_conf, 0, 1);
-      const drdy_en = BitUtil.mapBits(int_ctrl, 6, 1);
-      const int_ds = BitUtil.mapBits(int_ctrl, 5, 1); // bmp390
-      const ffull_en = BitUtil.mapBits(int_ctrl, 4, 1);
-      const fwtm_en = BitUtil.mapBits(int_ctrl, 3, 1);
-      const int_latch = BitUtil.mapBits(int_ctrl, 2, 1);
-      const int_level = BitUtil.mapBits(int_ctrl, 1, 1);
-      const int_od = BitUtil.mapBits(int_ctrl, 0, 1);
-      const data_select = BitUtil.mapBits(fifo_config_2, 4, 2);
-      const fifo_subsampling = BitUtil.mapBits(fifo_config_2, 2, 3);
-      const fifo_temp_en = BitUtil.mapBits(fifo_config_1, 4, 1);
-      const fifo_press_en = BitUtil.mapBits(fifo_config_1, 3, 1);
-      const fifo_time_en = BitUtil.mapBits(fifo_config_1, 2, 1);
-      const fifo_stop_on_full = BitUtil.mapBits(fifo_config_1, 1, 1);
-      const fifo_mode = BitUtil.mapBits(fifo_config_1, 0, 1);
-      const fifo_water_mark_8 = BitUtil.mapBits(fifo_wtm_1, 0, 1);
-      const fifo_water_mark_7_0 = fifo_wtm_0;
+    //
+    const iff_filter = BitUtil.mapBits(config, 3, 3);
+    const short_in = BitUtil.mapBits(config, 0, 1);
+    const odr_sel = BitUtil.mapBits(odr, 4, 5);
+    const osr_p = BitUtil.mapBits(osr, 2, 3);
+    const osr_t = BitUtil.mapBits(osr, 5, 3);
+    const mode = BitUtil.mapBits(pwr_ctrl, 5, 2);
+    const temp_en = BitUtil.mapBits(pwr_ctrl, 1, 1);
+    const press_en = BitUtil.mapBits(pwr_ctrl, 0, 1);
+    const i2c_wdt_sel = BitUtil.mapBits(if_conf, 2, 1);
+    const i2c_wdt_en = BitUtil.mapBits(if_conf, 1, 1);
+    const spi3 = BitUtil.mapBits(if_conf, 0, 1);
+    const drdy_en = BitUtil.mapBits(int_ctrl, 6, 1);
+    const int_ds = BitUtil.mapBits(int_ctrl, 5, 1); // bmp390
+    const ffull_en = BitUtil.mapBits(int_ctrl, 4, 1);
+    const fwtm_en = BitUtil.mapBits(int_ctrl, 3, 1);
+    const int_latch = BitUtil.mapBits(int_ctrl, 2, 1);
+    const int_level = BitUtil.mapBits(int_ctrl, 1, 1);
+    const int_od = BitUtil.mapBits(int_ctrl, 0, 1);
+    const data_select = BitUtil.mapBits(fifo_config_2, 4, 2);
+    const fifo_subsampling = BitUtil.mapBits(fifo_config_2, 2, 3);
+    const fifo_temp_en = BitUtil.mapBits(fifo_config_1, 4, 1);
+    const fifo_press_en = BitUtil.mapBits(fifo_config_1, 3, 1);
+    const fifo_time_en = BitUtil.mapBits(fifo_config_1, 2, 1);
+    const fifo_stop_on_full = BitUtil.mapBits(fifo_config_1, 1, 1);
+    const fifo_mode = BitUtil.mapBits(fifo_config_1, 0, 1);
+    const fifo_water_mark_8 = BitUtil.mapBits(fifo_wtm_1, 0, 1);
+    const fifo_water_mark_7_0 = fifo_wtm_0;
 
-      //
-      const fifo_watermark = reconstruct9bit(fifo_water_mark_8, fifo_water_mark_7_0);
-      const intMode = modeFrom(int_od, int_level);
+    //
+    const fifo_watermark = reconstruct9bit(fifo_water_mark_8, fifo_water_mark_7_0);
+    const intMode = modeFrom(int_od, int_level);
 
-      return {
-        mode: NameValueUtil.toName(mode, enumMap.modes),
-        standby_prescaler: NameValueUtil.toName(odr_sel, prescalers),
-        oversampling_p: press_en === PRESS_ENABLED ? NameValueUtil.toName(osr_p, oversamplings) : false,
-        oversampling_t: temp_en === TEMP_ENABLED ? NameValueUtil.toName(osr_t, oversamplings) : false,
-        filter_coefficient: NameValueUtil.toName(iff_filter, enumMap.filters),
+    return {
+      mode: NameValueUtil.toName(mode, enumMap.modes),
+      standby_prescaler: NameValueUtil.toName(odr_sel, prescalers),
+      oversampling_p: press_en === PRESS_ENABLED ? NameValueUtil.toName(osr_p, oversamplings) : false,
+      oversampling_t: temp_en === TEMP_ENABLED ? NameValueUtil.toName(osr_t, oversamplings) : false,
+      filter_coefficient: NameValueUtil.toName(iff_filter, enumMap.filters),
 
-        watchdog: i2c_wdt_en === WATCHDOG_ENABLED ? NameValueUtil.toName(i2c_wdt_sel, watchdogtimes) : false,
+      watchdog: i2c_wdt_en === WATCHDOG_ENABLED ? NameValueUtil.toName(i2c_wdt_sel, watchdogtimes) : false,
 
-        interrupt: {
-          mode: intMode,
-          latched: int_latch === LATCHED,
-          onFifoWatermark: fwtm_en === ONWATER_ENABLED,
-          onFifoFull: ffull_en === ONFULL_ENABLED,
-          onReady: drdy_en === ONREADY_ENABLED
-        },
-        fifo: {
-          active: fifo_mode === FIFO.ENABLED,
-          data: NameValueUtil.toName(data_select, dataselects),
-          subsampling: fifo_subsampling,
-          highWatermark: fifo_watermark,
-          stopOnFull: fifo_stop_on_full === FIFO.FULL_STOP_ENABLED,
-          temp: fifo_temp_en === FIFO.TEMP_ENABLED,
-          press: fifo_press_en === FIFO.PRESS_ENABLED,
-          time: fifo_time_en === FIFO.TIME_ENABLED
-        },
+      interrupt: {
+        mode: intMode,
+        latched: int_latch === LATCHED,
+        onFifoWatermark: fwtm_en === ONWATER_ENABLED,
+        onFifoFull: ffull_en === ONFULL_ENABLED,
+        onReady: drdy_en === ONREADY_ENABLED
+      },
+      fifo: {
+        active: fifo_mode === FIFO.ENABLED,
+        data: NameValueUtil.toName(data_select, dataselects),
+        subsampling: fifo_subsampling,
+        highWatermark: fifo_watermark,
+        stopOnFull: fifo_stop_on_full === FIFO.FULL_STOP_ENABLED,
+        temp: fifo_temp_en === FIFO.TEMP_ENABLED,
+        press: fifo_press_en === FIFO.PRESS_ENABLED,
+        time: fifo_time_en === FIFO.TIME_ENABLED
+      },
 
-        ready: {
-          // ready: !measuring,
-          // measuring: measuring,
-          // updating: updating
-        }
-      };
-    });
+      ready: {
+        // ready: !measuring,
+        // measuring: measuring,
+        // updating: updating
+      }
+    };
   }
 
-  static setProfile(bus, p) {
+  static async setProfile(bus, p) {
     const profile = { ...p }; // explode p into our profile so we can add defaults
 
     const DEFAULT_MODE = 'SLEEP';
@@ -387,23 +394,23 @@ class bmp3xx extends genericChip {
     const fifo_wtm_0 = BitUtil.packBits([[7, 8]], [fifo_water_mark_7_0]);
 
     // todo consider using block write
-    return bus.write(0x1B, Buffer.from([0]))
-      .then(() => {
-        return Promise.all([
-          bus.write(0x15, Buffer.from([fifo_wtm_0])),
-          bus.write(0x16, Buffer.from([fifo_wtm_1])),
-          bus.write(0x17, Buffer.from([fifo_config_1])),
-          bus.write(0x18, Buffer.from([fifo_config_2])),
-          bus.write(0x19, Buffer.from([int_ctrl])),
-          bus.write(0x1A, Buffer.from([if_conf])),
-          // skip power control register here
-          bus.write(0x1C, Buffer.from([osr])),
-          bus.write(0x1D, Buffer.from([odr])),
-          // 0, // reserved
-          bus.write(0x1F, Buffer.from([config]))
-        ]);
-      })
-      .then(() => bus.write(0x1B, Buffer.from([pwr_ctrl])));
+    await bus.writeI2cBlock(0x1B, Buffer.from([0]))
+
+    await Promise.all([
+      bus.writeI2cBlock(0x15, Buffer.from([fifo_wtm_0])),
+      bus.writeI2cBlock(0x16, Buffer.from([fifo_wtm_1])),
+      bus.writeI2cBlock(0x17, Buffer.from([fifo_config_1])),
+      bus.writeI2cBlock(0x18, Buffer.from([fifo_config_2])),
+      bus.writeI2cBlock(0x19, Buffer.from([int_ctrl])),
+      bus.writeI2cBlock(0x1A, Buffer.from([if_conf])),
+      // skip power control register here
+      bus.writeI2cBlock(0x1C, Buffer.from([osr])),
+      bus.writeI2cBlock(0x1D, Buffer.from([odr])),
+      // 0, // reserved
+      bus.writeI2cBlock(0x1F, Buffer.from([config]))
+    ])
+
+     await bus.writeI2cBlock(0x1B, Buffer.from([pwr_ctrl]))
   }
 
   static patchProfile(bus, patch) {
@@ -416,72 +423,72 @@ class bmp3xx extends genericChip {
   }
 
 
-  static measurement(bus, calibration) {
-    return BusUtil.readBlock(bus, [[0x04, 12]]).then(buffer => {
-      const pres_xlsb = buffer.readUInt8(0);
-      const pres_lsb = buffer.readUInt8(1);
-      const pres_msb = buffer.readUInt8(2);
-      const adcP = reconstruct24bit(pres_msb, pres_lsb, pres_xlsb);
+  static async measurement(bus, calibration) {
+    const abuffer = await BusUtil.readBlock(bus, [[0x04, 12]])
+    const buffer = Buffer.from(abuffer)
 
-      const temp_xlsb = buffer.readUInt8(3);
-      const temp_lsb = buffer.readUInt8(4);
-      const temp_msb = buffer.readUInt8(5);
-      const adcT = reconstruct24bit(temp_msb, temp_lsb, temp_xlsb);
+    const pres_xlsb = buffer.readUInt8(0);
+    const pres_lsb = buffer.readUInt8(1);
+    const pres_msb = buffer.readUInt8(2);
+    const adcP = reconstruct24bit(pres_msb, pres_lsb, pres_xlsb);
 
-      // const time_7_0 = buffer.readUInt8(8);
-      // const time_15_8 = buffer.readUInt8(9);
-      // const time_23_16 = buffer.readUInt8(10);
-      // const time_31_24 = buffer.readUInt8(11);
+    const temp_xlsb = buffer.readUInt8(3);
+    const temp_lsb = buffer.readUInt8(4);
+    const temp_msb = buffer.readUInt8(5);
+    const adcT = reconstruct24bit(temp_msb, temp_lsb, temp_xlsb);
 
-      // register 0x0f marked as reserved for bmp390
-      // TODO the following int32 read assumes that the
-      //   now reserved byte will return 0x00 which is not always true
-      const time = buffer.readUInt32LE(8);
-      // const time2 = (time_31_24 << 24) | (time_23_16 << 16) | (time_15_8 << 8) | time_7_0
-      // console.log('times', time, time2, buffer.readUInt32LE(8));
+    // const time_7_0 = buffer.readUInt8(8);
+    // const time_15_8 = buffer.readUInt8(9);
+    // const time_23_16 = buffer.readUInt8(10);
+    // const time_31_24 = buffer.readUInt8(11);
 
-      const P = bmp3xx.skip_value === adcP ? false : adcP;
-      const T = bmp3xx.skip_value === adcT ? false : adcT;
+    // register 0x0f marked as reserved for bmp390
+    // TODO the following int32 read assumes that the
+    //   now reserved byte will return 0x00 which is not always true
+    const time = buffer.readUInt32LE(8);
+    // const time2 = (time_31_24 << 24) | (time_23_16 << 16) | (time_15_8 << 8) | time_7_0
+    // console.log('times', time, time2, buffer.readUInt32LE(8));
 
-      return Compensate.from({ sensortime: time, adcP: P, adcT: T, adcH: false, type: '3xy' }, calibration);
-    });
+    const P = bmp3xx.skip_value === adcP ? false : adcP;
+    const T = bmp3xx.skip_value === adcT ? false : adcT;
+
+    return Compensate.from({ sensortime: time, adcP: P, adcT: T, adcH: false, type: '3xy' }, calibration)
   }
 
-  static ready(bus) {
-    return BusUtil.readBlock(bus, [[0x02, 2], [0x10, 2]])
-      .then(buffer => {
+  static async ready(bus) {
+    const abuffer = await BusUtil.readBlock(bus, [[0x02, 2], [0x10, 2]])
+    const buffer = Buffer.from(abuffer)
 
-        const err_reg = buffer.readUInt8(0);
-        const status = buffer.readUInt8(1);
-        const event = buffer.readUInt8(2);
-        const int_status = buffer.readUInt8(3);
+    const err_reg = buffer.readUInt8(0);
+    const status = buffer.readUInt8(1);
+    const event = buffer.readUInt8(2);
+    const int_status = buffer.readUInt8(3);
 
-        const BIT_SET = 1;
+    const BIT_SET = 1;
 
-        const conf_err =  BitUtil.mapBits(err_reg, 2, 1) === BIT_SET;
-        const cmd_err =  BitUtil.mapBits(err_reg, 1, 1) === BIT_SET;
-        const fatal_err =  BitUtil.mapBits(err_reg, 0, 1) === BIT_SET;
+    const conf_err =  BitUtil.mapBits(err_reg, 2, 1) === BIT_SET;
+    const cmd_err =  BitUtil.mapBits(err_reg, 1, 1) === BIT_SET;
+    const fatal_err =  BitUtil.mapBits(err_reg, 0, 1) === BIT_SET;
 
-        const drdy_temp =  BitUtil.mapBits(status, 6, 1) === BIT_SET;
-        const drdy_press =  BitUtil.mapBits(status, 5, 1) === BIT_SET;
-        const cmd_rdy =  BitUtil.mapBits(status, 4, 1) === BIT_SET;
+    const drdy_temp =  BitUtil.mapBits(status, 6, 1) === BIT_SET;
+    const drdy_press =  BitUtil.mapBits(status, 5, 1) === BIT_SET;
+    const cmd_rdy =  BitUtil.mapBits(status, 4, 1) === BIT_SET;
 
-        const itf_act_pt = BitUtil.mapBits(event, 1, 1) === BIT_SET; // only for bmp390
-        const por_detected = BitUtil.mapBits(event, 0, 1) === BIT_SET;
+    const itf_act_pt = BitUtil.mapBits(event, 1, 1) === BIT_SET; // only for bmp390
+    const por_detected = BitUtil.mapBits(event, 0, 1) === BIT_SET;
 
-        const drdy =  BitUtil.mapBits(int_status, 3, 1) === BIT_SET;
-        const ffull_int =  BitUtil.mapBits(int_status, 1, 1) === BIT_SET;
-        const fwm_int =  BitUtil.mapBits(int_status, 0, 1) === BIT_SET;
+    const drdy =  BitUtil.mapBits(int_status, 3, 1) === BIT_SET;
+    const ffull_int =  BitUtil.mapBits(int_status, 1, 1) === BIT_SET;
+    const fwm_int =  BitUtil.mapBits(int_status, 0, 1) === BIT_SET;
 
-        return {
-          // ready:
+    return {
+     // ready:
 
-          error: { config: conf_err, command: cmd_err, fatal: fatal_err }, // all false is good
-          status: { tempature: drdy_temp, pressure: drdy_press, command: cmd_rdy }, // all true is good
-          event: { por_detected }, // false is good,
-          interrupt: { data_ready: drdy, fifo_full: ffull_int, fifo_watermark: fwm_int }
-        };
-      });
+      error: { config: conf_err, command: cmd_err, fatal: fatal_err }, // all false is good
+      status: { tempature: drdy_temp, pressure: drdy_press, command: cmd_rdy }, // all true is good
+      event: { por_detected }, // false is good,
+      interrupt: { data_ready: drdy, fifo_full: ffull_int, fifo_watermark: fwm_int }
+    }
   }
 
   static estimateMeasurementWait(profile) {

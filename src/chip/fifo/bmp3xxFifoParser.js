@@ -3,15 +3,12 @@ function reconstruct24bit(msb, lsb, xlsb) {
 }
 
 class bmp3xxFifoParser {
-  static parseFrameSet(frameset /* : Array<Buffer> */) {
-    // console.log('parse frameset', frameset);
-    // todo a bug here in returning array of arrays add a layer of reduce call in read method
-    return frameset.map(frames => {
-      return bmp3xxFifoParser.parseFrames(frames, { size: 0, total: frames.length });
-    });
+
+  static parseFrames(frames) {
+    return bmp3xxFifoParser._parseFrames(frames, { size: 0, total: frames.length });
   }
 
-  static parseFrames(frames, cursor) { return bmp3xxFifoParser.parseFramesRecursive(frames, cursor); }
+  static _parseFrames(frames, cursor) { return bmp3xxFifoParser.parseFramesRecursive(frames, cursor); }
 
   static parseFramesRecursive(frames, cursor = { size: 0, total: 0 }) {
     // console.log(frames, cursor);

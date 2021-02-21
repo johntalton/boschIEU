@@ -6,7 +6,7 @@ const {
   workerData
 } = require('worker_threads');
 
-const i2c = require('i2c-bus');
+const { FivdiBusProvider } = require('./fivdi-bus.js');
 
 const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
 const { BoschIEU } = require('../');
@@ -16,7 +16,7 @@ const { deviceDef_bmp388 } = require('./deviceDefs.js');
 if(isMainThread) { throw new Error('worker child called as main'); }
 
 //console.log(workerData);
-const provider = workerData.mock ? I2CMockBus : i2c;
+const provider = workerData.mock ? I2CMockBus : FivdiBusProvider;
 
 I2CMockBus.addDevice(workerData.busNumber, workerData.busAddress, deviceDef_bmp388);
 

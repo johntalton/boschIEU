@@ -2,7 +2,7 @@
 // eslint-disable-next-line import/no-nodejs-modules
 const crypto = require('crypto');
 
-const i2c = require('i2c-bus');
+const { FivdiBusProvider } = require('./fivdi-bus');
 
 const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
 
@@ -105,7 +105,7 @@ class Device {
       // todo does setup only happen once, move this to main?
       I2CMockBus.addDevice(busNumber, busAddress, deviceDef_bmp388); // todo ... always bmp388
     }
-    devcfg.provider = devcfg.mock === true ? I2CMockBus : i2c;
+    devcfg.provider = devcfg.mock === true ? I2CMockBus : FivdiBusProvider;
 
     return devcfg.provider.openPromisified(busNumber)
       .then(bus => new I2CAddressedBus(bus, busAddress))
