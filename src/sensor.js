@@ -1,36 +1,36 @@
-const { BusUtil } = require('@johntalton/and-other-delights');
+/* eslint-disable fp/no-this */
+/* eslint-disable immutable/no-this */
+/* eslint-disable fp/no-mutation */
+/* eslint-disable immutable/no-mutation */
+//import { BusUtil } from '@johntalton/and-other-delights'
 
-const { BoschFifo } = require('./fifo.js');
-const { Chip } = require('./chip/chip.js');
+import { Chip } from './chip/chip.js'
+import { BoschFifo } from './fifo.js'
+
+
 /**
  * Acts as a cache around the Chip implementation.
  */
-class BoschSensor {
+export class BoschSensor {
+  // eslint-disable-next-line fp/no-nil
   constructor(bus, options = {}) {
-    this._bus = bus;
-    this._options = options;
+    this._bus = bus
+    this._options = options
 
-    this._chip = options.chipId === undefined ? Chip.generic() : Chip.fromId(options.chipId);
-    this._calibration = undefined;
+    this._chip = options.chipId === undefined ?
+      Chip.generic() :
+      Chip.fromId(options.chipId, options.legacy ?? true)
 
-    this._fifo = new BoschFifo(this);
+    this._calibration = undefined
+
+    this._fifo = new BoschFifo(this)
   }
 
-  get chip() { return this._chip; }
+  // exposed to allow for chip specific calls (390 `refId` etc)
+  //  and to provide comparison of `.chip.chipId`
+  get chip() { return this._chip }
 
-  /**
-   * Attempts to look up and set the chip based on the passed Id.
-   * This will also invalidate the `calibration` data as it is
-   * chip specific. Thus, requiring caller to call `calibration`.
-   *
-   * @param chipId A valid numeric chip id. Or `undefined` for Generic.
-   */
-  setChip(chipId) {
-    this._chip = Chip.fromId(chipId);
-    this._calibration = undefined;
-  }
-
-  get fifo() { return this._fifo; }
+  get fifo() { return this._fifo }
 
   // select chip is exposed over a setter here to explicitly
   //   relate it to the `detectChip` method
@@ -42,10 +42,10 @@ class BoschSensor {
   // forcing the detect will bypass the cached (valid check) and
   // re-detect and cache the chip (but it still assign the result
   // to the cache, so this is different from using`_detectChip`)
-  detectChip(force) {
-    const f = force === true;
-    if(!f && this.valid()) { return Promise.resolve(this.chip); }
-    return this._detectChip().then(chip => { this._chip = chip; return true; });
+  async detectChip(force) {
+    const f = force === true
+    if(!f && this.valid()) { return Promise.resolve(this.chip) }
+    return this._detectChip().then(chip => { this._chip = chip; return true })
   }
 
   // detects the chip id using single byte reads. the generic chip no-longer
@@ -54,27 +54,28 @@ class BoschSensor {
   // @return promise that resolves to chip implementation class selected by id
   async _detectChip() {
     async function readid(bus, reg) {
-      const abuffer = await BusUtil.readBlock(bus, [reg])
+      const abuffer = await bus.readI2cBlock(reg, 1)
       const buffer = new Uint8Array(abuffer)
       return buffer[0]
     }
 
-    const legacyReadId = await readid(this._bus, 0xD0) // standard `generic` register id
+    // attempt to detect via the `legacy` Id register
+    const legacyReadId = await readid(this._bus, 0xD0)
     if(legacyReadId !== 0) {
-      console.log('detect: via legacy register read');
+      console.log('detect: via legacy register read', legacyReadId);
       return Chip.fromId(legacyReadId, true)
     }
 
-    console.log('detect: legacy resuted in Zero, atempt standard register');
+    console.log('detect: legacy resulted in Zero, attempt standard register');
     const atZeroReadId = await readid(this._bus, 0x00) // bmp388/bmp390 register
     return Chip.fromId(atZeroReadId, false)
   }
 
-  valid() { return this._chip.chipId !== Chip.generic().chipId; }
+  valid() { return this._chip.chipId !== Chip.generic().chipId }
 
-  calibrated() { return this.valid() && (this._calibration !== undefined); }
+  calibrated() { return this.valid() && (this._calibration !== undefined) }
 
-  sensorTime() { return this._chip.sensorTime(this._bus); }
+  async sensorTime() { return this._chip.sensorTime(this._bus) }
 
   // old code used call to `id` in order to force a chip identification
   //   and update the cached chip reference.
@@ -82,41 +83,38 @@ class BoschSensor {
   //   the `generic` chips version of `id` worked.  this assumption is no-longer
   //   valid when the `id` function is not stable. Thus, elevating the "detection"
   //    functionality into the higher level Sensor code
-  id() {
+  async id() {
     // call cached detect
     // then call the chip id (redundant but provides consistent return)
     return this.detectChip()
-      .then(() => this._id());
+      .then(() => this._id())
   }
 
   // directly calls the bus read id and returns hex value directly
-  _id() {
-    return this._chip.id(this._bus);
+  async _id() {
+    return this._chip.id(this._bus)
   }
 
-  reset() { return this._chip.reset(this._bus); }
+  async reset() { return this._chip.reset(this._bus) }
 
-  calibration() {
-    return this._chip.calibration(this._bus).then(cali => {
-      this._calibration = cali;
-      return cali;
-    });
+  async calibration() {
+    this._calibration = await this._chip.calibration(this._bus)
+    return this._calibration
   }
 
-  profile() { return this._chip.profile(this._bus); }
-  setProfile(profile, only = true) {
-    return Promise.resolve()
-      .then(() => (only ? undefined : this._chip.patchProfile(this._bus, { mode: 'SLEEP' })))
-      .then(() => this._chip.setProfile(this._bus, profile, this._calibration))
-      .then(() => (only ? undefined : this._chip.patchProfile(this._bus, { mode: profile.mode })));
+  async profile() { return this._chip.profile(this._bus); }
+  async setProfile(profile, only = true) {
+    if(!only) { await this._chip.patchProfile(this._bus, { mode: 'SLEEP' }) }
+
+    await this._chip.setProfile(this._bus, profile, this._calibration)
+
+    if(!only) { await this._chip.patchProfile(this._bus, { mode: profile.mode }) }
   }
-  patchProfile(patch) { return this._chip.patchProfile(this._bus, patch); }
+  async patchProfile(patch) { return this._chip.patchProfile(this._bus, patch); }
 
-  ready() { return this._chip.ready(this._bus); }
+  async ready() { return this._chip.ready(this._bus); }
 
-  measurement() { return this._chip.measurement(this._bus, this._calibration); }
+  async measurement() { return this._chip.measurement(this._bus, this._calibration); }
 
   estimateMeasurementWait(profile) { return this._chip.estimateMeasurementWait(profile); }
 }
-
-module.exports = { BoschSensor };

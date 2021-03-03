@@ -1,14 +1,11 @@
-const { BusUtil, BitUtil } = require('@johntalton/and-other-delights');
-const { NameValueUtil } = require('../nvutil.js')
+import { BusUtil, BitUtil } from '@johntalton/and-other-delights'
+import { NameValueUtil } from '../nvutil.js'
 
-const { Compensate } = require('./compensate.js');
-const { enumMap } = require('./generic.js');
+import { Compensate } from './compensate.js'
+import { enumMap } from './generic.js'
 
-const { genericChip } = require('./generic.js');
-const { bmp3xxFifo } = require('./fifo');
-
-
-
+import { genericChip } from './generic.js'
+import { bmp3xxFifo } from './fifo/index.js'
 
 const oversamplings = [
   { name: 1, value: 0x0 },
@@ -131,11 +128,11 @@ function modeFrom(opendrain, level) {
 /**
  *
  **/
-class bmp3xx extends genericChip {
+export class bmp3xx extends genericChip {
   static get features() {
     return {
       pressure: true,
-      tempature: true,
+      temperature: true,
       humidity: false,
       gas: false,
       normalMode: true,
@@ -159,7 +156,7 @@ class bmp3xx extends genericChip {
 
   static async calibration(bus) {
     console.log('bmp3xx calibration');
-    const abuffer = await BusUtil.readBlock(bus, [[0x31, 21]])
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0x31, 21]])
     const buffer = Buffer.from(abuffer)
 
     const nvm_par_T1 = buffer.readUInt16LE(0);
@@ -205,20 +202,20 @@ class bmp3xx extends genericChip {
 
 
   static async profile(bus) {
-    const abuffer = await BusUtil.readBlock(bus, [[0x15, 11]])
-    const buffer = Buffer.from(abuffer)
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0x15, 11]])
+    const buffer = new DataView(abuffer)
     // console.log('profile buffer', buffer);
 
-    const config = buffer.readUInt8(10);
-    const odr = buffer.readUInt8(8);
-    const osr = buffer.readUInt8(7);
-    const pwr_ctrl = buffer.readUInt8(6);
-    const if_conf = buffer.readUInt8(5);
-    const int_ctrl = buffer.readUInt8(4);
-    const fifo_config_2 = buffer.readUInt8(3);
-    const fifo_config_1 = buffer.readUInt8(2);
-    const fifo_wtm_1 = buffer.readUInt8(1);
-    const fifo_wtm_0 = buffer.readUInt8(0);
+    const config = buffer.getUint8(10);
+    const odr = buffer.getUint8(8);
+    const osr = buffer.getUint8(7);
+    const pwr_ctrl = buffer.getUint8(6);
+    const if_conf = buffer.getUint8(5);
+    const int_ctrl = buffer.getUint8(4);
+    const fifo_config_2 = buffer.getUint8(3);
+    const fifo_config_1 = buffer.getUint8(2);
+    const fifo_wtm_1 = buffer.getUint8(1);
+    const fifo_wtm_0 = buffer.getUint8(0);
 
     //
     const iff_filter = BitUtil.mapBits(config, 3, 3);
@@ -394,23 +391,23 @@ class bmp3xx extends genericChip {
     const fifo_wtm_0 = BitUtil.packBits([[7, 8]], [fifo_water_mark_7_0]);
 
     // todo consider using block write
-    await bus.writeI2cBlock(0x1B, Buffer.from([0]))
+    await bus.writeI2cBlock(0x1B, Uint8Array.from([ 0 ]))
 
     await Promise.all([
-      bus.writeI2cBlock(0x15, Buffer.from([fifo_wtm_0])),
-      bus.writeI2cBlock(0x16, Buffer.from([fifo_wtm_1])),
-      bus.writeI2cBlock(0x17, Buffer.from([fifo_config_1])),
-      bus.writeI2cBlock(0x18, Buffer.from([fifo_config_2])),
-      bus.writeI2cBlock(0x19, Buffer.from([int_ctrl])),
-      bus.writeI2cBlock(0x1A, Buffer.from([if_conf])),
+      bus.writeI2cBlock(0x15, Uint8Array.from([ fifo_wtm_0 ])),
+      bus.writeI2cBlock(0x16, Uint8Array.from([ fifo_wtm_1 ])),
+      bus.writeI2cBlock(0x17, Uint8Array.from([ fifo_config_1 ])),
+      bus.writeI2cBlock(0x18, Uint8Array.from([ fifo_config_2 ])),
+      bus.writeI2cBlock(0x19, Uint8Array.from([ int_ctrl ])),
+      bus.writeI2cBlock(0x1A, Uint8Array.from([ if_conf ])),
       // skip power control register here
-      bus.writeI2cBlock(0x1C, Buffer.from([osr])),
-      bus.writeI2cBlock(0x1D, Buffer.from([odr])),
+      bus.writeI2cBlock(0x1C, Uint8Array.from([ osr ])),
+      bus.writeI2cBlock(0x1D, Uint8Array.from([ odr ])),
       // 0, // reserved
-      bus.writeI2cBlock(0x1F, Buffer.from([config]))
+      bus.writeI2cBlock(0x1F, Uint8Array.from([ config ]))
     ])
 
-     await bus.writeI2cBlock(0x1B, Buffer.from([pwr_ctrl]))
+     await bus.writeI2cBlock(0x1B, Uint8Array.from([pwr_ctrl]))
   }
 
   static patchProfile(bus, patch) {
@@ -485,7 +482,7 @@ class bmp3xx extends genericChip {
      // ready:
 
       error: { config: conf_err, command: cmd_err, fatal: fatal_err }, // all false is good
-      status: { tempature: drdy_temp, pressure: drdy_press, command: cmd_rdy }, // all true is good
+      status: { temperature: drdy_temp, pressure: drdy_press, command: cmd_rdy }, // all true is good
       event: { por_detected }, // false is good,
       interrupt: { data_ready: drdy, fifo_full: ffull_int, fifo_watermark: fwm_int }
     }
@@ -496,5 +493,3 @@ class bmp3xx extends genericChip {
     return { totalWaitMs: 0 };
   }
 }
-
-module.exports = { bmp3xx };

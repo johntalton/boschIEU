@@ -1,8 +1,9 @@
-const { BusUtil, BitUtil } = require('@johntalton/and-other-delights');
-const { NameValueUtil } = require('../nvutil.js')
+import { BusUtil, BitUtil } from '@johntalton/and-other-delights'
+import { NameValueUtil } from '../nvutil.js'
 
-const { genericChip, enumMap, Compensate } = require('./generic.js');
-const { Util } = require('./util.js');
+import { genericChip, enumMap } from './generic.js'
+import { Compensate } from './compensate.js'
+import { Util } from './util.js'
 
 // todo move to common enumerations in generic? but its not
 const gwMultipliers = [
@@ -12,7 +13,7 @@ const gwMultipliers = [
   { name: 64, value: 3 }
 ];
 
-class bme680 extends genericChip {
+export class bme680 extends genericChip {
   static get name() { return 'bme680'; }
   static get chipId() { return 0x61; }
 
@@ -20,7 +21,7 @@ class bme680 extends genericChip {
   static get features() {
     return {
       pressure: true,
-      tempature: true,
+      temperature: true,
       humidity: true,
       gas: true,
       normalMode: false,
@@ -31,7 +32,7 @@ class bme680 extends genericChip {
   }
 
   static async calibration(bus) {
-    const abuffer = await BusUtil.readBlock(bus, [[0x89, 25], [0xE1, 16], 0x00, 0x02, 0x04])
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0x89, 25], [0xE1, 16], [0x00, 1], [0x02, 1], [0x04, 1]])
     const buffer = Buffer.from(abuffer)
 
     // console.log(buffer);
@@ -199,16 +200,16 @@ class bme680 extends genericChip {
     }
 
     // 320 25 -> 0x74
-    function temperatureToHeaterRes(tempatureC, ambientTempatureC, caliG) {
-      if(tempatureC > 400) { throw new Error('max temperature 400 C'); }
+    function temperatureToHeaterRes(temperatureC, ambientTemperatureC, caliG) {
+      if(temperatureC > 400) { throw new Error('max temperature 400 C'); }
       if(caliG.G.length !== 3) { throw new Error('calibration mismatch'); }
       const [gh1, gh2, gh3] = caliG.G;
 
       const var1 = (gh1 / 16.0) + 49.0;
       const var2 = ((gh2 / 32768.0) * 0.0005) + 0.00235;
       const var3 = gh3 / 1024.0;
-      const var4 = var1 * (1.0 + (var2 * tempatureC));
-      const var5 = var4 + (var3 * ambientTempatureC);
+      const var4 = var1 * (1.0 + (var2 * temperatureC));
+      const var5 = var4 + (var3 * ambientTemperatureC);
       const res_heat = Math.trunc(3.4 * ((var5 * (4 / (4 + caliG.res_heat_range)) * (1 / (1 + (caliG.res_heat_val * 0.002)))) - 25));
 
       // console.log(var1, var2, var3, var4, var5, res_heat);
@@ -221,8 +222,9 @@ class bme680 extends genericChip {
     const en3wint = false; // todo profile.spi.interrupt;
     const spi_mem_page = 0; // todo profile.spi.mempage;
 
-    if(profile.gas.setpoints === undefined) { throw new Error('missing set-point'); }
-    if(profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10'); }
+    if(profile.gas === undefined) { throw new Error('missing gas in profile') }
+    if(profile.gas.setpoints === undefined) { throw new Error('missing set-point') }
+    if(profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10') }
 
     const active = profile.gas.setpoints
       .map((sp, idx) => ({ active: sp.active, index: idx }))
@@ -260,15 +262,15 @@ class bme680 extends genericChip {
       const multi = NameValueUtil.toValue(gw.multiplyer, gwMultipliers);
       const gas_wait_x = BitUtil.packBits([[7, 2], [5, 6]], [multi, gw.base]);
 
-      const pat = profile.ambientTempatureC !== undefined ? profile.ambientTempatureC : 25; // or 25C
-      const ambientTempatureC = sp.ambientTempatureC !== undefined ? sp.ambientTempature : pat;
+      const pat = profile.ambientTemperatureC !== undefined ? profile.ambientTemperatureC : 25; // or 25C
+      const ambientTemperatureC = sp.ambientTemperatureC !== undefined ? sp.ambientTemperatureC : pat;
 
-      const res_heat_x = temperatureToHeaterRes(sp.tempatureC, ambientTempatureC, calibration.G);
+      const res_heat_x = temperatureToHeaterRes(sp.temperatureC, ambientTemperatureC, calibration.G);
 
       return [[...out[0], res_heat_x], [...out[1], gas_wait_x]];
     }, [[], []]);
 
-    // console.log(res_heat, gas_wait);
+    // console.log(idac_heat, res_heat, gas_wait);
 
     // we no longer bulk write,
     await bus.writeI2cBlock(0x74, Uint8Array.from([ ctrl_meas & ~0b11 ])) // sleep
@@ -409,5 +411,3 @@ class bme680 extends genericChip {
     };
   }
 }
-
-module.exports.bme680 = bme680;

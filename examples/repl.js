@@ -317,7 +317,7 @@ Repler.addCommand({
     return state.sensor !== undefined &&
       state.sensor.valid() &&
       state.sensor.calibrated() &&
-      state.sensor.chip.features.tempature;
+      state.sensor.chip.features.temperature;
   },
   callback: function(state) {
     return state.sensor.measurement().then(measurement => {

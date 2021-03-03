@@ -1,7 +1,7 @@
 /**
  *
  */
-class Converter {
+export class Converter {
   static altitudeFromPressure(seaLevelPa, P) {
     if(P === undefined) { return { undef: 'P' }; }
     // if((searLevelPa / Pa) >= (101325 / 5474.89) { throw new Error('max altitude'); }
@@ -52,5 +52,3 @@ Converter.minSeaLevelPa =   87 * PA_PER_KPA
 Converter.maxSeaLevelPa = 1085 * PA_PER_KPA
 
 Converter.seaLevelPa = 101.325 * PA_PER_KPA; // a normal guess
-
-module.exports.Converter = Converter;

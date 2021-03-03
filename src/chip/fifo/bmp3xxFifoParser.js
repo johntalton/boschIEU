@@ -2,7 +2,7 @@ function reconstruct24bit(msb, lsb, xlsb) {
   return (msb << 16) | (lsb << 8) | xlsb;
 }
 
-class bmp3xxFifoParser {
+export class bmp3xxFifoParser {
 
   static parseFrames(frames) {
     return bmp3xxFifoParser._parseFrames(frames, { size: 0, total: frames.length });
@@ -35,6 +35,7 @@ class bmp3xxFifoParser {
     // the effort of adding +1 to both returned [size, frameObj] results
     // wold be over-burdensome as written.  Thus, each method is expected to
     // return the additional byte read as part of its total read size.
+    console.log({ header, mode })
     if(mode === 0b10) {
       return bmp3xxFifoParser.parseSensorFrame(frame, param);
     } else if(mode === 0b01) {
@@ -125,5 +126,3 @@ class bmp3xxFifoParser {
     return [ bytesRead, frameObj ];
   }
 }
-
-module.exports = { bmp3xxFifoParser };

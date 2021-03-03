@@ -65,10 +65,10 @@ class Config {
 
           profile.gas.setpoints = profile.gas.setpoints.map(sp => {
             const ms = Config._getMs(sp, 'duration', 0);
-            const f = sp.tempatureF !== undefined ? Converter.ftoc(sp.tempatureF) : 0;
-            const c = sp.tempatureC !== undefined ? sp.tempatureC : f;
+            const f = sp.temperatureF !== undefined ? Converter.ftoc(sp.temperatureF) : 0;
+            const c = sp.temperatureC !== undefined ? sp.temperatureC : f;
             const setpointActive = sp.active !== undefined ? sp.active : false;
-            return { tempatureC: c, durationMs: ms, active: setpointActive };
+            return { temperatureC: c, durationMs: ms, active: setpointActive };
           });
         }
 

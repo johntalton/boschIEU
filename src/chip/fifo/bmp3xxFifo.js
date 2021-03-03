@@ -1,6 +1,6 @@
-const { genericFifo } = require('../generic.js');
-const { Compensate } = require('../compensate.js');
-const { bmp3xxFifoParser } = require('./bmp3xxFifoParser.js');
+import { genericFifo } from '../generic.js'
+import { Compensate } from '../compensate.js'
+import { bmp3xxFifoParser } from './bmp3xxFifoParser.js'
 
 const FIFO_SIZE = 512;
 
@@ -18,7 +18,7 @@ function reconstruct9bit(msb, lsb) {
 /**
  *
  **/
-class bmp3xxFifo extends genericFifo {
+export class bmp3xxFifo extends genericFifo {
 
   static flush(bus) {
     return bus.writeI2cBlock(CMD_REGISTER, Buffer.from([ CMD_FIFO_FLUSH ]));
@@ -26,22 +26,28 @@ class bmp3xxFifo extends genericFifo {
 
   static async read(bus, calibration) {
     const abuffer = await bus.readI2cBlock(FIFO_LENGTH_REGISTER, 2)
+    const [ fifo_byte_counter_7_0, fifo_byte_counter_8 ] = new Uint8Array(abuffer)
 
-    const buffer = Buffer.from(abuffer)
-    const fifo_byte_counter_7_0 = buffer.readUInt8(0);
-    const fifo_byte_counter_8 = buffer.readUInt8(1);
     // TODO this is no longer correct for bmp390, it uses all 16bits
-    const fifo_byte_counter =  reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
+    const fifo_byte_counter = reconstruct9bit(fifo_byte_counter_8, fifo_byte_counter_7_0);
 
     if(fifo_byte_counter < 0 || fifo_byte_counter > FIFO_SIZE) {
       throw new Error('fifo counter error')
     }
 
+    if(fifo_byte_counter === 0) {
+      console.warn('zero length fifo... parse may fail')
+      // TODO does this ever happen, if so, what is there to read
+      // return []
+    }
     //
     const readSize = fifo_byte_counter + 4 + 2;
 
     await bus.sendByte(FIFO_DATA_REGISTER)
-    const frames = await bus.i2cRead(readSize)
+    const framesABuffer = await bus.i2cRead(readSize)
+    const frames = Buffer.from(framesABuffer)
+
+    console.log({ frames })
 
     const messages = bmp3xxFifoParser.parseFrames(frames)
 
@@ -64,5 +70,3 @@ class bmp3xxFifo extends genericFifo {
     })
   }
 }
-
-module.exports = { bmp3xxFifo };

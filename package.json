@@ -1,29 +1,47 @@
 {
   "name": "@johntalton/boschieu",
-  "version": "5.0.0",
-  "description": "",
+  "version": "6.0.0",
+  "description": "Common driver for the range of Bosch IEUs",
+  "keywords": [
+    "bosch",
+    "IEU",
+    "bmp280",
+    "bme680",
+    "bmp388",
+    "bmp390"
+  ],
   "license": "MIT",
-  "main": "src/boschieu.js",
-  "type": "commonjs",
+  "type": "module",
   "exports": {
-    "import": "./src/boschieu.js",
-    "require": "./src/boschieu.js"
+    "import": "./src/boschieu.js"
   },
   "scripts": {
-    "lint": "./node_modules/.bin/eslint ."
+    "lint": "./node_modules/.bin/eslint .",
+    "test": "mocha",
+    "coverage": "c8 --src ./src --check-coverage --all --lines 50 --functions 5 --branches 60 npm --silent run test -- --no-parallel --reporter min"
   },
   "eslintConfig": {
     "extends": [
       "@johntalton/eslint-config/js",
-      "@johntalton/eslint-config/node"
+      "@johntalton/eslint-config/es"
+    ],
+    "exclude": [
+      "test/**"
     ],
     "env": {
-      "node": true
+      "node": false
     },
     "rules": {
-      "semi": [
+      "import/prefer-default-export": "off",
+      "import/extensions": "off",
+      "fp/no-class": "off",
+      "import/no-internal-modules": [
         "error",
-        "always"
+        {
+          "allow": [
+            "chip/**"
+          ]
+        }
       ],
       "spellcheck/spell-checker": [
         "error",
@@ -44,7 +62,6 @@
             "fifo",
             "gpio",
             "mqtt",
-            "frameset",
             "2xy",
             "3xy",
             "6xy",
@@ -59,17 +76,33 @@
       ]
     }
   },
+  "mocha": {
+    "spec": [
+      "test/*.spec.js"
+    ],
+    "grep": "@broken|@slow",
+    "invert": true,
+    "parallel": true,
+    "slow": 2,
+    "timeout": 31,
+    "watch": false,
+    "sort": false,
+    "forbitOnly": true,
+    "check-leaks": true,
+    "global": []
+  },
   "dependencies": {
-    "@johntalton/and-other-delights": "^5.0.0"
+    "@johntalton/and-other-delights": "file:../and-other-delights"
   },
   "devDependencies": {
     "@johntalton/eslint-config": "^2.0.0",
+    "c8": "^7.6.0",
+    "chai": "^4.3.0",
     "eslint": "^7.16.0",
     "eslint-plugin-fp": "^2.3.0",
     "eslint-plugin-functional": "^3.1.0",
     "eslint-plugin-immutable": "^1.0.0",
     "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-jsdoc": "^30.0.3",
     "eslint-plugin-mocha": "^8.0.0",
     "eslint-plugin-no-loops": "^0.3.0",
     "eslint-plugin-no-use-extend-native": "^0.5.0",
@@ -78,6 +111,7 @@
     "eslint-plugin-security": "^1.4.0",
     "eslint-plugin-spellcheck": "^0.0.17",
     "i2c-bus": "^5.2.1",
+    "mocha": "^8.3.0",
     "mqtt": "^4.2.6",
     "onoff": "^6.0.1",
     "repler": "github:johntalton/repler",

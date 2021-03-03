@@ -27,12 +27,12 @@ class Util {
       }
     }
 
-    if(chip.features.tempature) {
+    if(chip.features.temperature) {
       if(T.skip !== undefined && T.skip) {
-        result.tempature = { skip: true };
+        result.temperature = { skip: true };
       } else {
         const f = Converter.ctof(T.C);
-        result.tempature = { ...T, F: f };
+        result.temperature = { ...T, F: f };
       }
     }
 
@@ -58,7 +58,7 @@ class Util {
 
   static log(device, result) {
     const P = result.pressure;
-    const T = result.tempature;
+    const T = result.temperature;
     const H = result.humidity;
     const A = result.altitude;
     const G = result.gas;
@@ -78,7 +78,7 @@ class Util {
         console.log('\tAltitude','(ft):', Converter.trim(A.Ft), '(m): ', Converter.trim(A.M));
       }
     }
-    if(device.sensor.chip.features.tempature) {
+    if(device.sensor.chip.features.temperature) {
       if(T.skip) {
         console.log('\tTemperature: skipped');
       } else {

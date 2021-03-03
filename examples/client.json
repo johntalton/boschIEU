@@ -44,9 +44,9 @@
         "gas": {
           "enabled": true,
           "setpoints": [
-            { "tempatureC": 320, "durationMs": 150, "active": true },
+            { "temperatureC": 320, "durationMs": 150, "active": true },
             { "active": false },
-            { "tempatureC": 322, "durationMs": 202 }
+            { "temperatureC": 322, "durationMs": 202 }
           ]
         }
       },

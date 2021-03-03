@@ -1,9 +1,9 @@
-const { genericChip } = require('./generic.js');
-const { bmp280 } = require('./bmp280.js');
-const { bme280 } = require('./bme280.js');
-const { bme680 } = require('./bme680.js');
-const { bmp388 } = require('./bmp388.js');
-const { bmp390 } = require('./bmp390.js');
+import { genericChip } from './generic.js'
+import { bmp280 } from './bmp280.js'
+import { bme280 } from './bme280.js'
+import { bme680 } from './bme680.js'
+import { bmp388 } from './bmp388.js'
+import { bmp390 } from './bmp390.js'
 
 // Package up our Chips into a nice array for later
 // note: this is left outside the class to add
@@ -21,7 +21,7 @@ const Ahoy = [
 /**
  * Factory for discovering Chips.
  */
-class Chip {
+export class Chip {
   /**
    * Provides direct access to the `genericChip` class.
    *
@@ -43,8 +43,9 @@ class Chip {
    **/
   static fromId(id, legacy) {
     if(id === undefined) { return Chip.generic(); }
+
     const chip = Ahoy.find(c => c.chipId === id && c.isChipIdAtZero() !== legacy);
-    if(chip === undefined) { throw new Error('unknown chip id: ' + id.toString()); }
+    if(chip === undefined) { throw new Error('unknown chip id: ' + id); }
     return chip;
   }
 
@@ -58,5 +59,3 @@ class Chip {
       .map(chip => ({ name: chip.name, chip_id: chip.chipId }));
   }
 }
-
-module.exports = { Chip };

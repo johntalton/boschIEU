@@ -3,7 +3,7 @@
 /**
  *
  **/
-class Compensate {
+export class Compensate {
   static from(measurment, calibration) {
     switch(measurment.type) {
     case '2xy': return Compensate.from_2xy(measurment, calibration); break;
@@ -322,7 +322,7 @@ class Compensate {
   }
 }
 
-class AltComp {
+export class AltComp {
   static fivdiCompensate(raw, coefficients) {
     return AltComp.compensateRawData(raw, coefficients);
   }
@@ -566,5 +566,3 @@ class AltComp {
     };
   }
 }
-
-module.exports = { Compensate, AltComp };

@@ -4,7 +4,7 @@
 /**
  *
  **/
-class NameValueUtil {
+export class NameValueUtil {
   static toName(value/*: NameValueKey*/, nvmap/*: NameValueMap*/)/*: NameValueKey*/ {
     const item = nvmap.find(i => i.value === value);
     if(item === undefined) { throw new Error('unknown nv value ' + value); }
@@ -17,6 +17,3 @@ class NameValueUtil {
     return item.value;
   }
 }
-
-module.exports = { NameValueUtil }
-

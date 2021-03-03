@@ -1,11 +1,12 @@
-const {
+import {
   BusUtil,
   BitUtil,
-} = require('@johntalton/and-other-delights');
+} from '@johntalton/and-other-delights'
 
-const { NameValueUtil } = require('../nvutil.js')
+import { NameValueUtil } from '../nvutil.js'
 
-const { genericChip, enumMap, Compensate } = require('./generic.js');
+import { genericChip, enumMap } from './generic.js'
+import { Compensate } from './compensate.js'
 
 // Chip ID
 const CHIP_ID = 0x60;
@@ -58,14 +59,14 @@ const STATUS_LENGTH = 1;
 const STATUS_BLOCK = [[STATUS_START_ADDRESS, STATUS_LENGTH]];
 
 //
-class bme280 extends genericChip {
+export class bme280 extends genericChip {
   static get name() { return 'bme280'; }
   static get chipId() { return CHIP_ID; }
 
   static get features() {
     return {
       pressure: true,
-      tempature: true,
+      temperature: true,
       humidity: true,
       gas: false,
       normalMode: true,
@@ -76,7 +77,7 @@ class bme280 extends genericChip {
   }
 
   static async calibration(bus) {
-    const abuffer = await BusUtil.readBlock(bus, CALIBRATION_BLOCK)
+    const abuffer = await BusUtil.readI2cBlocks(bus, CALIBRATION_BLOCK)
     const buffer = Buffer.from(abuffer)
 
     const dig_T1 = buffer.readUInt16LE(0);
@@ -224,5 +225,3 @@ class bme280 extends genericChip {
     return { totalWaitMs: 0 };
   }
 }
-
-module.exports = { bme280 };
