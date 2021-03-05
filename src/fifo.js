@@ -1,3 +1,8 @@
+/* eslint-disable immutable/no-mutation */
+/* eslint-disable immutable/no-this */
+/* eslint-disable fp/no-this */
+/* eslint-disable fp/no-mutation */
+/* eslint-disable fp/no-nil */
 /**
  * Instance Helper for Interacting with static chips via the Sensor.
  * Wrap calls into the chips static fifo methods and is accessible
@@ -6,10 +11,12 @@
  **/
 export class BoschFifo {
   constructor(sensor) {
-    this.sensor = sensor;
+    this.sensor = sensor
   }
 
-  async flush() { return this.sensor.chip.fifo.flush(this.sensor._bus); }
+  // eslint-disable-next-line require-await
+  async flush() { return this.sensor.chip.fifo.flush(this.sensor._bus) }
 
-  async read() { return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration); }
+  // eslint-disable-next-line require-await
+  async read() { return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration) }
 }

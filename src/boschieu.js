@@ -13,4 +13,10 @@ export class BoschIEU {
   static sensor(bus, options) {
     return Promise.resolve(new BoschSensor(bus, options));
   }
+
+  // eslint-disable-next-line require-await
+  static async detect(bus) {
+    return BoschSensor.detect(bus)
+  }
+
 }

@@ -1,6 +1,10 @@
+/* eslint-disable fp/no-nil */
+/* eslint-disable fp/no-throw */
+/* eslint-disable key-spacing */
+/* eslint-disable no-magic-numbers */
+/* eslint-disable no-multi-spaces */
+/* eslint-disable import/group-exports */
 /* eslint max-classes-per-file: ["error", 2] */
-
-import { BusUtil } from '@johntalton/and-other-delights'
 
 export const enumMap = {
   oversamples: [ //
@@ -100,14 +104,6 @@ export class genericChip {
   // estimateMeasurementWait
   // ready
   // setProfile
-
-  // todo the following require knowledge of the system state
-  //   or need to read the chip before updating, thus they
-  //   belong to a higher level API and should be moved out
-  // patchProfile
-  // force
-  // sleep
-
 
   // eslint-disable-next-line class-methods-use-this
   get ranges() {

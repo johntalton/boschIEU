@@ -15,6 +15,9 @@
   "exports": {
     "import": "./src/boschieu.js"
   },
+  "files": [
+    "src/**/*.js"
+  ],
   "scripts": {
     "lint": "./node_modules/.bin/eslint .",
     "test": "mocha",
@@ -25,13 +28,20 @@
       "@johntalton/eslint-config/js",
       "@johntalton/eslint-config/es"
     ],
-    "exclude": [
-      "test/**"
+    "ignorePatterns": [
+      "test/**",
+      "examples/**"
     ],
+    "globals": {
+      "console": false
+    },
     "env": {
       "node": false
     },
     "rules": {
+      "semi": "warn",
+      "max-len": ["error", { "code": 100 }],
+      "no-magic-numbers": "warn",
       "import/prefer-default-export": "off",
       "import/extensions": "off",
       "fp/no-class": "off",
@@ -47,7 +57,7 @@
         "error",
         {
           "identifiers": false,
-          "minLength": 3,
+          "minLength": 4,
           "skipWords": [
             "johntalton",
             "todo",
@@ -62,6 +72,8 @@
             "fifo",
             "gpio",
             "mqtt",
+            "mbar",
+            "opcode",
             "2xy",
             "3xy",
             "6xy",

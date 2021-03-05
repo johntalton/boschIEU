@@ -1,26 +1,29 @@
+/* eslint-disable fp/no-nil */
 function reconstruct24bit(msb, lsb, xlsb) {
-  return (msb << 16) | (lsb << 8) | xlsb;
+  return (msb << 16) | (lsb << 8) | xlsb
 }
 
 export class bmp3xxFifoParser {
 
   static parseFrames(frames) {
-    return bmp3xxFifoParser._parseFrames(frames, { size: 0, total: frames.length });
+    return bmp3xxFifoParser._parseFrames(frames, { size: 0, total: frames.length })
   }
 
-  static _parseFrames(frames, cursor) { return bmp3xxFifoParser.parseFramesRecursive(frames, cursor); }
+  static _parseFrames(frames, cursor) {
+    return bmp3xxFifoParser.parseFramesRecursive(frames, cursor)
+  }
 
   static parseFramesRecursive(frames, cursor = { size: 0, total: 0 }) {
     // console.log(frames, cursor);
-    if(frames.length <= 0) { return []; }
+    if(frames.length <= 0) { return [] }
     const [size, frame] = bmp3xxFifoParser.parseFrame(frames);
     if(size < 0) {
       console.log('frame under read', size, frame);
-      return [];
+      return []
     }
 
-    const updatedCursor = { size: cursor.size + size, total: cursor.total };
-    return [frame, ...bmp3xxFifoParser.parseFramesRecursive(frames.slice(size), updatedCursor)];
+    const updatedCursor = { size: cursor.size + size, total: cursor.total }
+    return [frame, ...bmp3xxFifoParser.parseFramesRecursive(frames.slice(size), updatedCursor)]
   }
 
   static parseFrame(frame) {

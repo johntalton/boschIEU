@@ -2,8 +2,7 @@ import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
 import { I2CAddressedBus, I2CScriptBus, EOS_SCRIPT } from '@johntalton/and-other-delights'
-import { BoschIEU, Chip } from '@johntalton/boschieu'
-//import { BoschIEU } from '../src/boschieu.js'
+import { BoschIEU, Chip } from '../src/boschieu.js'
 
 
 const SCRIPT_RESET = [
@@ -140,20 +139,45 @@ const SCRIPT_BME680_GAS_SET_PROFILE = [
   ...EOS_SCRIPT
 ]
 
+//
+
+const SCRIPT_BME680_MEASUREMENT = [
+  { method: 'readI2cBlock', result: { bytesRead: 15, buffer: new ArrayBuffer(15) }},
+  ...EOS_SCRIPT
+]
+
+const SCRIPT_BME280_MEASUREMENT = [
+  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) } },
+  { method: 'readI2cBlock', result: { bytesRead: 7, buffer: new ArrayBuffer(7) } },
+  { method: 'readI2cBlock', result: { bytesRead: 8, buffer: new ArrayBuffer(8) } },
+  ...EOS_SCRIPT
+]
+
+const SCRIPT_BMP280_MEASUREMENT = [
+  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) }},
+  { method: 'readI2cBlock', result: { bytesRead: 6, buffer: new ArrayBuffer(6) }},
+  ...EOS_SCRIPT
+]
+
+const SCRIPT_BMP388_MEASUREMENT = [
+  { method: 'readI2cBlock', result: { bytesRead: 21, buffer: new ArrayBuffer(21) }},
+  { method: 'readI2cBlock', result: { bytesRead: 12, buffer: new ArrayBuffer(12) }},
+  ...EOS_SCRIPT
+]
 
 
-describe('BoschIEU', () => {
-  describe('sensor', () => {
-    it('should create new sensor', async () => {
-      const sbus = await I2CScriptBus.openPromisified(EOS_SCRIPT)
-      const abus = new I2CAddressedBus(sbus, 0x00)
+// describe('BoschIEU', () => {
+//   describe('sensor', () => {
+//     it('should create new sensor', async () => {
+//       const sbus = await I2CScriptBus.openPromisified(EOS_SCRIPT)
+//       const abus = new I2CAddressedBus(sbus, 0x00)
 
-      const futureIeu = BoschIEU.sensor(abus)
-      const ieu = await futureIeu
-      expect(ieu).to.not.be.undefined
-    })
-  })
-})
+//       const futureIeu = BoschIEU.sensor(abus)
+//       const ieu = await futureIeu
+//       expect(ieu).to.not.be.undefined
+//     })
+//   })
+// })
 
 describe('BoschSensor', () => {
   describe('chip', () => {
@@ -170,30 +194,32 @@ describe('BoschSensor', () => {
 
   })
 
-  describe('detectChip', () => {
+  describe('detect', () => {
     it('should throw unknown id on empty bus', async () => {
       const sbus = await I2CScriptBus.openPromisified(SCRIPT_DETECT_LEGACY_EMPTY)
       const abus = new I2CAddressedBus(sbus, 0x00)
-      const sensor = await BoschIEU.sensor(abus)
 
-      expect(() => sensor.detectChip()).to.throw
+      try {
+        const sensor = await BoschIEU.detect(abus)
+        expect(sensor).to.be.undefined
+      } catch(e) {
+        expect(e).to.be.an('Error')
+      }
     })
 
     it('should detect bme680 at legacy address', async () => {
       const sbus = await I2CScriptBus.openPromisified(SCRIPT_DETECT_LEGACY_BME680)
       const abus = new I2CAddressedBus(sbus, 0x00)
-      const sensor = await BoschIEU.sensor(abus)
+      const sensor = await BoschIEU.detect(abus)
 
-      await sensor.detectChip()
       expect(sensor.chip).to.equal(Chip.fromId(Chip.BME680_ID, true))
     })
 
     it('should detect bmp390 at nonLegacy address', async () => {
       const sbus = await I2CScriptBus.openPromisified(SCRIPT_DETECT_BME390)
       const abus = new I2CAddressedBus(sbus, 0x00)
-      const sensor = await BoschIEU.sensor(abus)
+      const sensor = await BoschIEU.detect(abus)
 
-      await sensor.detectChip()
       expect(sensor.chip).to.equal(Chip.fromId(Chip.BMP390_ID, false))
     })
   })
@@ -469,7 +495,108 @@ describe('BoschSensor', () => {
     })
   })
 
-  describe('measurement', () => { })
+  describe('measurement', () => {
+    it('should throw for generic', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BME680_MEASUREMENT)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus)
 
-  describe('estimateMeasurementWait', () => { })
+      let caputuredE
+      try {
+        const result = await sensor.measurement()
+        expect(result).to.be.undefined
+      }
+      catch(e) {
+        caputuredE = e
+      }
+      expect(caputuredE).to.be.a('Error')
+
+    })
+
+    it('should return default for bme680', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BME680_MEASUREMENT)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BME680_ID, legacy: true })
+
+      const result = await sensor.measurement()
+      expect(result).to.deep.equal({
+        ready: false,
+        skip: true
+      })
+    })
+
+    it('should return default for bme280', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BME280_MEASUREMENT)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BME280_ID, legacy: true })
+
+      await sensor.calibration()
+      const result = await sensor.measurement()
+
+      console.log({ result })
+      expect(result).to.be.an('Object')
+      expect(result.humidity).to.not.be.undefined
+      expect(result.humidity.adc).to.not.be.undefined
+      expect(result.humidity.percent).to.not.be.undefined
+
+      expect(result.temperature).to.not.be.undefined
+      expect(result.temperature.adc).to.not.be.undefined
+      expect(result.temperature.skip).to.be.false
+      expect(result.temperature.C).to.not.be.undefined
+
+      expect(result.pressure).to.not.be.undefined
+      expect(result.pressure.adc).to.not.be.undefined
+      expect(result.pressure.Pa).to.not.be.undefined
+    })
+
+    it('should return default for bmp280', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BMP280_MEASUREMENT)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP280_ID, legacy: true })
+
+      await sensor.calibration()
+      const result = await sensor.measurement()
+
+      console.log({ result })
+
+      expect(result.humidity).to.not.be.undefined
+      expect(result.humidity.adc).to.not.be.undefined
+      expect(result.humidity.skip).to.be.true
+
+      expect(result.temperature).to.not.be.undefined
+      expect(result.temperature.adc).to.not.be.undefined
+      expect(result.temperature.skip).to.be.false
+      expect(result.temperature.C).to.not.be.undefined
+
+      expect(result.pressure).to.not.be.undefined
+      expect(result.pressure.adc).to.not.be.undefined
+      expect(result.pressure.Pa).to.not.be.undefined
+    })
+
+    it('should return default for bmp388', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BMP388_MEASUREMENT)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP388_ID, legacy: false })
+
+      await sensor.calibration()
+      const result = await sensor.measurement()
+
+      console.log({ result })
+
+      expect(result.humidity).to.be.undefined
+
+      expect(result.temperature).to.not.be.undefined
+      expect(result.temperature.adc).to.not.be.undefined
+      expect(result.temperature.C).to.not.be.undefined
+
+      expect(result.pressure).to.not.be.undefined
+      expect(result.pressure.adc).to.not.be.undefined
+      expect(result.pressure.Pa).to.not.be.undefined
+    })
+
+  })
+
+  describe('estimateMeasurementWait', () => {
+
+  })
 })

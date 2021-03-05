@@ -2,7 +2,7 @@ import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
 import { I2CAddressedBus, I2CScriptBus, EOS_SCRIPT } from '@johntalton/and-other-delights'
-import { BoschIEU, Chip } from '@johntalton/boschieu'
+import { BoschIEU, Chip } from '../src/boschieu.js'
 
 const SCRIPT_DETECT_BME680 = [
   { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x60 ]) } },
@@ -37,9 +37,7 @@ describe('usage', () => {
       const sbus = await I2CScriptBus.openPromisified(SCRIPT_DETECT_BME680)
       const abus = new I2CAddressedBus(sbus, 0x00)
 
-      const sensor = await BoschIEU.sensor(abus)
-
-      await sensor.detectChip()
+      const sensor = await BoschIEU.detect(abus)
 
       expect(sensor.chip).to.equal(Chip.fromId(Chip.BME280_ID, true))
       expect(sensor.chip.chipId).to.equal(Chip.BME280_ID)
