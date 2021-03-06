@@ -166,6 +166,15 @@ const SCRIPT_BME680_MEASUREMENT = [
   ...EOS_SCRIPT
 ]
 
+const SCRIPT_BME680_MEASUREMENT_READY = [
+  ...BME680_CALIBRATION_SNIP,
+  { method: 'readI2cBlock', result: { bytesRead: 15, buffer: Uint8Array.from([
+    0b10000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
+  ]) } },
+  ...EOS_SCRIPT
+]
+
+
 const SCRIPT_BME280_MEASUREMENT = [
   ...BME280_CALIBRATION_SNIP,
   { method: 'readI2cBlock', result: { bytesRead: 8, buffer: new ArrayBuffer(8) } },
@@ -546,6 +555,33 @@ describe('BoschSensor', () => {
         ready: false,
         skip: true
       })
+    })
+
+    it('should return ready for bme680 ready', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BME680_MEASUREMENT_READY)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BME680_ID, legacy: true })
+
+      await sensor.calibration()
+      const result = await sensor.measurement()
+
+      console.log({ result })
+      expect(result.humidity).to.not.be.undefined
+      expect(result.humidity.adc).to.not.be.undefined
+      expect(result.humidity.percent).to.not.be.undefined
+      expect(result.humidity.skip).to.be.false
+
+      expect(result.temperature).to.not.be.undefined
+      expect(result.temperature.adc).to.not.be.undefined
+      expect(result.temperature.C).to.not.be.undefined
+
+      expect(result.pressure).to.not.be.undefined
+      expect(result.pressure.adc).to.not.be.undefined
+      expect(result.pressure.Pa).to.not.be.undefined
+
+      expect(result.gas).to.not.be.undefined
+      expect(result.gas.adc).to.be.false
+      expect(result.gas.skip).to.be.true
     })
 
     it('should return default for bme280', async () => {

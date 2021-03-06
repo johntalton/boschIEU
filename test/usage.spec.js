@@ -2,7 +2,7 @@ import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
 import { I2CAddressedBus, I2CScriptBus, EOS_SCRIPT } from '@johntalton/and-other-delights'
-import { BoschIEU, Chip } from '../src/boschieu.js'
+import { BoschIEU, Chip } from '@johntalton/boschieu'
 
 const SCRIPT_DETECT_BME680 = [
   { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x60 ]) } },

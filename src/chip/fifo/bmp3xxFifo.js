@@ -47,8 +47,6 @@ export class bmp3xxFifo extends genericFifo {
     const framesABuffer = await bus.i2cRead(readSize)
     const frames = Buffer.from(framesABuffer)
 
-    console.log({ frames })
-
     const messages = bmp3xxFifoParser.parseFrames(frames)
 
     return messages.map(msg => {

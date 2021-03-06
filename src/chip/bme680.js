@@ -1,3 +1,5 @@
+/* eslint-disable no-undefined */
+/* eslint-disable fp/no-throw */
 /* eslint-disable fp/no-let */
 /* eslint-disable fp/no-mutation */
 /* eslint-disable fp/no-unused-expression */
@@ -176,6 +178,7 @@ export class bme680 extends genericChip {
   }
 
   static async setProfile(bus, profile, calibration) {
+
     function durationToGasWait(durationMs) {
       if(durationMs < 30) { console.log('low wait duration not recommended', durationMs) }
 
@@ -228,6 +231,7 @@ export class bme680 extends genericChip {
     const en3wint = false // todo profile.spi.interrupt;
     // const spi_mem_page = 0 // todo profile.spi.mempage;
 
+    if(calibration === undefined) { throw new Error('calibration required for gas temp calculation')}
     if(profile.gas === undefined) { throw new Error('missing gas in profile') }
     if(profile.gas.setpoints === undefined) { throw new Error('missing set-point') }
     if(profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10') }

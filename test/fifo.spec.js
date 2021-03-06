@@ -20,7 +20,7 @@ const SCRIPT_FIFO_READ_DATA = [
   { method: 'readI2cBlock', result: { bytesRead: 2, buffer: Uint8Array.from([ 0x01, 0x00 ]) } },
   { method: 'sendByte', result: { bytesWritten: 1  } },
   { method: 'i2cRead', result: { bytesRead: 7, buffer: Uint8Array.from([
-    0b10000000, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+    0b1000000, 0x00, 0x00, 0x00, 0b10000000, 0x00, 0x00
   ]) } },
   ...EOS_SCRIPT
 ]
@@ -67,7 +67,7 @@ describe('BoschFifo', () => {
 
       const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP388_ID, legacy: false })
 
-      //const messages = await sensor.fifo.read()
+      const messages = await sensor.fifo.read()
     })
   })
 })
