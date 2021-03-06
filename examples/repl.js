@@ -1,10 +1,10 @@
-const { FivdiBusProvider } = require('./fivdi-bus.js');
+import { FivdiBusProvider } from './fivdi-bus.js'
 
-const Repler = require('repler');
+import Repler from 'repler'
 
-const { I2CAddressedBus } = require('@johntalton/and-other-delights');
+import { I2CAddressedBus } from '@johntalton/and-other-delights'
 
-const { BoschIEU, Converter } = require('../');
+import  { BoschIEU, Converter } from '../src/boschieu.js'
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
 
@@ -58,17 +58,11 @@ Repler.addCommand({
       .then(bus => {
         console.log('bus inited');
         state.bus = bus;
-        return BoschIEU.sensor(bus)
-          .then(s => {
-            console.log('sensor inited');
-            state.sensor = s;
-
-            if(autoDetect) {
-              return s.detectChip().then(chip => console.log('detected chip', chip.name));
-            }
-
-            return false;
-          });
+        return BoschIEU.detect(bus)
+          .then(sensor => {
+            state.sensor = sensor
+            return sensor
+          })
       });
     }
   }
@@ -114,7 +108,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'detect',
   valid: function(state) {
-    return state.sensor !== undefined && !state.sensor.valid();
+    return state.sensor !== undefined && !state.sensor.calibrated;
   },
   callback: function(state) {
     // force the detect but let it cache so that we get a new updated chip if we detected something new
@@ -129,10 +123,10 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'id',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.calibrated
   },
   callback: function(state) {
-    return state.sensor.id().then(id => {
+    return state.sensor.readId().then(id => {
       console.log('Chip ID (' + id + '):' + (state.sensor.valid() ? state.sensor.chip.name : ' (invalid)'));
       return true;
     });
@@ -142,7 +136,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'reset',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.calibrated
   },
   callback: function(state) {
     return state.sensor.reset().then(() => {
@@ -155,7 +149,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'ready',
   valid: function(state) {
-    return (state.sensor !== undefined) && state.sensor.valid();
+    return (state.sensor !== undefined) && state.sensor.calibrated
   },
   callback: function(state) {
     return state.sensor.ready().then(ready => {
@@ -170,7 +164,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'profile',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.calibrated
   },
   callback: function(state) {
     return state.sensor.profile().then(profile => {
@@ -185,14 +179,14 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'get',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.calibrated
   }
 });
 
 Repler.addCommand({
   name: 'set',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.calibrated
   },
   callback: function(state) {
     return Promise.reject();
@@ -203,7 +197,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'calibration',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid() && !state.sensor.calibrated();
+    return state.sensor !== undefined && !state.sensor.calibrated
   },
   callback: function(state) {
     return state.sensor.calibration().then(data => {
@@ -218,7 +212,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'sleep',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.calibrated
   },
   callback: function(state) {
     return state.sensor.sleep().then(() => {
@@ -232,7 +226,7 @@ Repler.addCommand({
   name: 'normal',
   valid: function(state) {
     if(state.sensor === undefined) { return false; }
-    if(!state.sensor.valid()) { return false; }
+    if(!state.sensor.calibrated) { return false; }
     return state.sensor.chip.features.normalMode;
   },
   callback: function(state) {
@@ -276,7 +270,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'forced',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.valid();
+    return state.sensor !== undefined && state.sensor.calibrated
   },
   callback: function(state) {
     return state.sensor.force().then(() => {
@@ -291,8 +285,7 @@ Repler.addCommand({
   valid: function(state) {
 
     return state.sensor !== undefined &&
-      state.sensor.valid() &&
-      state.sensor.calibrated() &&
+      state.sensor.calibrated &&
       state.sensor.chip.supportsPressure;
   },
   callback: function(state) {
@@ -315,8 +308,7 @@ Repler.addCommand({
   name: 'temperature',
   valid: function(state) {
     return state.sensor !== undefined &&
-      state.sensor.valid() &&
-      state.sensor.calibrated() &&
+      state.sensor.calibrated &&
       state.sensor.chip.features.temperature;
   },
   callback: function(state) {
@@ -331,8 +323,7 @@ Repler.addCommand({
   name: 'humidity',
   valid: function(state) {
     return state.sensor !== undefined &&
-      state.sensor.valid() &&
-      state.sensor.calibrated() &&
+      state.sensor.calibrated &&
       state.sensor.chip.supportsHumidity;
   },
   callback: function(state) {

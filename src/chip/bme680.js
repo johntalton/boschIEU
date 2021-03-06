@@ -118,7 +118,7 @@ export class bme680 extends genericChip {
       return baseMs * multiplyer
     }
 
-    const abuffer = await BusUtil.readBlock(bus, [[0x50, 30], [0x70, 6]])
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0x50, 30], [0x70, 6]])
     const buffer = Buffer.from(abuffer)
 
     // console.log(buffer);

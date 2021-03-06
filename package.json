@@ -40,7 +40,12 @@
     },
     "rules": {
       "semi": "warn",
-      "max-len": ["error", { "code": 100 }],
+      "max-len": [
+        "error",
+        {
+          "code": 100
+        }
+      ],
       "no-magic-numbers": "warn",
       "import/prefer-default-export": "off",
       "import/extensions": "off",
@@ -110,12 +115,12 @@
     "@johntalton/eslint-config": "^2.0.0",
     "c8": "^7.6.0",
     "chai": "^4.3.0",
-    "eslint": "^7.16.0",
+    "eslint": "^7.21.0",
     "eslint-plugin-fp": "^2.3.0",
     "eslint-plugin-functional": "^3.1.0",
     "eslint-plugin-immutable": "^1.0.0",
     "eslint-plugin-import": "^2.22.1",
-    "eslint-plugin-mocha": "^8.0.0",
+    "eslint-plugin-mocha": "^8.1.0",
     "eslint-plugin-no-loops": "^0.3.0",
     "eslint-plugin-no-use-extend-native": "^0.5.0",
     "eslint-plugin-node": "^11.1.0",
@@ -127,7 +132,7 @@
     "mqtt": "^4.2.6",
     "onoff": "^6.0.1",
     "repler": "github:johntalton/repler",
-    "rxjs": "^6.6.3",
+    "rxjs": "^6.6.6",
     "zen-observable": "^0.8.13"
   },
   "repository": {

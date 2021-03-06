@@ -1,12 +1,12 @@
-const i2c = require('i2c-bus')
+import i2c from 'i2c-bus'
 
-class FivdiBusProvider {
+export class FivdiBusProvider {
   static async openPromisified(busNumber) {
     return Promise.resolve(new FivdiBus(await i2c.openPromisified(busNumber)))
   }
 }
 
-class FivdiBus {
+export class FivdiBus {
   constructor(i2cBus) {
     this.bus = i2cBus
   }
@@ -43,7 +43,3 @@ class FivdiBus {
 
 }
 
-module.exports = {
-  FivdiBusProvider,
-  FivdiBus
-}

@@ -1,10 +1,8 @@
-import fb from './fivdi-bus.js'
-const { FivdiBusProvider } = fb
+import { FivdiBusProvider } from './fivdi-bus.js'
 
 import { I2CAddressedBus, I2CMockBus } from '@johntalton/and-other-delights'
 
-import ieu from '@johntalton/boschieu'
-const { BoschIEU, Chip } = ieu
+import { BoschIEU, Chip } from '@johntalton/boschieu'
 
 const delayMs = ms => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -15,7 +13,7 @@ const options = {
 
 const i2c1 = await FivdiBusProvider.openPromisified(options.busNumber)
 const addressedI2C1 = new I2CAddressedBus(i2c1, options.busAddress)
-const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID })
+const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID, legacy: false })
 await sensor.calibration()
 
 await sensor.fifo.flush()
