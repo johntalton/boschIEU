@@ -4,72 +4,89 @@ import { expect } from 'chai'
 import { I2CAddressedBus, I2CScriptBus, EOS_SCRIPT } from '@johntalton/and-other-delights'
 import { BoschIEU, Chip } from '../src/boschieu.js'
 
+const BMP3XX_CALIBRATION_SNIP = [
+  { method: 'readI2cBlock', result: { bytesRead: 21, buffer: new ArrayBuffer(21) } }
+]
+
+const BMP280_CALIBRATION_SNIP = [
+  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) } }
+]
+
+const BME280_CALIBRATION_SNIP = [
+  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) } },
+  { method: 'readI2cBlock', result: { bytesRead: 7, buffer: new ArrayBuffer(7) } }
+]
+
+const BME680_CALIBRATION_SNIP = [
+  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) } },
+  { method: 'readI2cBlock', result: { bytesRead: 16, buffer: new ArrayBuffer(16) } },
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) } },
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) } },
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) } }
+]
+
+
 
 const SCRIPT_RESET = [
-  { method: 'writeI2cBlock', result: { bytesWritten: 1, buffer: new ArrayBuffer(1) }},
+  { method: 'writeI2cBlock', result: { bytesWritten: 1, buffer: new ArrayBuffer(1) } },
   ...EOS_SCRIPT
 ]
 
 //
 
 const SCRIPT_DETECT_LEGACY_EMPTY = [
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) }},
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) }},
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) } },
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) } },
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_DETECT_LEGACY_BME680 = [
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x61 ]) }},
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x61 ]) } },
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_DETECT_BME390 = [
   { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1)}},
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x60 ]) }},
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x60 ]) } },
   ...EOS_SCRIPT
 ]
 
 //
 
 const SCRIPT_CALIBRATION_BMP280 = [
-  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) }},
+  ...BMP280_CALIBRATION_SNIP,
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_CALIBRATION_388 = [
-  { method: 'readI2cBlock', result: { bytesRead: 21, buffer: new ArrayBuffer(21) }},
+  ...BMP3XX_CALIBRATION_SNIP,
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_CALIBRATION_390 = [
-  { method: 'readI2cBlock', result: { bytesRead: 21, buffer: new ArrayBuffer(21) }},
+  ...BMP3XX_CALIBRATION_SNIP,
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_CALIBRATION_BME280 = [
-  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) }},
-  { method: 'readI2cBlock', result: { bytesRead: 7, buffer: new ArrayBuffer(7) }},
+  ...BME280_CALIBRATION_SNIP,
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_CALIBRATION_BME680 = [
-  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) }},
-  { method: 'readI2cBlock', result: { bytesRead: 16, buffer: new ArrayBuffer(16) }},
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) }},
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) }},
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) }},
+  ...BME680_CALIBRATION_SNIP,
   ...EOS_SCRIPT
 ]
 
 //
 
 const SCRIPT_BMP390_PROFILE = [
-  { method: 'readI2cBlock', result: { bytesRead: 11, buffer: new ArrayBuffer(11) }},
+  { method: 'readI2cBlock', result: { bytesRead: 11, buffer: new ArrayBuffer(11) } },
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_BMP280_PROFILE = [
-  { method: 'readI2cBlock', result: { bytesRead: 3, buffer: new ArrayBuffer(3) }},
+  { method: 'readI2cBlock', result: { bytesRead: 3, buffer: new ArrayBuffer(3) } },
   ...EOS_SCRIPT
 ]
 
@@ -119,6 +136,7 @@ const SCRIPT_BME280_SET_PROFILE = [
 ]
 
 const SCRIPT_BME680_SET_PROFILE = [
+  ...BME680_CALIBRATION_SNIP,
   { method: 'writeI2cBlock', result: { bytesWritten: 1 } },
   { method: 'writeI2cBlock', result: { bytesWritten: 1 } },
   { method: 'writeI2cBlock', result: { bytesWritten: 1 } },
@@ -129,6 +147,7 @@ const SCRIPT_BME680_SET_PROFILE = [
 ]
 
 const SCRIPT_BME680_GAS_SET_PROFILE = [
+  ...BME680_CALIBRATION_SNIP,
   { method: 'writeI2cBlock', result: { bytesWritten: 1 } },
   { method: 'writeI2cBlock', result: { bytesWritten: 1 } },
   { method: 'writeI2cBlock', result: { bytesWritten: 1 } },
@@ -142,42 +161,42 @@ const SCRIPT_BME680_GAS_SET_PROFILE = [
 //
 
 const SCRIPT_BME680_MEASUREMENT = [
-  { method: 'readI2cBlock', result: { bytesRead: 15, buffer: new ArrayBuffer(15) }},
+  ...BME680_CALIBRATION_SNIP,
+  { method: 'readI2cBlock', result: { bytesRead: 15, buffer: new ArrayBuffer(15) } },
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_BME280_MEASUREMENT = [
-  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) } },
-  { method: 'readI2cBlock', result: { bytesRead: 7, buffer: new ArrayBuffer(7) } },
+  ...BME280_CALIBRATION_SNIP,
   { method: 'readI2cBlock', result: { bytesRead: 8, buffer: new ArrayBuffer(8) } },
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_BMP280_MEASUREMENT = [
-  { method: 'readI2cBlock', result: { bytesRead: 25, buffer: new ArrayBuffer(25) }},
-  { method: 'readI2cBlock', result: { bytesRead: 6, buffer: new ArrayBuffer(6) }},
+  ...BMP280_CALIBRATION_SNIP,
+  { method: 'readI2cBlock', result: { bytesRead: 6, buffer: new ArrayBuffer(6) } },
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_BMP388_MEASUREMENT = [
-  { method: 'readI2cBlock', result: { bytesRead: 21, buffer: new ArrayBuffer(21) }},
-  { method: 'readI2cBlock', result: { bytesRead: 12, buffer: new ArrayBuffer(12) }},
+  ...BMP3XX_CALIBRATION_SNIP,
+  { method: 'readI2cBlock', result: { bytesRead: 12, buffer: new ArrayBuffer(12) } },
   ...EOS_SCRIPT
 ]
 
 
-// describe('BoschIEU', () => {
-//   describe('sensor', () => {
-//     it('should create new sensor', async () => {
-//       const sbus = await I2CScriptBus.openPromisified(EOS_SCRIPT)
-//       const abus = new I2CAddressedBus(sbus, 0x00)
+describe('BoschIEU', () => {
+  describe('sensor', () => {
+    it('should create new sensor', async () => {
+      const sbus = await I2CScriptBus.openPromisified(EOS_SCRIPT)
+      const abus = new I2CAddressedBus(sbus, 0x00)
 
-//       const futureIeu = BoschIEU.sensor(abus)
-//       const ieu = await futureIeu
-//       expect(ieu).to.not.be.undefined
-//     })
-//   })
-// })
+      const futureIeu = BoschIEU.sensor(abus)
+      const ieu = await futureIeu
+      expect(ieu).to.not.be.undefined
+    })
+  })
+})
 
 describe('BoschSensor', () => {
   describe('chip', () => {
@@ -224,21 +243,21 @@ describe('BoschSensor', () => {
     })
   })
 
-  describe('valid', () => {
-    it('should return false on construction', async () => {
+  describe('isGeneric', () => {
+    it('should return ture on construction', async () => {
       const sbus = await I2CScriptBus.openPromisified(EOS_SCRIPT)
       const abus = new I2CAddressedBus(sbus, 0x00)
       const sensor = await BoschIEU.sensor(abus)
 
-      expect(sensor.valid()).to.be.false
+      expect(sensor.isGeneric).to.be.true
     })
 
-    it('should return true after setChip', async () => {
+    it('should return true if chip set', async () => {
       const sbus = await I2CScriptBus.openPromisified(EOS_SCRIPT)
       const abus = new I2CAddressedBus(sbus, 0x00)
       const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP390_ID, legacy: false })
 
-      expect(sensor.valid()).to.be.true
+      expect(sensor.isGeneric).to.be.false
     })
   })
 
@@ -248,7 +267,7 @@ describe('BoschSensor', () => {
       const abus = new I2CAddressedBus(sbus, 0x00)
       const sensor = await BoschIEU.sensor(abus)
 
-      expect(sensor.calibrated()).to.be.false
+      expect(sensor.calibrated).to.be.false
     })
 
     it('should return true after calibration calls', async () => {
@@ -258,7 +277,7 @@ describe('BoschSensor', () => {
 
       await sensor.calibration()
 
-      expect(sensor.calibrated()).to.be.true
+      expect(sensor.calibrated).to.be.true
     })
   })
 
@@ -283,7 +302,7 @@ describe('BoschSensor', () => {
 
       await sensor.calibration()
 
-      expect(sensor.calibrated()).to.be.true
+      expect(sensor.calibrated).to.be.true
     })
     it('should successfully calibrate bmp388', async () => {
       const sbus = await I2CScriptBus.openPromisified(SCRIPT_CALIBRATION_388)
@@ -292,7 +311,7 @@ describe('BoschSensor', () => {
 
       await sensor.calibration()
 
-      expect(sensor.calibrated()).to.be.true
+      expect(sensor.calibrated).to.be.true
     })
 
     it('should successfully calibrate bmp390', async () => {
@@ -302,7 +321,7 @@ describe('BoschSensor', () => {
 
       await sensor.calibration()
 
-      expect(sensor.calibrated()).to.be.true
+      expect(sensor.calibrated).to.be.true
     })
 
     it('should successfully calibrate bme280', async () => {
@@ -312,7 +331,7 @@ describe('BoschSensor', () => {
 
       await sensor.calibration()
 
-      expect(sensor.calibrated()).to.be.true
+      expect(sensor.calibrated).to.be.true
     })
 
     it('should successfully calibrate bme680', async () => {
@@ -322,7 +341,7 @@ describe('BoschSensor', () => {
 
       await sensor.calibration()
 
-      expect(sensor.calibrated()).to.be.true
+      expect(sensor.calibrated).to.be.true
     })
   })
 
@@ -455,6 +474,7 @@ describe('BoschSensor', () => {
       const abus = new I2CAddressedBus(sbus, 0x00)
       const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BME680_ID, legacy: true })
 
+      await sensor.calibration()
       await sensor.setProfile({
         mode: 'SLEEP',
         oversampling_p: false,
@@ -476,6 +496,7 @@ describe('BoschSensor', () => {
       const abus = new I2CAddressedBus(sbus, 0x00)
       const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BME680_ID, legacy: true })
 
+      await sensor.calibration()
       await sensor.setProfile({
         mode: 'SLEEP',
         oversampling_p: false,
@@ -518,7 +539,9 @@ describe('BoschSensor', () => {
       const abus = new I2CAddressedBus(sbus, 0x00)
       const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BME680_ID, legacy: true })
 
+      await sensor.calibration()
       const result = await sensor.measurement()
+
       expect(result).to.deep.equal({
         ready: false,
         skip: true

@@ -21,7 +21,7 @@
   "scripts": {
     "lint": "./node_modules/.bin/eslint .",
     "test": "mocha",
-    "coverage": "c8 --src ./src --check-coverage --all --lines 50 --functions 5 --branches 60 npm --silent run test -- --no-parallel --reporter min"
+    "coverage": "c8  -reporter=lcov --src ./src --check-coverage --all --lines 50 --functions 5 --branches 60 npm --silent run test -- --no-parallel --reporter min"
   },
   "eslintConfig": {
     "extends": [
