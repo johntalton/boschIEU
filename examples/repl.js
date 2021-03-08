@@ -2,13 +2,11 @@ import { FivdiBusProvider } from './fivdi-bus.js'
 
 import Repler from 'repler'
 
-import { I2CAddressedBus } from '@johntalton/and-other-delights'
+import { I2CAddressedBus, I2CMockBus } from '@johntalton/and-other-delights'
 
-import  { BoschIEU, Converter } from '../src/boschieu.js'
+import  { BoschIEU, Converter, Chip } from '../src/boschieu.js'
 
 const initstate = { seaLevelPa: Converter.seaLevelPa, defaultValid: false };
-
-const autoDetect = true;
 
 Repler.addPrompt(state => {
   const close = '> ';
@@ -41,29 +39,34 @@ Repler.addCommand({
   valid: function(state) {
     return state.sensor === undefined;
   },
-  callback: function(state) {
-    let prams = state.line.split(' ');
-    const cmd = prams.shift();
-    const busname = prams.shift();
+  callback: async function(state) {
+    let prams = state.line.split(' ')
+    const cmd = prams.shift()
+    const busname = prams.shift()
 
-    state.bus = undefined;
-    state.sensor = undefined;
+    state.bus = undefined
+    state.sensor = undefined
 
     if(busname.toLowerCase() === 'i2c') {
       const busNumber = parseInt(prams.shift(), 10);
       const busAddress = parseInt(prams.shift(), 10);
 
-      return FivdiBusProvider.openPromisified(busNumber)
-      .then(bus => new I2CAddressedBus(bus, busAddress))
-      .then(bus => {
-        console.log('bus inited');
-        state.bus = bus;
-        return BoschIEU.detect(bus)
-          .then(sensor => {
-            state.sensor = sensor
-            return sensor
-          })
-      });
+      const bus = FivdiBusProvider.openPromisified(busNumber)
+      const abus = I2CAddressedBus.from(bus, busAddress)
+
+      console.log('bus inited');
+
+      state.bus = bus;
+      state.sensor = await BoschIEU.detect(bus)
+      console.log('detected sensor')
+    }
+    else if(busname.toLowerCase() === 'mock') {
+      const name = prams.shift()
+
+      const bus = await I2CMockBus.openPromisified()
+      const abus = I2CAddressedBus.from(bus, 0x00)
+      state.bus = abus
+      state.sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP280_ID, legacy: true })
     }
   }
 });
@@ -108,15 +111,10 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'detect',
   valid: function(state) {
-    return state.sensor !== undefined && !state.sensor.calibrated;
+    return state.sensor === undefined || state.sensor.isGeneric
   },
   callback: function(state) {
-    // force the detect but let it cache so that we get a new updated chip if we detected something new
-    // if auto detect is enabled this is likely useless :)
-    return state.sensor.detectChip(true).then(chip => {
-      console.log('Chip:' + (state.sensor.valid() ? state.sensor.chip.name : ' (invalid)'));
-      return true;
-    });
+
   }
 });
 
@@ -164,7 +162,7 @@ Repler.addCommand({
 Repler.addCommand({
   name: 'profile',
   valid: function(state) {
-    return state.sensor !== undefined && state.sensor.calibrated
+    return state.sensor !== undefined
   },
   callback: function(state) {
     return state.sensor.profile().then(profile => {

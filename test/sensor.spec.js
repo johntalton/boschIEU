@@ -160,6 +160,24 @@ const SCRIPT_BME680_GAS_SET_PROFILE = [
 
 //
 
+const SCRIPT_BME680_READY = [
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) } },
+  ...EOS_SCRIPT
+]
+
+const SCRIPT_BMP280_READY = [
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1) } },
+  ...EOS_SCRIPT
+]
+
+const SCRIPT_BMP390_READY = [
+  { method: 'readI2cBlock', result: { bytesRead: 2, buffer: new ArrayBuffer(2) } },
+  { method: 'readI2cBlock', result: { bytesRead: 2, buffer: new ArrayBuffer(2) } },
+  ...EOS_SCRIPT
+]
+
+//
+
 const SCRIPT_BME680_MEASUREMENT = [
   ...BME680_CALIBRATION_SNIP,
   { method: 'readI2cBlock', result: { bytesRead: 15, buffer: new ArrayBuffer(15) } },
@@ -520,6 +538,77 @@ describe('BoschSensor', () => {
           setpoints: [
             { skip: true }
           ]
+        }
+      })
+    })
+  })
+
+  describe('ready', () => {
+    it('should throw for generic', async () => {
+      const sbus = await I2CScriptBus.openPromisified(EOS_SCRIPT)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus)
+
+      let capturedE
+      try {
+        const result = await sensor.ready()
+      }
+      catch(e) { capturedE = e }
+
+      expect(capturedE).to.be.an('Error')
+    })
+
+    it('should return for bme680', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BME680_READY)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BME680_ID, legacy: true })
+
+      const result = await sensor.ready()
+      expect(result).to.deep.equal({
+        active_profile_idx: 0,
+        measuring: false,
+        measuringGas: false,
+        ready: false
+      })
+    })
+
+    it('should return for bmp280', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BMP280_READY)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP280_ID, legacy: true })
+
+      const result = await sensor.ready()
+      expect(result).to.deep.equal({
+        measuring: false,
+        ready: true,
+        updating: false,
+      })
+    })
+
+    it('should return for bmp390', async () => {
+      const sbus = await I2CScriptBus.openPromisified(SCRIPT_BMP390_READY)
+      const abus = new I2CAddressedBus(sbus, 0x00)
+      const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP390_ID, legacy: false })
+
+      const result = await sensor.ready()
+      expect(result).to.deep.equal({
+        error: {
+          command: false,
+          config: false,
+          fatal: false
+        },
+        event: {
+          por_detected: false
+        },
+        interrupt: {
+          data_ready: false,
+          fifo_full: false,
+          fifo_watermark: false
+        },
+        status: {
+          command: false,
+          pressure: false,
+          temperature: false
         }
       })
     })

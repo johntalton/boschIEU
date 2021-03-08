@@ -1,7 +1,11 @@
 import { genericChip } from './generic.js'
-import { bmp280 } from './bmp280.js'
+
 import { bme280 } from './bme280.js'
 import { bme680 } from './bme680.js'
+import { bme688 } from './bme688.js'
+import { bmp280 } from './bmp280.js'
+import { bmp380 } from './bmp380.js'
+import { bmp384 } from './bmp384.js'
 import { bmp388 } from './bmp388.js'
 import { bmp390 } from './bmp390.js'
 
@@ -11,9 +15,13 @@ import { bmp390 } from './bmp390.js'
 //  exported into user space.
 const Ahoy = [
   genericChip,
-  bmp280,
   bme280,
   bme680,
+  bme688,
+
+  bmp280,
+  bmp380,
+  bmp384,
   bmp388,
   bmp390
 ];
@@ -32,6 +40,8 @@ export class Chip {
   static get BMP280_ID() { return bmp280.chipId; }
   static get BME280_ID() { return bme280.chipId; }
   static get BME680_ID() { return bme680.chipId; }
+  static get BME688_ID() { return bme688.chipId; }
+  static get BMP384_ID() { return bmp384.chipId; }
   static get BMP388_ID() { return bmp388.chipId; }
   static get BMP390_ID() { return bmp390.chipId; }
 

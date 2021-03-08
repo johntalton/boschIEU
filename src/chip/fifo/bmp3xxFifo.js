@@ -55,8 +55,10 @@ export class bmp3xxFifo extends genericFifo {
           // we do not explode message here as it may not be clean
           type: msg.type,
           ...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
-        };
-      } else if(msg.type === 'sensor.time') {
+        }
+      }
+
+      if(msg.type === 'sensor.time') {
         return {
           // we do not explode message here as it may not be clean
           type: msg.type,
@@ -64,7 +66,7 @@ export class bmp3xxFifo extends genericFifo {
         };
       }
 
-      return msg;
+      return msg
     })
   }
 }

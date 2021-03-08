@@ -1,10 +1,10 @@
 // eslint-disable-next-line import/no-nodejs-modules
-const fs = require('fs');
+import fs from 'fs'
 
-const { Converter } = require('../');
-const { Util } = require('./client-util.js');
+import { Converter } from '@johntalton/boschieu'
+import { Util } from './client-util.js'
 
-class Config {
+export class Config {
   static _getMs(config, name, defaultMs) {
     const s = config[name + 'S'];
     const ms = config[name + 'Ms'];
@@ -118,5 +118,3 @@ class Config {
     });
   }
 }
-
-module.exports = Config;

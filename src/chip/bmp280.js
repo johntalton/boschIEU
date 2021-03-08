@@ -8,7 +8,7 @@ import { Compensate } from './compensate.js'
 
 export class bmp280 extends genericChip {
   static get name() { return 'bmp280' }
-  static get chipId() { return 0x58; } // todo [56, 57, 58]
+  static get chipId() { return 0x58 } // todo [56, 57, 58]
 
   static get features() {
     return {
@@ -24,23 +24,22 @@ export class bmp280 extends genericChip {
   }
 
   static async calibration(bus) {
-    const abuffer = await  BusUtil.readI2cBlocks(bus, [[0x88, 25]])
-    //const buffer = new DataView(abuffer)
-    const buffer = Buffer.from(abuffer)
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0x88, 25]])
+    const dv = new DataView(abuffer)
 
-    const dig_T1 = buffer.readUInt16LE(0)
-    const dig_T2 = buffer.readInt16LE(2)
-    const dig_T3 = buffer.readInt16LE(4)
+    const dig_T1 = dv.getUint16(0, true)
+    const dig_T2 = dv.getInt16(2, true)
+    const dig_T3 = dv.getInt16(4, true)
 
-    const dig_P1 = buffer.readUInt16LE(6)
-    const dig_P2 = buffer.readInt16LE(8)
-    const dig_P3 = buffer.readInt16LE(10)
-    const dig_P4 = buffer.readInt16LE(12)
-    const dig_P5 = buffer.readInt16LE(14)
-    const dig_P6 = buffer.readInt16LE(16)
-    const dig_P7 = buffer.readInt16LE(18)
-    const dig_P8 = buffer.readInt16LE(20)
-    const dig_P9 = buffer.readInt16LE(22)
+    const dig_P1 = dv.getUint16(6, true)
+    const dig_P2 = dv.getInt16(8, true)
+    const dig_P3 = dv.getInt16(10, true)
+    const dig_P4 = dv.getInt16(12, true)
+    const dig_P5 = dv.getInt16(14, true)
+    const dig_P6 = dv.getInt16(16, true)
+    const dig_P7 = dv.getInt16(18, true)
+    const dig_P8 = dv.getInt16(20, true)
+    const dig_P9 = dv.getInt16(22, true)
 
     const T = [dig_T1, dig_T2, dig_T3]
     const P = [dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9]
@@ -128,17 +127,18 @@ export class bmp280 extends genericChip {
     return Compensate.from({ adcP: P, adcT: T, adcH: false, type: '2xy' }, calibration)
   }
 
-  static ready(bus) {
-    return BusUtil.readBlock(bus, [0xF3]).then(buffer => {
-      const status = buffer.readUInt8(0);
-      const measuring = BitUtil.mapBits(status, [3, 1]) === 1;
-      const updating = BitUtil.mapBits(status, [0, 1]) === 1;
-      return {
-        ready: !measuring,
-        measuring: measuring,
-        updating: updating
-      };
-    });
+  static async ready(bus) {
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0xF3, 1]])
+    const buffer = Buffer.from(abuffer)
+
+    const status = buffer.readUInt8(0)
+    const measuring = BitUtil.mapBits(status, [3, 1]) === 1
+    const updating = BitUtil.mapBits(status, [0, 1]) === 1
+    return {
+      ready: !measuring,
+      measuring: measuring,
+      updating: updating
+    }
   }
 
   static estimateMeasurementWait(profile) {

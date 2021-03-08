@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
 
-const { Converter } = require('..');
+import { Converter } from '@johntalton/boschieu'
 
-class Util {
+export class Util {
   static bulkup(chip, raw) {
     const P = raw.pressure;
     const T = raw.temperature;
@@ -54,7 +54,6 @@ class Util {
 
     return result;
   }
-
 
   static log(device, result) {
     const P = result.pressure;
@@ -160,7 +159,7 @@ class Util {
   }
 }
 
-class State {
+export class State {
   static to(machine, state) {
     const transition = machine.states[machine.state][state];
     console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
@@ -179,5 +178,3 @@ class State {
     machine.ons[event] = callback;
   }
 }
-
-module.exports = { Util, State };

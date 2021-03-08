@@ -1,16 +1,16 @@
-const { Converter } = require('../');
-
 const EVENT_NAME_STREAM = 'stream';
 const EVENT_NAME_RE_STREAM = 'restream'; // eslint-disable-line spellcheck/spell-checker
 const EVENT_NAME_STOP_STREAM = 'stopstream'; // eslint-disable-line spellcheck/spell-checker
 const EVENT_NAME_RE_STOP_STREAM = 'restopstream'; // eslint-disable-line spellcheck/spell-checker
 
-const { State } = require('./client-util.js');
-const Store = require('./client-store.js');
-const Device = require('./client-device.js');
-const Config = require('./client-config.js');
+import { State } from './client-util.js'
+import { Store } from './client-store.js'
+import { Device } from './client-device.js'
+import { Config } from './client-config.js'
 
-Converter.seaLevelPa = 100700;
+// todo how to set up preferred sealeve
+
+// Converter.seaLevelPa = 100700;
 
 function setupStateHandlers(application) {
   State.on(application.machine, EVENT_NAME_STREAM, () => {

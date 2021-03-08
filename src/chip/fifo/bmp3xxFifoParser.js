@@ -12,7 +12,7 @@ export class bmp3xxFifoParser {
   }
 
   static parseFramesRecursive(frames, cursor = { size: 0, total: 0 }) {
-    console.log(frames, cursor);
+    // console.log(frames, cursor)
     if(frames.length <= 0) { return [] }
     const [size, frame] = bmp3xxFifoParser.parseFrame(frames)
     if(size < 0) {
@@ -30,7 +30,7 @@ export class bmp3xxFifoParser {
     const mode = (header >> 6) & 0b11
     const param = (header >> 2) & 0b1111
     const reserv = header & 0b11
-    if(reserv !== 0) { console.log('reserve frame bits not zero') }
+    if(reserv !== 0) { console.warn('reserve frame bits not zero') }
 
     // todo note that because we are splitting the execution path here
     // the effort of adding +1 to both returned [size, frameObj] results

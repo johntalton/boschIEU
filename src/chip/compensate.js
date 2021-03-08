@@ -192,7 +192,7 @@ export class Compensate {
 
     const Gg = caliG.G
     if(Gg.length !== 3) { return { skip: true, calibration: Gg.length } }
-    const [ g1, g2, g3 ] = Gg
+    // const [ g1, g2, g3 ] = Gg
 
     function gfloat() {
       const lookup1 = [

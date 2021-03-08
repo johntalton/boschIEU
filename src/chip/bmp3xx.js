@@ -205,6 +205,7 @@ export class bmp3xx extends genericChip {
 
   static async sensorTime(bus) {
     const abuffer = await BusUtil.read(bus, [[0xC0, 3]])
+    console.log({ abuffer })
     throw new Error('read24')
   }
 
@@ -278,7 +279,7 @@ export class bmp3xx extends genericChip {
 
     //
     const iff_filter = BitUtil.mapBits(config, 3, 3)
-    const short_in = BitUtil.mapBits(config, 0, 1)
+    // const short_in = BitUtil.mapBits(config, 0, 1)
     const odr_sel = BitUtil.mapBits(odr, 4, 5)
     const osr_p = BitUtil.mapBits(osr, 2, 3)
     const osr_t = BitUtil.mapBits(osr, 5, 3)
@@ -287,9 +288,9 @@ export class bmp3xx extends genericChip {
     const press_en = BitUtil.mapBits(pwr_ctrl, 0, 1)
     const i2c_wdt_sel = BitUtil.mapBits(if_conf, 2, 1)
     const i2c_wdt_en = BitUtil.mapBits(if_conf, 1, 1)
-    const spi3 = BitUtil.mapBits(if_conf, 0, 1)
+    // const spi3 = BitUtil.mapBits(if_conf, 0, 1)
     const drdy_en = BitUtil.mapBits(int_ctrl, 6, 1)
-    const int_ds = BitUtil.mapBits(int_ctrl, 5, 1) // bmp390
+    // const int_ds = BitUtil.mapBits(int_ctrl, 5, 1) // bmp390
     const ffull_en = BitUtil.mapBits(int_ctrl, 4, 1)
     const fwtm_en = BitUtil.mapBits(int_ctrl, 3, 1)
     const int_latch = BitUtil.mapBits(int_ctrl, 2, 1)
@@ -476,7 +477,7 @@ export class bmp3xx extends genericChip {
   }
 
   static async ready(bus) {
-    const abuffer = await BusUtil.readBlock(bus, [[0x02, 2], [0x10, 2]])
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0x02, 2], [0x10, 2]])
     const buffer = Buffer.from(abuffer)
 
     const err_reg = buffer.readUInt8(0)
@@ -494,7 +495,7 @@ export class bmp3xx extends genericChip {
     const drdy_press =  BitUtil.mapBits(status, 5, 1) === BIT_SET
     const cmd_rdy =  BitUtil.mapBits(status, 4, 1) === BIT_SET
 
-    const itf_act_pt = BitUtil.mapBits(event, 1, 1) === BIT_SET // only for bmp390
+    // const itf_act_pt = BitUtil.mapBits(event, 1, 1) === BIT_SET // only for bmp390
     const por_detected = BitUtil.mapBits(event, 0, 1) === BIT_SET
 
     const drdy =  BitUtil.mapBits(int_status, 3, 1) === BIT_SET

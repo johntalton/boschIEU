@@ -46,6 +46,15 @@
           "code": 100
         }
       ],
+      "fp/no-throw": "off",
+      "no-undefined": "off",
+      "fp/no-nil": "off",
+      "fp/no-unused-expression": "off",
+      "require-await": "off",
+      "fp/no-this": "off",
+      "immutable/no-this": "off",
+      "fp/no-mutation": "off",
+      "immutable/no-mutation": "off",
       "no-magic-numbers": "warn",
       "import/prefer-default-export": "off",
       "import/extensions": "off",
@@ -54,7 +63,8 @@
         "error",
         {
           "allow": [
-            "chip/**"
+            "chip/**",
+            "fifo/**"
           ]
         }
       ],
@@ -74,10 +84,13 @@
             "md5",
             "nodejs",
             "param",
+            "parens",
+            "Tfine",
             "fifo",
             "gpio",
             "mqtt",
             "mbar",
+            "mempage",
             "opcode",
             "2xy",
             "3xy",
@@ -85,9 +98,12 @@
             "bmp280",
             "bme280",
             "bmp3xx",
+            "bmp384",
+            "bmp380",
             "bmp388",
             "bmp390",
-            "bme680"
+            "bme680",
+            "bme688"
           ]
         }
       ]
@@ -109,7 +125,7 @@
     "global": []
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "file:../and-other-delights"
+    "@johntalton/and-other-delights": "file://../and-other-delights"
   },
   "devDependencies": {
     "@johntalton/eslint-config": "^2.0.0",

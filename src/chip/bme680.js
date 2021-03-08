@@ -231,7 +231,7 @@ export class bme680 extends genericChip {
     const en3wint = false // todo profile.spi.interrupt;
     // const spi_mem_page = 0 // todo profile.spi.mempage;
 
-    if(calibration === undefined) { throw new Error('calibration required for gas temp calculation')}
+    if(calibration === undefined) { throw new Error('calibration required for gas temp calculation') }
     if(profile.gas === undefined) { throw new Error('missing gas in profile') }
     if(profile.gas.setpoints === undefined) { throw new Error('missing set-point') }
     if(profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10') }
@@ -294,7 +294,7 @@ export class bme680 extends genericChip {
     ])
 
     // now set valid mode
-    await bus.writeI2cBlock(0x74, Uint8Array.from([ ctrl_meas ] ));
+    await bus.writeI2cBlock(0x74, Uint8Array.from([ ctrl_meas ]))
   }
 
   static patchProfile(bus, patch) {
@@ -369,16 +369,18 @@ export class bme680 extends genericChip {
     return Compensate.from({ adcP: P, adcT: T, adcH: H, adcG: G, type: '6xy' }, calibration)
   }
 
-  static ready(bus) {
-    return BusUtil.readBlock(bus, [0x1D]).then(buffer => {
-      const meas_status = buffer.readUInt8(0)
-      return {
-        ready: BitUtil.mapBits(meas_status, 7, 1) === 1,
-        measuringGas: BitUtil.mapBits(meas_status, 6, 1) === 1,
-        measuring: BitUtil.mapBits(meas_status, 5, 1) === 1,
-        active_profile_idx: BitUtil.mapBits(meas_status, 3, 4)
-      }
-    })
+  static async ready(bus) {
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0x1D, 1]])
+    const buffer = Buffer.from(abuffer)
+
+    const meas_status = buffer.readUInt8(0)
+
+    return {
+      ready: BitUtil.mapBits(meas_status, 7, 1) === 1,
+      measuringGas: BitUtil.mapBits(meas_status, 6, 1) === 1,
+      measuring: BitUtil.mapBits(meas_status, 5, 1) === 1,
+      active_profile_idx: BitUtil.mapBits(meas_status, 3, 4)
+    }
   }
 
   static estimateMeasurementWait(profile) {

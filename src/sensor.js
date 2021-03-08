@@ -1,13 +1,3 @@
-/* eslint-disable fp/no-throw */
-/* eslint-disable no-magic-numbers */
-/* eslint-disable no-undefined */
-/* eslint-disable fp/no-nil */
-/* eslint-disable fp/no-unused-expression */
-/* eslint-disable require-await */
-/* eslint-disable fp/no-this */
-/* eslint-disable immutable/no-this */
-/* eslint-disable fp/no-mutation */
-/* eslint-disable immutable/no-mutation */
 import { BoschFifo } from './fifo.js'
 import { Chip } from './chip/chip.js'
 

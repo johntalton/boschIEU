@@ -2,7 +2,7 @@ import { describe, it } from 'mocha'
 import { expect } from 'chai'
 
 import { I2CAddressedBus, I2CScriptBus, EOS_SCRIPT } from '@johntalton/and-other-delights'
-import { BoschIEU, Chip } from '@johntalton/boschieu'
+import { BoschIEU, Chip } from '../src/boschieu.js'
 
 const SCRIPT_FIFO_FLUSH = [
   { method: 'writeI2cBlock', result: { bytesWritten: 1 } },

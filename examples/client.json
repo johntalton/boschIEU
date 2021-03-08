@@ -30,7 +30,7 @@
       "retryIntervalS": 60
     },
     {
-      "active": true,
+      "active": false,
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
@@ -113,6 +113,22 @@
           "time": true
         }
       }
+    },
+
+    {
+      "active": true,
+      "mock": true,
+      "name": "mock device",
+      "bus": { "id": [ "bmp280.json", 120 ] },
+
+      "profile": {
+        "mode": "NORMAL",
+        "oversampling_p": 2,
+        "oversampling_t": 2,
+        "filter_coefficient": false,
+        "standby_time": true
+      },
+      "pollIntervalS": 5
     }
 
   ],

@@ -1,8 +1,3 @@
-/* eslint-disable immutable/no-mutation */
-/* eslint-disable immutable/no-this */
-/* eslint-disable fp/no-this */
-/* eslint-disable fp/no-mutation */
-/* eslint-disable fp/no-nil */
 /**
  * Instance Helper for Interacting with static chips via the Sensor.
  * Wrap calls into the chips static fifo methods and is accessible
