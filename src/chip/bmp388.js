@@ -8,6 +8,6 @@ export class bmp388 extends bmp3xx {
   static get chipId() { return 0x50 }
 
   static extmode_en_middle(bus) {
-    return bus.write(0x7E, Buffer.from([0x34]));
+    return bus.writeI2cBlock(0x7E, Uint8Array.from([ 0x34 ]))
   }
 }

@@ -21,7 +21,7 @@
   "scripts": {
     "lint": "./node_modules/.bin/eslint .",
     "test": "mocha",
-    "coverage": "c8  -reporter=lcov --src ./src --check-coverage --all --lines 50 --functions 5 --branches 60 npm --silent run test -- --no-parallel --reporter min"
+    "coverage": "c8  -reporter=lcov --src ./src --check-coverage --all --lines 70 --functions 50 --branches 60 npm --silent run test -- --no-parallel --reporter min"
   },
   "eslintConfig": {
     "extends": [
@@ -55,7 +55,7 @@
       "immutable/no-this": "off",
       "fp/no-mutation": "off",
       "immutable/no-mutation": "off",
-      "no-magic-numbers": "warn",
+      "no-magic-numbers": "off",
       "import/prefer-default-export": "off",
       "import/extensions": "off",
       "fp/no-class": "off",
@@ -117,7 +117,7 @@
     "invert": true,
     "parallel": true,
     "slow": 2,
-    "timeout": 31,
+    "timeout": 60,
     "watch": false,
     "sort": false,
     "forbitOnly": true,

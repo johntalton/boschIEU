@@ -7,26 +7,47 @@ function reconstruct24bit(msb, lsb, xlsb) {
 
 export class bmp3xxFifoParser {
 
-  static parseFrames(frames) {
-    return bmp3xxFifoParser.parseFramesRecursive(frames, { size: 0, total: frames.length })
+  /**
+   * @param {ArrayBuffer|SharedArrayBuffer|DataView} sourceBuffer data to be read
+   * @returns {[{}]} valid frames
+   */
+  static parseFrames(sourceBuffer) {
+    return bmp3xxFifoParser.parseFramesRecursive(sourceBuffer, {
+      size: 0, total: sourceBuffer.byteLength
+    })
   }
 
-  static parseFramesRecursive(frames, cursor = { size: 0, total: 0 }) {
+  /**
+   * @param {ArrayBuffer|SharedArrayBuffer|DataView} sourceBuffer data to be read
+   * @returns {[{}]} valid frames
+   */
+  static parseFramesRecursive(sourceBuffer, cursor = { size: 0, total: 0 }) {
     // console.log(frames, cursor)
-    if(frames.length <= 0) { return [] }
-    const [size, frame] = bmp3xxFifoParser.parseFrame(frames)
+    if(sourceBuffer.byteLength <= 0) { return [] }
+    const [size, frame] = bmp3xxFifoParser.parseFrame(sourceBuffer)
     if(size < 0) {
       console.log('frame under read', size, frame)
       return []
     }
 
+    const subSourceBuffer = ArrayBuffer.isView(sourceBuffer) ?
+      // eslint-disable-next-line max-len
+      new DataView(sourceBuffer.buffer, sourceBuffer.byteOffset + size, sourceBuffer.byteLength - size) :
+      new DataView(sourceBuffer, size)
+
     const updatedCursor = { size: cursor.size + size, total: cursor.total }
-    return [frame, ...bmp3xxFifoParser.parseFramesRecursive(frames.slice(size), updatedCursor)]
+    return [frame, ...bmp3xxFifoParser.parseFramesRecursive(subSourceBuffer, updatedCursor)]
   }
 
-  static parseFrame(frame) {
-    if(frame.length < 1) { return [-1] }
-    const header = frame.readUInt8(0)
+  static parseFrame(sourceBuffer) {
+    if(sourceBuffer.byteLength < 1) { return [-1] }
+
+    const dv = ArrayBuffer.isView(sourceBuffer) ?
+      new DataView(sourceBuffer.buffer, sourceBuffer.byteOffset, sourceBuffer.byteLength) :
+      new DataView(sourceBuffer)
+
+    const header = dv.getUint8(0)
+
     const mode = (header >> 6) & 0b11
     const param = (header >> 2) & 0b1111
     const reserv = header & 0b11
@@ -38,39 +59,50 @@ export class bmp3xxFifoParser {
     // return the additional byte read as part of its total read size.
     // console.log({ header, mode })
     if(mode === 0b10) {
-      return bmp3xxFifoParser.parseSensorFrame(frame, param)
+      return bmp3xxFifoParser.parseSensorFrame(sourceBuffer, param)
     }
 
     if(mode === 0b01) {
-      return bmp3xxFifoParser.parseControlFrame(frame, param)
+      return bmp3xxFifoParser.parseControlFrame(sourceBuffer, param)
     }
 
     // console.log(header, mode, param, frame);
     throw new Error('unknown frame type')
   }
 
-  static parseControlFrame(frame, param) {
-    if(param === 0b0001) { return bmp3xxFifoParser.parseControlErrorFrame(frame) }
-    if(param === 0b0010) { return bmp3xxFifoParser.parseControlConfigFrame(frame) }
+  static parseControlFrame(sourceBuffer, param) {
+    if(param === 0b0001) { return bmp3xxFifoParser.parseControlErrorFrame(sourceBuffer) }
+    if(param === 0b0010) { return bmp3xxFifoParser.parseControlConfigFrame(sourceBuffer) }
     // console.log('unknown control frame type', param);
     throw new Error('unknown control frame type')
   }
 
-  static parseControlErrorFrame(frame) {
-    if(frame.length < 2) { return [-2] }
-    const opcode = frame.readUInt8(1)
+  static parseControlErrorFrame(sourceBuffer) {
+    if(sourceBuffer.byteLength < 2) { return [-2] }
+
+    const dv = ArrayBuffer.isView(sourceBuffer) ?
+      new DataView(sourceBuffer.buffer, sourceBuffer.byteOffset, sourceBuffer.byteLength) :
+      new DataView(sourceBuffer)
+
+    const opcode = dv.getUint8(1)
     // opcode === 1
     return [ 1 + 1, { type: 'control.error', opcode: opcode }]
   }
 
-  static parseControlConfigFrame(frame) {
-    if(frame.length < 2) { return [-2] }
-    const opcode = frame.readUInt8(1)
+  static parseControlConfigFrame(sourceBuffer) {
+    if(sourceBuffer.byteLength < 2) { return [-2] }
+
+    const dv = ArrayBuffer.isView(sourceBuffer) ?
+      new DataView(sourceBuffer.buffer, sourceBuffer.byteOffset, sourceBuffer.byteLength) :
+      new DataView(sourceBuffer)
+
+    const opcode = dv.getUint8(1)
+
     // opcode === 1
     return [ 1 + 1, { type: 'control.config', opcode: opcode }]
   }
 
-  static parseSensorFrame(frame, param) {
+  static parseSensorFrame(sourceBuffer, param) {
     const s = ((param >> 3) & 0x1) === 1
     const p = (param & 0x1) === 1
     const t = ((param >> 2) & 0x1) === 1
@@ -85,24 +117,33 @@ export class bmp3xxFifoParser {
     }
 
     if(s) {
-      return bmp3xxFifoParser.parseSensorTimeFrame(frame)
+      return bmp3xxFifoParser.parseSensorTimeFrame(sourceBuffer)
     }
 
-    return bmp3xxFifoParser.parseSensorMeasurementFrame(frame, p, t)
+    return bmp3xxFifoParser.parseSensorMeasurementFrame(sourceBuffer, p, t)
   }
 
-  static parseSensorTimeFrame(frame) {
-    if(frame.length < 4) { console.log('unexpected time frame'); return [-4] }
+  static parseSensorTimeFrame(sourceBuffer) {
+    if(sourceBuffer.byteLength < 4) { console.log('unexpected time frame'); return [-4] }
 
-    const xlsb = frame.readUInt8(1)
-    const lsb = frame.readUInt8(2)
-    const msb = frame.readUInt8(3)
+    const dv = ArrayBuffer.isView(sourceBuffer) ?
+      new DataView(sourceBuffer.buffer, sourceBuffer.byteOffset, sourceBuffer.byteLength) :
+      new DataView(sourceBuffer)
+
+    const xlsb = dv.getUint8(1)
+    const lsb = dv.getUint8(2)
+    const msb = dv.getUint8(3)
+
     const time = reconstruct24bit(msb, lsb, xlsb)
 
     return [ 1 + 3, { type: 'sensor.time', time: time }]
   }
 
-  static parseSensorMeasurementFrame(frame, p, t) {
+  static parseSensorMeasurementFrame(sourceBuffer, p, t) {
+    const dv = ArrayBuffer.isView(sourceBuffer) ?
+      new DataView(sourceBuffer.buffer, sourceBuffer.byteOffset, sourceBuffer.byteLength) :
+      new DataView(sourceBuffer)
+
     const frameObj = { type: 'sensor', temp: NaN, press: NaN }
 
     function read24(frame24, offset24 = 0) {
@@ -113,14 +154,14 @@ export class bmp3xxFifoParser {
     }
 
     if(t) {
-      if(frame.length < 4) { console.log('unexpected measurement frame'); return [-4] }
-      frameObj.temp = read24(frame)
+      if(dv.byteLength < 4) { console.log('unexpected measurement frame'); return [-4] }
+      frameObj.temp = read24(dv)
     }
 
     if(p) {
-      if(t && frame.length < 7) { console.log('unexpected pressure '); return [-7] }
-      if(!t && frame.length < 4) { console.log('unexpected pressure '); return [-4] }
-      frameObj.press = read24(frame, t ? 3 : 0)
+      if(t && dv.byteLength < 7) { console.log('unexpected pressure '); return [-7] }
+      if(!t && dv.byteLength < 4) { console.log('unexpected pressure '); return [-4] }
+      frameObj.press = read24(dv, t ? 3 : 0)
     }
 
     //

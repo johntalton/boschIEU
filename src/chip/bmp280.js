@@ -52,11 +52,11 @@ export class bmp280 extends genericChip {
 
   static async profile(bus) {
     const abuffer = await BusUtil.readI2cBlocks(bus, [[ 0xF3, 3 ]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
-    const status = buffer.readUInt8(0)
-    const ctrl_meas = buffer.readUInt8(1)
-    const config = buffer.readUInt8(2)
+    const status = dv.getUint8(0)
+    const ctrl_meas = dv.getUint8(1)
+    const config = dv.getUint8(2)
 
     const measuring = BitUtil.mapBits(status, [3, 1]) === 1
     const updating = BitUtil.mapBits(status, [0, 1]) === 1
@@ -109,16 +109,16 @@ export class bmp280 extends genericChip {
 
   static async measurement(bus, calibration) {
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0xF7, 6]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
-    const pres_msb = buffer.readUInt8(0)
-    const pres_lsb = buffer.readUInt8(1)
-    const pres_xlsb = buffer.readUInt8(2)
+    const pres_msb = dv.getUint8(0)
+    const pres_lsb = dv.getUint8(1)
+    const pres_xlsb = dv.getUint8(2)
     const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb)
 
-    const temp_msb = buffer.readUInt8(3)
-    const temp_lsb = buffer.readUInt8(4)
-    const temp_xlsb = buffer.readUInt8(5)
+    const temp_msb = dv.getUint8(3)
+    const temp_lsb = dv.getUint8(4)
+    const temp_xlsb = dv.getUint8(5)
     const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb)
 
     const P = bmp280.skip_value === adcP ? false : adcP
@@ -129,9 +129,9 @@ export class bmp280 extends genericChip {
 
   static async ready(bus) {
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0xF3, 1]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
-    const status = buffer.readUInt8(0)
+    const status = dv.getUint8(0)
     const measuring = BitUtil.mapBits(status, [3, 1]) === 1
     const updating = BitUtil.mapBits(status, [0, 1]) === 1
     return {

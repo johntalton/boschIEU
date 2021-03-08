@@ -41,13 +41,13 @@ const SCRIPT_DETECT_LEGACY_EMPTY = [
 ]
 
 const SCRIPT_DETECT_LEGACY_BME680 = [
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x61 ]) } },
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x61 ]).buffer } },
   ...EOS_SCRIPT
 ]
 
 const SCRIPT_DETECT_BME390 = [
   { method: 'readI2cBlock', result: { bytesRead: 1, buffer: new ArrayBuffer(1)}},
-  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x60 ]) } },
+  { method: 'readI2cBlock', result: { bytesRead: 1, buffer: Uint8Array.from([ 0x60 ]).buffer } },
   ...EOS_SCRIPT
 ]
 
@@ -188,7 +188,7 @@ const SCRIPT_BME680_MEASUREMENT_READY = [
   ...BME680_CALIBRATION_SNIP,
   { method: 'readI2cBlock', result: { bytesRead: 15, buffer: Uint8Array.from([
     0b10000000, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0
-  ]) } },
+  ]).buffer } },
   ...EOS_SCRIPT
 ]
 
@@ -654,7 +654,6 @@ describe('BoschSensor', () => {
       await sensor.calibration()
       const result = await sensor.measurement()
 
-      console.log({ result })
       expect(result.humidity).to.not.be.undefined
       expect(result.humidity.adc).to.not.be.undefined
       expect(result.humidity.percent).to.not.be.undefined
@@ -681,7 +680,6 @@ describe('BoschSensor', () => {
       await sensor.calibration()
       const result = await sensor.measurement()
 
-      console.log({ result })
       expect(result).to.be.an('Object')
       expect(result.humidity).to.not.be.undefined
       expect(result.humidity.adc).to.not.be.undefined
@@ -705,8 +703,6 @@ describe('BoschSensor', () => {
       await sensor.calibration()
       const result = await sensor.measurement()
 
-      console.log({ result })
-
       expect(result.humidity).to.not.be.undefined
       expect(result.humidity.adc).to.not.be.undefined
       expect(result.humidity.skip).to.be.true
@@ -728,8 +724,6 @@ describe('BoschSensor', () => {
 
       await sensor.calibration()
       const result = await sensor.measurement()
-
-      console.log({ result })
 
       expect(result.humidity).to.be.undefined
 

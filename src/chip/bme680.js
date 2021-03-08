@@ -41,57 +41,57 @@ export class bme680 extends genericChip {
 
   static async calibration(bus) {
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0x89, 25], [0xE1, 16], [0x00, 1], [0x02, 1], [0x04, 1]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
     // console.log(buffer);
-    const t1 = buffer.readUInt16LE(33)
-    const t2 = buffer.readInt16LE(1)
-    const t3 = buffer.readInt8(3)
+    const t1 = dv.getUint16(33, true)
+    const t2 = dv.getInt16(1, true)
+    const t3 = dv.getInt8(3)
 
     const T = [t1, t2, t3]
 
-    const p1 = buffer.readUInt16LE(5)
-    const p2 = buffer.readInt16LE(7)
-    const p3 = buffer.readInt8(9)
-    const p4 = buffer.readInt16LE(11)
-    const p5 = buffer.readInt16LE(13)
-    const p6 = buffer.readInt8(16)
-    const p7 = buffer.readInt8(15)
-    const p8 = buffer.readInt16LE(19)
-    const p9 = buffer.readInt16LE(21)
-    const p10 = buffer.readInt8(23)
+    const p1 = dv.getUint16(5, true)
+    const p2 = dv.getInt16(7, true)
+    const p3 = dv.getInt8(9)
+    const p4 = dv.getInt16(11, true)
+    const p5 = dv.getInt16(13, true)
+    const p6 = dv.getInt8(16)
+    const p7 = dv.getInt8(15)
+    const p8 = dv.getInt16(19, true)
+    const p9 = dv.getInt16(21, true)
+    const p10 = dv.getInt8(23)
 
     const P = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10]
 
-    const h2_msb = buffer.readUInt8(25)
-    const h1_2_lsb = buffer.readUInt8(26)
-    const h1_msb = buffer.readUInt8(27)
+    const h2_msb = dv.getUint8(25)
+    const h1_2_lsb = dv.getUint8(26)
+    const h1_msb = dv.getUint8(27)
 
     const h1_lsb = BitUtil.mapBits(h1_2_lsb, 3, 4)
     const h2_lsb = BitUtil.mapBits(h1_2_lsb, 7, 4)
 
     const h1 = BitUtil.reconstruct12bit(h1_msb, h1_lsb)
     const h2 = BitUtil.reconstruct12bit(h2_msb, h2_lsb)
-    const h3 = buffer.readInt8(28)
-    const h4 = buffer.readInt8(29)
-    const h5 = buffer.readInt8(30)
-    const h6 = buffer.readUInt8(31)
-    const h7 = buffer.readInt8(32)
+    const h3 = dv.getInt8(28)
+    const h4 = dv.getInt8(29)
+    const h5 = dv.getInt8(30)
+    const h6 = dv.getUint8(31)
+    const h7 = dv.getInt8(32)
 
     const H = [h1, h2, h3, h4, h5, h6, h7]
 
-    const g1 = buffer.readInt8(37)
-    const g2 = buffer.readInt16LE(35)
-    const g3 = buffer.readInt8(38)
+    const g1 = dv.getInt8(37)
+    const g2 = dv.getInt16(35, true)
+    const g3 = dv.getInt8(38)
 
     const G = [g1, g2, g3]
 
     // console.log('\tcalibration', T, P, H, G);
 
-    const anon0 = buffer.readUInt8(42) // what else is in here?
-    const anon1 = buffer.readInt8(43) // what else is in here?
+    const anon0 = dv.getUint8(42) // what else is in here?
+    const anon1 = dv.getInt8(43) // what else is in here?
 
-    const res_heat_val = buffer.readInt8(41)
+    const res_heat_val = dv.getInt8(41)
     const res_heat_range = BitUtil.mapBits(anon0, 5, 2)
     const range_switching_error = BitUtil.decodeTwos(BitUtil.mapBits(anon1, 7, 4), 4)
 
@@ -119,18 +119,18 @@ export class bme680 extends genericChip {
     }
 
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0x50, 30], [0x70, 6]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
     // console.log(buffer);
-    const idac_heat = Util.range(0, 9).map(idx => buffer.readUInt8(idx))
-    const res_heat = Util.range(10, 19).map(idx => buffer.readUInt8(idx))
-    const gas_wait = Util.range(20, 29).map(idx => buffer.readUInt8(idx))
-    const ctrl_gas0 = buffer.readUInt8(30)
-    const ctrl_gas1 = buffer.readUInt8(31)
-    const ctrl_hum = buffer.readUInt8(32)
-    const status = buffer.readUInt8(33)
-    const ctrl_meas = buffer.readUInt8(34)
-    const config = buffer.readUInt8(35)
+    const idac_heat = Util.range(0, 9).map(idx => dv.getUint8(idx))
+    const res_heat = Util.range(10, 19).map(idx => dv.getUint8(idx))
+    const gas_wait = Util.range(20, 29).map(idx => dv.getUint8(idx))
+    const ctrl_gas0 = dv.getUint8(30)
+    const ctrl_gas1 = dv.getUint8(31)
+    const ctrl_hum = dv.getUint8(32)
+    const status = dv.getUint8(33)
+    const ctrl_meas = dv.getUint8(34)
+    const config = dv.getUint8(35)
 
     const heat_off = BitUtil.mapBits(ctrl_gas0, 3, 1) === 1
     const run_gas = BitUtil.mapBits(ctrl_gas1, 4, 1) === 1
@@ -371,9 +371,9 @@ export class bme680 extends genericChip {
 
   static async ready(bus) {
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0x1D, 1]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
-    const meas_status = buffer.readUInt8(0)
+    const meas_status = dv.getUint8(0)
 
     return {
       ready: BitUtil.mapBits(meas_status, 7, 1) === 1,

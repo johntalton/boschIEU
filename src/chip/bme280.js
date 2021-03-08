@@ -206,17 +206,18 @@ export class bme280 extends genericChip {
   }
 
   static async ready(bus) {
-    const abuffer = await BusUtil.readBlock(bus, STATUS_BLOCK)
-    const buffer = Buffer.from(abuffer)
+    const abuffer = await BusUtil.readI2cBlocks(bus, STATUS_BLOCK)
+    const dv = new DataView(abuffer)
 
-    const status = buffer.readUInt8(0)
+    const status = dv.getUint8(0)
+
     const measuring = BitUtil.mapBits(status, 3, 1) === 1
     const updating = BitUtil.mapBits(status, 0, 1) === 1
 
     return {
       ready: !measuring,
-      measuring: measuring,
-      updating: updating
+      measuring,
+      updating
     };
   }
 

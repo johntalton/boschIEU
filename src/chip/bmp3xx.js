@@ -199,7 +199,7 @@ export class bmp3xx extends genericChip {
   static isChipIdAtZero() { return true }
 
   static id(bus) { return BusUtil.readBlock(bus, [0x00]).then(buffer => buffer.readInt8(0)) }
-  static reset(bus) { return bus.writeI2cBlock(0x7E, Buffer.from([0xB6])) }
+  static reset(bus) { return bus.writeI2cBlock(0x7E, Uint8Array.from([ 0xB6 ])) }
 
   static get fifo() { return bmp3xxFifo }
 
@@ -212,23 +212,23 @@ export class bmp3xx extends genericChip {
   static async calibration(bus) {
     console.log('bmp3xx calibration')
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0x31, 21]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
-    const nvm_par_T1 = buffer.readUInt16LE(0)
-    const nvm_par_T2 = buffer.readUInt16LE(2)
-    const nvm_par_T3 = buffer.readInt8(4)
+    const nvm_par_T1 = dv.getUint16(0, true)
+    const nvm_par_T2 = dv.getUint16(2, true)
+    const nvm_par_T3 = dv.getInt8(4)
 
-    const nvm_par_P1 = buffer.readInt16LE(5)
-    const nvm_par_P2 = buffer.readInt16LE(7)
-    const nvm_par_P3 = buffer.readInt8(9)
-    const nvm_par_P4 = buffer.readInt8(10)
-    const nvm_par_P5 = buffer.readUInt16LE(11)
-    const nvm_par_P6 = buffer.readUInt16LE(13)
-    const nvm_par_P7 = buffer.readInt8(15)
-    const nvm_par_P8 = buffer.readInt8(16)
-    const nvm_par_P9 = buffer.readInt16LE(17)
-    const nvm_par_P10 = buffer.readInt8(19)
-    const nvm_par_P11 = buffer.readInt8(20)
+    const nvm_par_P1 = dv.getInt16(5, true)
+    const nvm_par_P2 = dv.getInt16(7, true)
+    const nvm_par_P3 = dv.getInt8(9)
+    const nvm_par_P4 = dv.getInt8(10)
+    const nvm_par_P5 = dv.getUint16(11, true)
+    const nvm_par_P6 = dv.getUint16(13, true)
+    const nvm_par_P7 = dv.getInt8(15)
+    const nvm_par_P8 = dv.getInt8(16)
+    const nvm_par_P9 = dv.getInt16(17, true)
+    const nvm_par_P10 = dv.getInt8(19)
+    const nvm_par_P11 = dv.getInt8(20)
 
     const par_T1 = nvm_par_T1 / Math.pow(2, -8)
     const par_T2 = nvm_par_T2 / Math.pow(2, 30)
@@ -446,16 +446,16 @@ export class bmp3xx extends genericChip {
 
   static async measurement(bus, calibration) {
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0x04, 12]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
-    const pres_xlsb = buffer.readUInt8(0)
-    const pres_lsb = buffer.readUInt8(1)
-    const pres_msb = buffer.readUInt8(2)
+    const pres_xlsb = dv.getUint8(0)
+    const pres_lsb = dv.getUint8(1)
+    const pres_msb = dv.getUint8(2)
     const adcP = reconstruct24bit(pres_msb, pres_lsb, pres_xlsb)
 
-    const temp_xlsb = buffer.readUInt8(3)
-    const temp_lsb = buffer.readUInt8(4)
-    const temp_msb = buffer.readUInt8(5)
+    const temp_xlsb = dv.getUint8(3)
+    const temp_lsb = dv.getUint8(4)
+    const temp_msb = dv.getUint8(5)
     const adcT = reconstruct24bit(temp_msb, temp_lsb, temp_xlsb)
 
     // const time_7_0 = buffer.readUInt8(8)
@@ -466,7 +466,7 @@ export class bmp3xx extends genericChip {
     // register 0x0f marked as reserved for bmp390
     // TODO the following int32 read assumes that the
     //   now reserved byte will return 0x00 which is not always true
-    const time = buffer.readUInt32LE(8)
+    const time = dv.getUint32(8, true)
     // const time2 = (time_31_24 << 24) | (time_23_16 << 16) | (time_15_8 << 8) | time_7_0
     // console.log('times', time, time2, buffer.readUInt32LE(8));
 
@@ -478,12 +478,12 @@ export class bmp3xx extends genericChip {
 
   static async ready(bus) {
     const abuffer = await BusUtil.readI2cBlocks(bus, [[0x02, 2], [0x10, 2]])
-    const buffer = Buffer.from(abuffer)
+    const dv = new DataView(abuffer)
 
-    const err_reg = buffer.readUInt8(0)
-    const status = buffer.readUInt8(1)
-    const event = buffer.readUInt8(2)
-    const int_status = buffer.readUInt8(3)
+    const err_reg = dv.getUint8(0)
+    const status = dv.getUint8(1)
+    const event = dv.getUint8(2)
+    const int_status = dv.getUint8(3)
 
     const BIT_SET = 1
 
