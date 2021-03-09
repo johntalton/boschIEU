@@ -125,7 +125,7 @@
     "global": []
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "file://../and-other-delights"
+    "@johntalton/and-other-delights": "https://github.com/johntalton/and-other-delights#module"
   },
   "devDependencies": {
     "@johntalton/eslint-config": "^2.0.0",
