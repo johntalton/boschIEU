@@ -25,7 +25,7 @@ export class bmp3xxFifo extends genericFifo {
     return bus.writeI2cBlock(CMD_REGISTER, Uint8Array.from([ CMD_FIFO_FLUSH ]))
   }
 
-  static async read(bus, calibration) {
+  static async read(bus, calibration, overRead = false) {
     const abuffer = await bus.readI2cBlock(FIFO_LENGTH_REGISTER, 2)
 
     const dv = new DataView(abuffer)
@@ -41,7 +41,7 @@ export class bmp3xxFifo extends genericFifo {
     }
 
     if(fifo_byte_counter === 0) {
-      // console.warn('zero length fifo... parse may fail')
+      // console.warn('zero length fifo...')
       // TODO does this ever happen, if so, what is there to read
       // return []
     }
@@ -49,7 +49,7 @@ export class bmp3xxFifo extends genericFifo {
     // TODO we over read here in order to capture the case where
     //   the the sensor time is turned on and we may get sensor.empty
     //   frames, or we may get a configuration frame
-    const readSize = fifo_byte_counter + 4 + 2
+    const readSize = fifo_byte_counter + (overRead ? 4 + 2 : 0)
 
     await bus.sendByte(FIFO_DATA_REGISTER)
     const framesABuffer = await bus.i2cRead(readSize)

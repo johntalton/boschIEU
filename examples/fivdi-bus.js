@@ -3,7 +3,9 @@
 
 export class FivdiBusProvider {
   static async openPromisified(busNumber) {
-    const i2c = await import('i2c-bus')
+    const i2cMod = await import('i2c-bus')
+    const i2c = i2cMod.default
+
     return new FivdiBus(await i2c.openPromisified(busNumber))
   }
 }
@@ -37,18 +39,18 @@ export class FivdiBus {
     }
   }
 
-  i2cRead(address, length, bufferSource) {
+  async i2cRead(address, length, bufferSource) {
     const intoBuffer = Buffer.from(bufferSource)
-    const { bytesRead, buffer } = this.bus.i2cRead(address,length, intoBuffer)
+    const { bytesRead, buffer } = await this.bus.i2cRead(address,length, intoBuffer)
     return {
       bytesRead,
       buffer: buffer.buffer
     }
   }
 
-  i2cWrite(address, length, bufferSource) {
+  async i2cWrite(address, length, bufferSource) {
     const bufferToWrite = Buffer.from(bufferSource)
-    const { bytesWritten, buffer } = this.bus.i2cWrtie(address, length, bufferToWrite)
+    const { bytesWritten, buffer } = await this.bus.i2cWrtie(address, length, bufferToWrite)
     return {
       bytesWritten,
       buffer: buffer.buffer

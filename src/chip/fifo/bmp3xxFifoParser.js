@@ -146,10 +146,10 @@ export class bmp3xxFifoParser {
 
     const frameObj = { type: 'sensor', temp: NaN, press: NaN }
 
-    function read24(frame24, offset24 = 0) {
-      const xlsb = frame24.readUInt8(1 + offset24)
-      const lsb = frame24.readUInt8(2 + offset24)
-      const msb = frame24.readUInt8(3 + offset24)
+    function read24(dv24, offset24 = 0) {
+      const xlsb = dv24.getUint8(1 + offset24)
+      const lsb = dv24.getUint8(2 + offset24)
+      const msb = dv24.getUint8(3 + offset24)
       return reconstruct24bit(msb, lsb, xlsb)
     }
 

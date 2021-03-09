@@ -8,7 +8,7 @@ const delayMs = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 const options = {
   busNumber: 1,
-  busAddress: 0x77
+  busAddress: 0x76
 }
 
 const i2c1 = await FivdiBusProvider.openPromisified(options.busNumber)
@@ -49,6 +49,8 @@ await sensor.setProfile({
   }
 })
 
+await delayMs(550)
+
 const profile = await sensor.profile()
 console.log(profile)
 
@@ -64,6 +66,9 @@ process.on('SIGINT', () => {
 while(run) {
   const fifoData = await sensor.fifo.read()
   await delayMs(500)
-  console.log(fifoData.map(item => item.type === 'sensor' ? item.temperature.C : 0).filter(item => item !== 0).reduce((acc, item) => acc + '\n' + item, ''))
+  console.log(fifoData.map(item => item.type === 'sensor' ? 
+    JSON.stringify({ temperature: item.temperature.C, pressure: (!Number.isNaN(item.pressure.Pa) ? item.pressure.Pa : item.pressure.adc)  }) : 
+    JSON.stringify(item))
+    .reduce((acc, item) => acc + '\n' + item, ''))
 }
 
