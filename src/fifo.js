@@ -13,5 +13,7 @@ export class BoschFifo {
   async flush() { return this.sensor.chip.fifo.flush(this.sensor._bus) }
 
   // eslint-disable-next-line require-await
-  async read() { return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration) }
+  async read(overRead) {
+    return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration, overRead)
+  }
 }

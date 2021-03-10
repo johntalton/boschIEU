@@ -59,7 +59,7 @@ describe('BoschFifo', () => {
 
       const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP388_ID, legacy: false })
 
-      const messages = await sensor.fifo.read()
+      const messages = await sensor.fifo.read(true)
 
       expect(messages).to.be.an('Array')
       expect(messages).to.be.of.length(3)
@@ -76,7 +76,7 @@ describe('BoschFifo', () => {
 
       const sensor = await BoschIEU.sensor(abus, { chipId: Chip.BMP388_ID, legacy: false })
 
-      const messages = await sensor.fifo.read()
+      const messages = await sensor.fifo.read(true)
 
       expect(messages).to.be.an('Array')
       expect(messages).to.be.of.length(2)
