@@ -125,10 +125,10 @@
     "global": []
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "https://github.com/johntalton/and-other-delights#module"
+    "@johntalton/and-other-delights": "github:johntalton/and-other-delights#module"
   },
   "devDependencies": {
-    "@johntalton/eslint-config": "^2.0.0",
+    "@johntalton/eslint-config": "github:johntalton/eslint-config",
     "c8": "^7.6.0",
     "chai": "^4.3.0",
     "eslint": "^7.21.0",
@@ -149,6 +149,7 @@
     "onoff": "^6.0.1",
     "repler": "github:johntalton/repler",
     "rxjs": "^6.6.6",
+    "typescript": "^4.2.3",
     "zen-observable": "^0.8.13"
   },
   "repository": {
