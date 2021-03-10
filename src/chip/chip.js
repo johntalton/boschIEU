@@ -17,11 +17,11 @@ const Ahoy = [
   genericChip,
   bme280,
   bme680,
-  bme688,
+  // bme688,
 
   bmp280,
-  bmp380,
-  bmp384,
+  // bmp380,
+  // bmp384,
   bmp388,
   bmp390
 ];

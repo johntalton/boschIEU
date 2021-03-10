@@ -51,13 +51,13 @@ Repler.addCommand({
       const busNumber = parseInt(prams.shift(), 10);
       const busAddress = parseInt(prams.shift(), 10);
 
-      const bus = FivdiBusProvider.openPromisified(busNumber)
-      const abus = I2CAddressedBus.from(bus, busAddress)
+      const fbus = await FivdiBusProvider.openPromisified(busNumber)
+      const abus = I2CAddressedBus.from(fbus, busAddress)
 
       console.log('bus inited');
 
-      state.bus = bus;
-      state.sensor = await BoschIEU.detect(bus)
+      state.bus = abus;
+      state.sensor = await BoschIEU.detect(abus)
       console.log('detected sensor')
     }
     else if(busname.toLowerCase() === 'mock') {

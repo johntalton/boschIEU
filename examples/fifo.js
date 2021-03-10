@@ -1,10 +1,10 @@
-const { FivdiBusProvider } = require('./fivdi-bus.js')
+import { FivdiBusProvider } from './fivdi-bus.js'
 
-const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
+import { I2CAddressedBus, I2CMockBus } from '@johntalton/and-other-delights'
 
-const { BoschIEU, Chip } = require('../');
+import { BoschIEU, Chip } from '@johntalton/boschieu'
 
-const { deviceDef_bmp388 } = require('./deviceDefs.js'); // eslint-disable-line spellcheck/spell-checker
+// import { deviceDef_bmp388 } from './deviceDefs.js' // eslint-disable-line spellcheck/spell-checker
 
 async function dumpFifo(mock, options) {
   const provider = mock ? I2CMockBus : FivdiBusProvider;
@@ -18,7 +18,7 @@ async function dumpFifo(mock, options) {
   // setup steps needed to access the bus
   const i2c1 = await provider.openPromisified(options.busNumber);
   const addressedI2C1 = new I2CAddressedBus(i2c1, options.busAddress);
-  const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP388_ID });
+  const sensor = await BoschIEU.detect(addressedI2C1);
 
 
   // we could use the following code await sensor.detectChip();
@@ -52,10 +52,9 @@ async function tryDumpFifo(mock, options) {
   }
 }
 
-if(!module.parent) {
-  const mock = process.argv.includes('--mock');
 
-  const busNumber = 1;
-  const busAddress = 0x77;
-  tryDumpFifo(mock, { busNumber, busAddress });
-}
+const mock = process.argv.includes('--mock');
+
+const busNumber = 1;
+const busAddress = 0x76;
+tryDumpFifo(mock, { busNumber, busAddress });
