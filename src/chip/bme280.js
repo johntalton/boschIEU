@@ -117,10 +117,13 @@ export class bme280 extends genericChip {
   }
 
   static async profile(bus) {
-    const abuffer = await BusUtil.readBlock(bus, PROFILE_BLOCK)
-    const buffer = new Uint8Array(abuffer)
+    const abuffer = await BusUtil.readI2cBlocks(bus, PROFILE_BLOCK)
+    const dv = new DataView(abuffer)
 
-    const [ ctrl_hum, status, ctrl_meas, config ] = buffer
+    const ctrl_hum = dv.getUint8(0)
+    const status = dv.getUint8(1)
+    const ctrl_meas = dv.getUint8(2)
+    const config = dv.getUint8(3)
 
     const osrs_h = BitUtil.mapBits(ctrl_hum, 2, 3)
 
