@@ -81,7 +81,7 @@
     "mqtt": "^4.2.6",
     "onoff": "^6.0.1",
     "repler": "github:johntalton/repler",
-    "rxjs": "^6.6.3",
+    "rxjs": "^7.2.0",
     "zen-observable": "^0.8.13"
   },
   "repository": {
