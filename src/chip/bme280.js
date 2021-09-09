@@ -4,6 +4,8 @@ import { BitSmush } from '@johntalton/bitsmush'
 
 import { NameValueUtil } from '../nvutil.js'
 
+import { Bits } from './bits.js'
+
 import { genericChip, enumMap } from './generic.js'
 import { Compensate } from './compensate.js'
 
@@ -191,12 +193,12 @@ export class bme280 extends genericChip {
     const pres_msb = dv.getUint8(0)
     const pres_lsb = dv.getUint8(1)
     const pres_xlsb = dv.getUint8(2)
-    const adcP = BitUtil.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb)
+    const adcP = Bits.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb)
 
     const temp_msb = dv.getUint8(3)
     const temp_lsb = dv.getUint8(4)
     const temp_xlsb = dv.getUint8(5)
-    const adcT = BitUtil.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb)
+    const adcT = Bits.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb)
 
     const adcH = dv.getUint16(6, false)
 

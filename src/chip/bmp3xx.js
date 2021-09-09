@@ -4,7 +4,9 @@
 /* eslint-disable no-undefined */
 /* eslint-disable fp/no-nil */
 /* eslint-disable no-magic-numbers */
-import { BusUtil, BitUtil } from '@johntalton/and-other-delights'
+import { BusUtil } from '@johntalton/and-other-delights'
+import { BitSmush } from '@johntalton/bitsmush'
+
 import { NameValueUtil } from '../nvutil.js'
 
 import { Compensate } from './compensate.js'
@@ -278,32 +280,32 @@ export class bmp3xx extends genericChip {
     const fifo_wtm_0 = buffer.getUint8(0)
 
     //
-    const iff_filter = BitUtil.mapBits(config, 3, 3)
-    // const short_in = BitUtil.mapBits(config, 0, 1)
-    const odr_sel = BitUtil.mapBits(odr, 4, 5)
-    const osr_p = BitUtil.mapBits(osr, 2, 3)
-    const osr_t = BitUtil.mapBits(osr, 5, 3)
-    const mode = BitUtil.mapBits(pwr_ctrl, 5, 2)
-    const temp_en = BitUtil.mapBits(pwr_ctrl, 1, 1)
-    const press_en = BitUtil.mapBits(pwr_ctrl, 0, 1)
-    const i2c_wdt_sel = BitUtil.mapBits(if_conf, 2, 1)
-    const i2c_wdt_en = BitUtil.mapBits(if_conf, 1, 1)
-    // const spi3 = BitUtil.mapBits(if_conf, 0, 1)
-    const drdy_en = BitUtil.mapBits(int_ctrl, 6, 1)
-    // const int_ds = BitUtil.mapBits(int_ctrl, 5, 1) // bmp390
-    const ffull_en = BitUtil.mapBits(int_ctrl, 4, 1)
-    const fwtm_en = BitUtil.mapBits(int_ctrl, 3, 1)
-    const int_latch = BitUtil.mapBits(int_ctrl, 2, 1)
-    const int_level = BitUtil.mapBits(int_ctrl, 1, 1)
-    const int_od = BitUtil.mapBits(int_ctrl, 0, 1)
-    const data_select = BitUtil.mapBits(fifo_config_2, 4, 2)
-    const fifo_subsampling = BitUtil.mapBits(fifo_config_2, 2, 3)
-    const fifo_temp_en = BitUtil.mapBits(fifo_config_1, 4, 1)
-    const fifo_press_en = BitUtil.mapBits(fifo_config_1, 3, 1)
-    const fifo_time_en = BitUtil.mapBits(fifo_config_1, 2, 1)
-    const fifo_stop_on_full = BitUtil.mapBits(fifo_config_1, 1, 1)
-    const fifo_mode = BitUtil.mapBits(fifo_config_1, 0, 1)
-    const fifo_water_mark_8 = BitUtil.mapBits(fifo_wtm_1, 0, 1)
+    const iff_filter = BitSmush.extractBits(config, 3, 3)
+    // const short_in = BitSmush.extractBits(config, 0, 1)
+    const odr_sel = BitSmush.extractBits(odr, 4, 5)
+    const osr_p = BitSmush.extractBits(osr, 2, 3)
+    const osr_t = BitSmush.extractBits(osr, 5, 3)
+    const mode = BitSmush.extractBits(pwr_ctrl, 5, 2)
+    const temp_en = BitSmush.extractBits(pwr_ctrl, 1, 1)
+    const press_en = BitSmush.extractBits(pwr_ctrl, 0, 1)
+    const i2c_wdt_sel = BitSmush.extractBits(if_conf, 2, 1)
+    const i2c_wdt_en = BitSmush.extractBits(if_conf, 1, 1)
+    // const spi3 = BitSmush.extractBits(if_conf, 0, 1)
+    const drdy_en = BitSmush.extractBits(int_ctrl, 6, 1)
+    // const int_ds = BitSmush.extractBits(int_ctrl, 5, 1) // bmp390
+    const ffull_en = BitSmush.extractBits(int_ctrl, 4, 1)
+    const fwtm_en = BitSmush.extractBits(int_ctrl, 3, 1)
+    const int_latch = BitSmush.extractBits(int_ctrl, 2, 1)
+    const int_level = BitSmush.extractBits(int_ctrl, 1, 1)
+    const int_od = BitSmush.extractBits(int_ctrl, 0, 1)
+    const data_select = BitSmush.extractBits(fifo_config_2, 4, 2)
+    const fifo_subsampling = BitSmush.extractBits(fifo_config_2, 2, 3)
+    const fifo_temp_en = BitSmush.extractBits(fifo_config_1, 4, 1)
+    const fifo_press_en = BitSmush.extractBits(fifo_config_1, 3, 1)
+    const fifo_time_en = BitSmush.extractBits(fifo_config_1, 2, 1)
+    const fifo_stop_on_full = BitSmush.extractBits(fifo_config_1, 1, 1)
+    const fifo_mode = BitSmush.extractBits(fifo_config_1, 0, 1)
+    const fifo_water_mark_8 = BitSmush.extractBits(fifo_wtm_1, 0, 1)
     const fifo_water_mark_7_0 = fifo_wtm_0
 
     //
@@ -402,16 +404,16 @@ export class bmp3xx extends genericChip {
     const fifo_water_mark_7_0 = fifoWatermark.low
 
     //
-    const config = BitUtil.packBits([[3, 3]], [iff_filter])
-    const odr = BitUtil.packBits([[4, 5]], [odr_sel])
-    const osr = BitUtil.packBits([[5, 3], [2, 3]], [osr_t, osr_p])
-    const pwr_ctrl = BitUtil.packBits([[5, 2], [1], [0]], [mode, temp_en, press_en])
-    const if_conf = BitUtil.packBits([[2], [1], [0]], [i2c_wdt_sel, i2c_wdt_en, spi3])
-    const int_ctrl = BitUtil.packBits([[6], [4], [3], [2], [1], [0]], [drdy_en, ffull_en, fwtm_en, int_latch, int_level, int_od])
-    const fifo_config_2 = BitUtil.packBits([[4, 2], [2, 3]], [data_select, fifo_subsampling])
-    const fifo_config_1 = BitUtil.packBits([[4], [3], [2], [1], [0]], [fifo_temp_en, fifo_press_en, fifo_time_en, fifo_stop_on_full, fifo_mode])
-    const fifo_wtm_1 = BitUtil.packBits([[0]], [fifo_water_mark_8])
-    const fifo_wtm_0 = BitUtil.packBits([[7, 8]], [fifo_water_mark_7_0])
+    const config = BitSmush.smushBits([[3, 3]], [iff_filter])
+    const odr = BitSmush.smushBits([[4, 5]], [odr_sel])
+    const osr = BitSmush.smushBits([[5, 3], [2, 3]], [osr_t, osr_p])
+    const pwr_ctrl = BitSmush.smushBits([[5, 2], [1, 1], [0, 1]], [mode, temp_en, press_en])
+    const if_conf = BitSmush.smushBits([[2, 1], [1, 1], [0, 1]], [i2c_wdt_sel, i2c_wdt_en, spi3])
+    const int_ctrl = BitSmush.smushBits([[6, 1], [4, 1], [3, 1], [2, 1], [1, 1], [0, 1]], [drdy_en, ffull_en, fwtm_en, int_latch, int_level, int_od])
+    const fifo_config_2 = BitSmush.smushBits([[4, 2], [2, 3]], [data_select, fifo_subsampling])
+    const fifo_config_1 = BitSmush.smushBits([[4, 1], [3, 1], [2, 1], [1, 1], [0, 1]], [fifo_temp_en, fifo_press_en, fifo_time_en, fifo_stop_on_full, fifo_mode])
+    const fifo_wtm_1 = BitSmush.smushBits([[0, 1]], [fifo_water_mark_8])
+    const fifo_wtm_0 = BitSmush.smushBits([[7, 8]], [fifo_water_mark_7_0])
 
     // todo consider using block write
     await bus.writeI2cBlock(0x1B, Uint8Array.from([ 0 ]))
@@ -487,20 +489,20 @@ export class bmp3xx extends genericChip {
 
     const BIT_SET = 1
 
-    const conf_err =  BitUtil.mapBits(err_reg, 2, 1) === BIT_SET
-    const cmd_err =  BitUtil.mapBits(err_reg, 1, 1) === BIT_SET
-    const fatal_err =  BitUtil.mapBits(err_reg, 0, 1) === BIT_SET
+    const conf_err =  BitSmush.extractBits(err_reg, 2, 1) === BIT_SET
+    const cmd_err =  BitSmush.extractBits(err_reg, 1, 1) === BIT_SET
+    const fatal_err =  BitSmush.extractBits(err_reg, 0, 1) === BIT_SET
 
-    const drdy_temp =  BitUtil.mapBits(status, 6, 1) === BIT_SET
-    const drdy_press =  BitUtil.mapBits(status, 5, 1) === BIT_SET
-    const cmd_rdy =  BitUtil.mapBits(status, 4, 1) === BIT_SET
+    const drdy_temp =  BitSmush.extractBits(status, 6, 1) === BIT_SET
+    const drdy_press =  BitSmush.extractBits(status, 5, 1) === BIT_SET
+    const cmd_rdy =  BitSmush.extractBits(status, 4, 1) === BIT_SET
 
-    // const itf_act_pt = BitUtil.mapBits(event, 1, 1) === BIT_SET // only for bmp390
-    const por_detected = BitUtil.mapBits(event, 0, 1) === BIT_SET
+    // const itf_act_pt = BitSmush.extractBits(event, 1, 1) === BIT_SET // only for bmp390
+    const por_detected = BitSmush.extractBits(event, 0, 1) === BIT_SET
 
-    const drdy =  BitUtil.mapBits(int_status, 3, 1) === BIT_SET
-    const ffull_int =  BitUtil.mapBits(int_status, 1, 1) === BIT_SET
-    const fwm_int =  BitUtil.mapBits(int_status, 0, 1) === BIT_SET
+    const drdy =  BitSmush.extractBits(int_status, 3, 1) === BIT_SET
+    const ffull_int =  BitSmush.extractBits(int_status, 1, 1) === BIT_SET
+    const fwm_int =  BitSmush.extractBits(int_status, 0, 1) === BIT_SET
 
     return {
       error: { config: conf_err, command: cmd_err, fatal: fatal_err }, // all false is good
