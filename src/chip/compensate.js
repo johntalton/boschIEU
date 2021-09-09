@@ -258,6 +258,8 @@ export class Compensate {
     if(adcP === false) { return { skip: true, adc: false } }
     if(Tfine === false) { return { skip: true, Tfine: false } }
 
+console.log({ adcP, Tfine, caliP })
+
     if(caliP.length !== 9) { return { skip: true, calibration: caliP.length } }
     const [ dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9 ] = caliP
 

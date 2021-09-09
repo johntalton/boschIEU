@@ -92,21 +92,23 @@ export class Device {
   }
 
   static async setupDevice(application, devcfg) {
-    const client = {};
 
-    const bus = devcfg.mock ? await I2CMockBus.openPromisified(devcfg.bus.id[0]) : await FivdiBusProvider.openPromisified(devcfg.bus.id[0])
+    const bus = devcfg.mock ? 
+      await I2CMockBus.openPromisified(devcfg.bus.id[0]) :
+      await FivdiBusProvider.openPromisified(devcfg.bus.id[0])
+
     const abus = I2CAddressedBus.from(bus, devcfg.bus.id[1])
 
-    const sensor = BoschIEU.detect(abus, {})
-    if(sensor.isGeneric) { throw new Error('generic device', client.bus.name) }
+    const sensor = await BoschIEU.detect(abus, {})
+    console.log('detected sensor', sensor)
+    if(sensor.isGeneric) { throw new Error('generic device', bus.name) }
 
-    await client.sensor.calibration()
-
+    await sensor.calibration()
 
     // support suppressing via config (hope you trust the current settings :P)
     if(devcfg.onStartSetProfile) {
       console.log('profile set on startup')
-      await client.sensor.setProfile(devcfg.profile);
+      await sensor.setProfile(devcfg.profile);
     }
 
     devcfg.client = {
@@ -118,10 +120,9 @@ export class Device {
     // todo also publish message here
 
     console.log();
-    console.log('Chip Up:', client.sensor.chip.name);
-    console.log(' bus ', client.bus.name);
-    console.log(' name', client.name);
-    console.log(' signature', client.signature);
+    console.log('Chip Up:', sensor.chip.name);
+    console.log(' bus ', bus.name);
+    console.log(' name', devcfg.name);
     console.log();
     return true;
   }

@@ -1,5 +1,6 @@
 /* eslint-disable no-magic-numbers */
-import { BusUtil, BitUtil } from '@johntalton/and-other-delights'
+import { BusUtil } from '@johntalton/and-other-delights'
+impot { BitSmush } from '@johntalton/bitsmush'
 
 import { NameValueUtil } from '../nvutil.js'
 
@@ -58,16 +59,16 @@ export class bmp280 extends genericChip {
     const ctrl_meas = dv.getUint8(1)
     const config = dv.getUint8(2)
 
-    const measuring = BitUtil.mapBits(status, [3, 1]) === 1
-    const updating = BitUtil.mapBits(status, [0, 1]) === 1
+    const measuring = BitSmush.extractBits(status, [3, 1]) === 1
+    const updating = BitSmush.extractBits(status, [0, 1]) === 1
 
-    const osrs_t = BitUtil.mapBits(ctrl_meas, [7, 3])
-    const osrs_p = BitUtil.mapBits(ctrl_meas, [4, 3])
-    const mode = BitUtil.mapBits(ctrl_meas, [1, 2])
+    const osrs_t = BitSmush.extractBits(ctrl_meas, [7, 3])
+    const osrs_p = BitSmush.extractBits(ctrl_meas, [4, 3])
+    const mode = BitSmush.extractBits(ctrl_meas, [1, 2])
 
-    const t_sb = BitUtil.mapBits(config, [7, 3])
-    const filter = BitUtil.mapBits(config, [4, 3])
-    const spi_3w_en = BitUtil.mapBits(config, [0, 1]) === 1
+    const t_sb = BitSmush.extractBits(config, [7, 3])
+    const filter = BitSmush.extractBits(config, [4, 3])
+    const spi_3w_en = BitSmush.extractBits(config, [0, 1]) === 1
 
     return {
       mode: NameValueUtil.toName(mode, enumMap.modes),
@@ -94,8 +95,8 @@ export class bmp280 extends genericChip {
     const filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters)
     const en3w = profile.spi !== undefined ? profile.spi.enable3w : 0
 
-    const ctrl_meas = BitUtil.packBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
-    const config = BitUtil.packBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
+    const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
+    const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
 
     return Promise.all([
       bus.writeI2cBlock(0xF4, Uint8Array.from([ ctrl_meas ])),
@@ -132,8 +133,8 @@ export class bmp280 extends genericChip {
     const dv = new DataView(abuffer)
 
     const status = dv.getUint8(0)
-    const measuring = BitUtil.mapBits(status, [3, 1]) === 1
-    const updating = BitUtil.mapBits(status, [0, 1]) === 1
+    const measuring = BitSmush.extractBits(status, [3, 1]) === 1
+    const updating = BitSmush.extractBits(status, [0, 1]) === 1
     return {
       ready: !measuring,
       measuring: measuring,

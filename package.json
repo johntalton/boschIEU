@@ -125,7 +125,8 @@
     "global": []
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "github:johntalton/and-other-delights#module"
+    "@johntalton/and-other-delights": "^6.0.0",
+    "@johntalton/bitsmush": "^1.0.0"
   },
   "devDependencies": {
     "@johntalton/eslint-config": "github:johntalton/eslint-config",

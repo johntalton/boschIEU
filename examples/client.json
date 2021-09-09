@@ -15,7 +15,7 @@
       "pollIntervalS": 5
     },
     {
-      "active": false,
+      "active": true,
       "name": "front room",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
@@ -116,7 +116,7 @@
     },
 
     {
-      "active": true,
+      "active": false,
       "mock": true,
       "name": "mock device",
       "bus": { "id": [ "bmp280.json", 120 ] },

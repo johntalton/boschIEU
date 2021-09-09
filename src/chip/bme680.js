@@ -6,7 +6,8 @@
 /* eslint-disable no-magic-numbers */
 /* eslint-disable fp/no-nil */
 /* eslint-disable max-len */
-import { BusUtil, BitUtil } from '@johntalton/and-other-delights'
+import { BusUtil} from '@johntalton/and-other-delights'
+import { BitSmush } from '@johntalton/bitsmush'
 import { NameValueUtil } from '../nvutil.js'
 
 import { genericChip, enumMap } from './generic.js'
@@ -67,8 +68,8 @@ export class bme680 extends genericChip {
     const h1_2_lsb = dv.getUint8(26)
     const h1_msb = dv.getUint8(27)
 
-    const h1_lsb = BitUtil.mapBits(h1_2_lsb, 3, 4)
-    const h2_lsb = BitUtil.mapBits(h1_2_lsb, 7, 4)
+    const h1_lsb = BitSmush.extractBits(h1_2_lsb, 3, 4)
+    const h2_lsb = BitSmush.extractBits(h1_2_lsb, 7, 4)
 
     const h1 = BitUtil.reconstruct12bit(h1_msb, h1_lsb)
     const h2 = BitUtil.reconstruct12bit(h2_msb, h2_lsb)
@@ -92,8 +93,8 @@ export class bme680 extends genericChip {
     const anon1 = dv.getInt8(43) // what else is in here?
 
     const res_heat_val = dv.getInt8(41)
-    const res_heat_range = BitUtil.mapBits(anon0, 5, 2)
-    const range_switching_error = BitUtil.decodeTwos(BitUtil.mapBits(anon1, 7, 4), 4)
+    const res_heat_range = BitSmush.extractBits(anon0, 5, 2)
+    const range_switching_error = BitUtil.decodeTwos(BitSmush.extractBits(anon1, 7, 4), 4)
 
     // console.log('res heat val', res_heat_val);
     // console.log('res heat range', res_heat_range);
@@ -113,8 +114,8 @@ export class bme680 extends genericChip {
 
   static async profile(bus) {
     function gasWaitToDuration(gaswait) {
-      const multiplyer = NameValueUtil.toName(BitUtil.mapBits(gaswait, 7, 2), gwMultipliers)
-      const baseMs = BitUtil.mapBits(gaswait, 5, 6)
+      const multiplyer = NameValueUtil.toName(BitSmush.extractBits(gaswait, 7, 2), gwMultipliers)
+      const baseMs = BitSmush.extractBits(gaswait, 5, 6)
       return baseMs * multiplyer
     }
 
@@ -132,21 +133,21 @@ export class bme680 extends genericChip {
     const ctrl_meas = dv.getUint8(34)
     const config = dv.getUint8(35)
 
-    const heat_off = BitUtil.mapBits(ctrl_gas0, 3, 1) === 1
-    const run_gas = BitUtil.mapBits(ctrl_gas1, 4, 1) === 1
-    const nb_conv = BitUtil.mapBits(ctrl_gas1, 3, 4)
+    const heat_off = BitSmush.extractBits(ctrl_gas0, 3, 1) === 1
+    const run_gas = BitSmush.extractBits(ctrl_gas1, 4, 1) === 1
+    const nb_conv = BitSmush.extractBits(ctrl_gas1, 3, 4)
 
-    const spi_3w_int_en = BitUtil.mapBits(ctrl_hum, 6, 1) === 1
+    const spi_3w_int_en = BitSmush.extractBits(ctrl_hum, 6, 1) === 1
 
-    const osrs_h = BitUtil.mapBits(ctrl_hum, 2, 3)
-    const osrs_t = BitUtil.mapBits(ctrl_meas, 7, 3)
-    const osrs_p = BitUtil.mapBits(ctrl_meas, 4, 3)
+    const osrs_h = BitSmush.extractBits(ctrl_hum, 2, 3)
+    const osrs_t = BitSmush.extractBits(ctrl_meas, 7, 3)
+    const osrs_p = BitSmush.extractBits(ctrl_meas, 4, 3)
 
-    const mode = BitUtil.mapBits(ctrl_meas, 1, 2)
+    const mode = BitSmush.extractBits(ctrl_meas, 1, 2)
 
-    const filter = BitUtil.mapBits(config, 4, 3)
-    const spi_3w_en = BitUtil.mapBits(config, 0, 1) === 1
-    const spi_mem_page = BitUtil.mapBits(status, 4, 1) // eslint-disable-line no-unused-vars
+    const filter = BitSmush.extractBits(config, 4, 3)
+    const spi_3w_en = BitSmush.extractBits(config, 0, 1) === 1
+    const spi_mem_page = BitSmush.extractBits(status, 4, 1) // eslint-disable-line no-unused-vars
 
     const setpoints = res_heat.map((v, i) => ({
       index: i,
@@ -252,11 +253,11 @@ export class bme680 extends genericChip {
     const filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters_more)
     const en3w = profile.spi.enable3w
 
-    const ctrl_gas0 = BitUtil.packBits([[3, 1]], [heat_off])
-    const ctrl_gas1 = BitUtil.packBits([[4, 1], [3, 4]], [run_gas, nb_conv])
-    const ctrl_hum = BitUtil.packBits([[6, 1], [2, 3]], [en3wint, os_h])
-    const ctrl_meas = BitUtil.packBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
-    const config = BitUtil.packBits([[4, 3], [0, 1]], [filter, en3w])
+    const ctrl_gas0 = BitSmush.smushBits([[3, 1]], [heat_off])
+    const ctrl_gas1 = BitSmush.smushBits([[4, 1], [3, 4]], [run_gas, nb_conv])
+    const ctrl_hum = BitSmush.smushBits([[6, 1], [2, 3]], [en3wint, os_h])
+    const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
+    const config = BitSmush.smushBits([[4, 3], [0, 1]], [filter, en3w])
 
     // const status = 0 // todo, we need to redactor all this page stuff Util.packBits([[4, 1]], [spi_mem_page]);
 
@@ -270,7 +271,7 @@ export class bme680 extends genericChip {
 
       const gw = durationToGasWait(sp.durationMs)
       const multi = NameValueUtil.toValue(gw.multiplyer, gwMultipliers)
-      const gas_wait_x = BitUtil.packBits([[7, 2], [5, 6]], [multi, gw.base])
+      const gas_wait_x = BitSmush.smushBits([[7, 2], [5, 6]], [multi, gw.base])
 
       const pat = profile.ambientTemperatureC !== undefined ? profile.ambientTemperatureC : 25 // or 25C
       const ambientTemperatureC = sp.ambientTemperatureC !== undefined ? sp.ambientTemperatureC : pat
@@ -309,10 +310,10 @@ export class bme680 extends genericChip {
     const meas_index = dv.getUint8(1)
     console.log('\tmeas_index?', meas_index)
 
-    const newdata = BitUtil.mapBits(meas_status, 7, 1) === 1
-    const measuringGas = BitUtil.mapBits(meas_status, 6, 1) === 1
-    const measuring = BitUtil.mapBits(meas_status, 5, 1) === 1
-    const active_profile_idx = BitUtil.mapBits(meas_status, 3, 4)
+    const newdata = BitSmush.extractBits(meas_status, 7, 1) === 1
+    const measuringGas = BitSmush.extractBits(meas_status, 6, 1) === 1
+    const measuring = BitSmish.extractBits(meas_status, 5, 1) === 1
+    const active_profile_idx = BitSmush.extractBits(meas_status, 3, 4)
     const ready = {
       ready: newdata,
       measuringGas: measuringGas, // active gas measurement
@@ -345,10 +346,10 @@ export class bme680 extends genericChip {
     const gas_r_msb = dv.getUint8(13)
     const gas_r_ext = dv.getUint8(14)
 
-    const gas_r_lsb = BitUtil.mapBits(gas_r_ext, 7, 2)
-    const gas_valid_r = BitUtil.mapBits(gas_r_ext, 5, 1) === 1
-    const heat_stab_r = BitUtil.mapBits(gas_r_ext, 4, 1) === 1
-    const gas_range_r = BitUtil.mapBits(gas_r_ext, 3, 4)
+    const gas_r_lsb = BitSmush.extractBits(gas_r_ext, 7, 2)
+    const gas_valid_r = BitSmush.extractBits(gas_r_ext, 5, 1) === 1
+    const heat_stab_r = BitSmush.extractBits(gas_r_ext, 4, 1) === 1
+    const gas_range_r = BitSmush.extractBits(gas_r_ext, 3, 4)
 
     const gas_r = BitUtil.reconstruct10bit(gas_r_msb, gas_r_lsb)
 
@@ -376,10 +377,10 @@ export class bme680 extends genericChip {
     const meas_status = dv.getUint8(0)
 
     return {
-      ready: BitUtil.mapBits(meas_status, 7, 1) === 1,
-      measuringGas: BitUtil.mapBits(meas_status, 6, 1) === 1,
-      measuring: BitUtil.mapBits(meas_status, 5, 1) === 1,
-      active_profile_idx: BitUtil.mapBits(meas_status, 3, 4)
+      ready: BitSmush.extractBits(meas_status, 7, 1) === 1,
+      measuringGas: BitSmush.extractBits(meas_status, 6, 1) === 1,
+      measuring: BitSmush.extractBits(meas_status, 5, 1) === 1,
+      active_profile_idx: BitSmush.extractBits(meas_status, 3, 4)
     }
   }
 
