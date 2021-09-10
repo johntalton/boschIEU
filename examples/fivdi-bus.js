@@ -50,7 +50,7 @@ export class FivdiBus {
 
   async i2cWrite(address, length, bufferSource) {
     const bufferToWrite = Buffer.from(bufferSource)
-    const { bytesWritten, buffer } = await this.bus.i2cWrtie(address, length, bufferToWrite)
+    const { bytesWritten, buffer } = await this.bus.i2cWrite(address, length, bufferToWrite)
     return {
       bytesWritten,
       buffer: buffer.buffer

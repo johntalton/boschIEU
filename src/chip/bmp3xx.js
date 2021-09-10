@@ -200,14 +200,19 @@ export class bmp3xx extends genericChip {
 
   static isChipIdAtZero() { return true }
 
-  static id(bus) { return BusUtil.readBlock(bus, [0x00]).then(buffer => buffer.readInt8(0)) }
+  static async id(bus) {
+    const abuffer = await BusUtil.readI2cBlock(bus, [[0x00, 1]])
+    const dv = new DataView(abuffer)
+    return dv.readInt8(0)
+  }
+
   static reset(bus) { return bus.writeI2cBlock(0x7E, Uint8Array.from([ 0xB6 ])) }
 
   static get fifo() { return bmp3xxFifo }
 
   static async sensorTime(bus) {
-    const abuffer = await BusUtil.read(bus, [[0xC0, 3]])
-    console.log({ abuffer })
+    const abuffer = await BusUtil.readI2cBlocks(bus, [[0xC0, 3]])
+    console.log('sensor time buffer', { abuffer })
     throw new Error('read24')
   }
 
