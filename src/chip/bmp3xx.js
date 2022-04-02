@@ -424,19 +424,18 @@ export class bmp3xx extends genericChip {
     await bus.writeI2cBlock(0x1B, Uint8Array.from([ 0 ]))
 
     // eslint-disable-next-line fp/no-unused-expression
-    await Promise.all([
-      bus.writeI2cBlock(0x15, Uint8Array.from([ fifo_wtm_0 ])),
-      bus.writeI2cBlock(0x16, Uint8Array.from([ fifo_wtm_1 ])),
-      bus.writeI2cBlock(0x17, Uint8Array.from([ fifo_config_1 ])),
-      bus.writeI2cBlock(0x18, Uint8Array.from([ fifo_config_2 ])),
-      bus.writeI2cBlock(0x19, Uint8Array.from([ int_ctrl ])),
-      bus.writeI2cBlock(0x1A, Uint8Array.from([ if_conf ])),
+
+    await bus.writeI2cBlock(0x15, Uint8Array.from([ fifo_wtm_0 ]))
+    await bus.writeI2cBlock(0x16, Uint8Array.from([ fifo_wtm_1 ]))
+    await bus.writeI2cBlock(0x17, Uint8Array.from([ fifo_config_1 ]))
+    await bus.writeI2cBlock(0x18, Uint8Array.from([ fifo_config_2 ]))
+    await bus.writeI2cBlock(0x19, Uint8Array.from([ int_ctrl ]))
+    await bus.writeI2cBlock(0x1A, Uint8Array.from([ if_conf ]))
       // skip power control register here
-      bus.writeI2cBlock(0x1C, Uint8Array.from([ osr ])),
-      bus.writeI2cBlock(0x1D, Uint8Array.from([ odr ])),
+    await bus.writeI2cBlock(0x1C, Uint8Array.from([ osr ]))
+    await bus.writeI2cBlock(0x1D, Uint8Array.from([ odr ]))
       // 0, // reserved
-      bus.writeI2cBlock(0x1F, Uint8Array.from([ config ]))
-    ])
+    await bus.writeI2cBlock(0x1F, Uint8Array.from([ config ]))
 
     await bus.writeI2cBlock(0x1B, Uint8Array.from([pwr_ctrl]))
   }
