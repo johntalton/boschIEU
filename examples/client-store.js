@@ -1,13 +1,13 @@
-const mqtt = require('mqtt');
+import mqtt from 'mqtt'
 
-const { State } = require('./client-util.js');
+import { State } from './client-util.js'
 
 const IEU_TOPIC = 'boschieu/result'; // eslint-disable-line spellcheck/spell-checker
 
 /**
  *
  **/
-class Store {
+export class Store {
   /**
    * Setup state handlers for Mqtt connection and messaging.
    *
@@ -41,7 +41,7 @@ class Store {
         pressure: results.pressure,
         altitude: results.altitude,
         temperature: results.temperature,
-        tempature: results.tempature,
+        temperature: results.temperature,
         humidity: results.humidity,
         gas: results.gas
       };
@@ -53,5 +53,3 @@ class Store {
     });
   }
 }
-
-module.exports = Store;

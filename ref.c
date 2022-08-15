@@ -166,7 +166,7 @@ void main() {
 	while(1)
 	{
 		rslt = bme680_get_sensor_data(&data, &gas_sensor);
-		if(rslt != BME680_OK) { printf("measurment result not ok\n"); }
+		if(rslt != BME680_OK) { printf("measurement result not ok\n"); }
                 if(rslt == BME680_W_NO_NEW_DATA) { printf("NO New Data\n"); }
 
 #ifndef BME680_FLOAT_POINT_COMPENSATION
@@ -195,5 +195,3 @@ void main() {
 		sleep(1);
 	}
 }
-
-

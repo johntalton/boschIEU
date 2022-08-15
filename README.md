@@ -66,7 +66,7 @@ sensor.id()
 #### :page_facing_up: calibration()
 Fetches the calibration constants from the chip.  These values are unique for each chip and needed to perform compensation of the raw data values into temperature and pressure readings.
 
-Note: This must be called before the `measurment` call will return valid results.
+Note: This must be called before the `measurement` call will return valid results.
 
 Note: The method itself caches results in the class and is not needed externally (though returned for user inspection)
 #### :page_facing_up: fifo()

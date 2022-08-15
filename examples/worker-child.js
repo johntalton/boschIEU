@@ -1,85 +1,78 @@
 /* eslint-disable import/no-nodejs-modules */
 /* eslint-disable promise/no-nesting */
-const {
+import {
   // Worker, MessageChannel,
   isMainThread, parentPort,
   workerData
-} = require('worker_threads');
+} from 'worker_threads'
 
-const i2c = require('i2c-bus');
+import { FivdiBusProvider } from './fivdi-bus.js'
 
-const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
-const { BoschIEU } = require('../');
+import { I2CAddressedBus, I2CMockBus } from '@johntalton/and-other-delights'
+import { BoschIEU } from '@johntalton/boschieu'
 
-const { deviceDef_bmp388 } = require('./deviceDefs.js');
+// const { deviceDef_bmp388 } = require('./deviceDefs.js');
 
 if(isMainThread) { throw new Error('worker child called as main'); }
 
 //console.log(workerData);
-const provider = workerData.mock ? I2CMockBus : i2c;
+const provider = workerData.mock ? I2CMockBus : FivdiBusProvider;
 
-I2CMockBus.addDevice(workerData.busNumber, workerData.busAddress, deviceDef_bmp388);
+//I2CMockBus.addDevice(workerData.busNumber, workerData.busAddress, deviceDef_bmp388);
 
-provider.openPromisified(workerData.busNumber)
-  .then(i2c1 => new I2CAddressedBus(i2c1, workerData.busAddress))
-  .then(bus => {
-    return BoschIEU.sensor(bus).then(s => {
-      //console.log(s);
-      return s.detectChip()
-        // .then(() => s.reset())
-        //.then(() => console.log('hello world'))
-        .then(() => s.calibration())
-        .then(() => s.fifo.flush())
-        // .then(() => s.profile()).then(p => console.log(p))
-        .then(() => s.setProfile({ mode: 'SLEEP' }))
-        .then(() => s.setProfile({
-          mode: 'NORMAL',
-          oversampling_t: 8,
-          standby_prescaler: 2,
-          fifo: {
-            active: true,
-            time: true,
-            temp: false,
-            press: false,
+const i2cX = await provider.openPromisified(workerData.busNumber)
+const abus = I2CAddressedBus.from(i2cX, workerData.busAddress)
 
-            subsampling: 1
-          }
-        }))
-        .then(() => {
-          //
-          console.log('chip up... ');
-          let run = true;
+const sensor = await BoschIEU.detect(abus)
+console.log('detected', sensor.chip.name)
 
-          // parentPort.on('online', () => { console.log('online - parentPort');});
-          // parentPort.on('error', (err) => { console.log('error', err);});
-          // parentPort.on('exit', (code) => { console.log('code', code); });
+await sensor.calibration()
+await sensor.fifo.flush()
 
-          parentPort.on('message', message => {
-            // console.log('message - parentPort', message);
+await sensor.setProfile({ mode: 'SLEEP' })
+await sensor.setProfile({
+   mode: 'NORMAL',
+   oversampling_t: 8,
+   standby_prescaler: 2,
+   fifo: {
+     active: true,
+     data: 'unfiltered',
+     time: true,
+     temp: false,
+     press: false,
 
-            const port2 = message.port;
-            // port2.on('online', () => { console.log('online - side port'); });
-            port2.on('message', msg => { console.log('message - port2', msg); });
-            port2.on('error', err => { console.log('error', err); });
-            port2.on('exit', code => { console.log('exit', code); });
-            port2.on('close', () => { console.log('close port2'); run = false; });
+     subsampling: 1
+   }
+ })
 
-            console.log('side channel connected... measurement poll');
-            setImmediate(async () => {
-              // eslint-disable-next-line fp/no-loops
-              while(run) {
-                await s.measurement().then(result => { port2.postMessage(result); })
-                if(!run) { await bus.close(); }
-              }
-              console.log('after run while');
-            });
-            // after setting up the side-channel we un-reference from the
-            // parent port. This allows clean shutdown of calling worker
-            parentPort.unref();
-          });
+console.log('chip up... ');
+let run = true;
 
-          return true;
-        });
-    });
+// parentPort.on('online', () => { console.log('online - parentPort');});
+// parentPort.on('error', (err) => { console.log('error', err);});
+// parentPort.on('exit', (code) => { console.log('code', code); });
+
+parentPort.on('message', message => {
+  // console.log('message - parentPort', message);
+
+  const port2 = message.port;
+  // port2.on('online', () => { console.log('online - side port'); });
+  port2.on('message', msg => { console.log('message - port2', msg); });
+  port2.on('error', err => { console.log('error', err); });
+  port2.on('exit', code => { console.log('exit', code); });
+  port2.on('close', () => { console.log('close port2'); run = false; });
+
+  console.log('side channel connected... measurement poll');
+  setImmediate(async () => {
+    // eslint-disable-next-line fp/no-loops
+    while(run) {
+      await sensor.measurement().then(result => { port2.postMessage(result); })
+      if(!run) { await bus.close(); }
+    }
+    console.log('after run while');
   })
-  .catch(e => console.error('top level error', workerData.name, e));
+
+  // after setting up the side-channel we un-reference from the
+  // parent port. This allows clean shutdown of calling worker
+  parentPort.unref();
+ })

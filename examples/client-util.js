@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
 
-const { Converter } = require('..');
+import { Converter } from '@johntalton/boschieu'
 
-class Util {
+export class Util {
   static bulkup(chip, raw) {
     const P = raw.pressure;
     const T = raw.temperature;
@@ -27,12 +27,12 @@ class Util {
       }
     }
 
-    if(chip.features.tempature) {
+    if(chip.features.temperature) {
       if(T.skip !== undefined && T.skip) {
-        result.tempature = { skip: true };
+        result.temperature = { skip: true };
       } else {
         const f = Converter.ctof(T.C);
-        result.tempature = { ...T, F: f };
+        result.temperature = { ...T, F: f };
       }
     }
 
@@ -55,10 +55,9 @@ class Util {
     return result;
   }
 
-
   static log(device, result) {
     const P = result.pressure;
-    const T = result.tempature;
+    const T = result.temperature;
     const H = result.humidity;
     const A = result.altitude;
     const G = result.gas;
@@ -78,7 +77,7 @@ class Util {
         console.log('\tAltitude','(ft):', Converter.trim(A.Ft), '(m): ', Converter.trim(A.M));
       }
     }
-    if(device.sensor.chip.features.tempature) {
+    if(device.sensor.chip.features.temperature) {
       if(T.skip) {
         console.log('\tTemperature: skipped');
       } else {
@@ -160,7 +159,7 @@ class Util {
   }
 }
 
-class State {
+export class State {
   static to(machine, state) {
     const transition = machine.states[machine.state][state];
     console.log('\u001b[91mtransition', machine.state, state, transition, '\u001b[0m');
@@ -179,5 +178,3 @@ class State {
     machine.ons[event] = callback;
   }
 }
-
-module.exports = { Util, State };

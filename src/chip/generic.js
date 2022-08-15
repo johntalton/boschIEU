@@ -1,10 +1,12 @@
+/* eslint-disable fp/no-nil */
+/* eslint-disable fp/no-throw */
+/* eslint-disable key-spacing */
+/* eslint-disable no-magic-numbers */
+/* eslint-disable no-multi-spaces */
+/* eslint-disable import/group-exports */
 /* eslint max-classes-per-file: ["error", 2] */
 
-const { BusUtil } = require('@johntalton/and-other-delights');
-
-const { Compensate } = require('./compensate.js');
-
-const enumMap = {
+export const enumMap = {
   oversamples: [ //
     { name: false, value: 0 },
     { name: 1,     value: 1 },
@@ -66,17 +68,17 @@ const enumMap = {
 };
 
 //
-class genericFifo {
+export class genericFifo {
   static flush(bus) { throw new Error('fifo flush not supported by generic chip'); }
   static read(bus) { throw new Error('fifo read not supported by generic chip'); }
 }
 
 //
-class genericChip {
+export class genericChip {
   static get features() {
     return {
       pressure: false,
-      tempature: false,
+      temperature: false,
       humidity: false,
       gas: false,
       normalMode: false,
@@ -86,11 +88,13 @@ class genericChip {
     };
   }
 
+  static isChipIdAtZero() { return false }
+
   static get name() { return 'generic'; }
   static get chipId() { return undefined; }
   static get skip_value() { return 0x80000; }
-  static id(bus) { return BusUtil.readBlock(bus, [0xD0]).then(buffer => buffer.readInt8(0)); } // todo remove and add detectChip
-  static reset(bus) { return bus.write(0xE0, 0xB6); }
+  static id(bus) { throw new Error('generic read for legacy, use Chip specific id implementation') }
+  static reset(bus) { return bus.writeI2cBlock(0xE0, Uint8Array.from([ 0xB6 ])) }
 
   static get fifo() { return genericFifo; } // return the class as a shorthand
 
@@ -101,22 +105,12 @@ class genericChip {
   // ready
   // setProfile
 
-  // todo the following require knowledge of the system state
-  //   or need to read the chip before updating, thus they
-  //   belong to a higher level API and should be moved out
-  // patchProfile
-  // force
-  // sleep
-
-
   // eslint-disable-next-line class-methods-use-this
   get ranges() {
     return {
-      tempatureC: [0, 60],
+      temperatureC: [0, 60],
       pressurehP: [900, 1100],
       humidityPercent: [20, 80]
     };
   }
 }
-
-module.exports = { genericChip, genericFifo, Compensate, enumMap };

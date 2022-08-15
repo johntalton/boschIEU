@@ -1,15 +1,22 @@
-const { BoschSensor } = require('./sensor.js');
-const { Converter } = require('./converter.js');
-const { Chip } = require('./chip/chip.js');
+/* eslint-disable import/extensions */
+import { BoschSensor } from './sensor.js'
+
+// export these internal items ... for now
+export { Converter } from './converter.js'
+export { Chip } from './chip/chip.js'
 
 /**
- * Bosch Integrated Environmental Unit.
+ * Driver for Bosch Integrated Environmental Unit.
  *  Supports (bmp280 / bme280 / bme680 / bpm388) chips.
  */
-class BoschIEU {
+export class BoschIEU {
   static sensor(bus, options) {
     return Promise.resolve(new BoschSensor(bus, options));
   }
-}
 
-module.exports = { BoschIEU, BoschSensor, Converter, Chip };
+  // eslint-disable-next-line require-await
+  static async detect(bus) {
+    return BoschSensor.detect(bus)
+  }
+
+}

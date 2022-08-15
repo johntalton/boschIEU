@@ -1,10 +1,10 @@
 // eslint-disable-next-line import/no-nodejs-modules
-const fs = require('fs');
+import fs from 'fs'
 
-const { Converter } = require('../');
-const { Util } = require('./client-util.js');
+import { Converter } from '@johntalton/boschieu'
+import { Util } from './client-util.js'
 
-class Config {
+export class Config {
   static _getMs(config, name, defaultMs) {
     const s = config[name + 'S'];
     const ms = config[name + 'Ms'];
@@ -65,10 +65,10 @@ class Config {
 
           profile.gas.setpoints = profile.gas.setpoints.map(sp => {
             const ms = Config._getMs(sp, 'duration', 0);
-            const f = sp.tempatureF !== undefined ? Converter.ftoc(sp.tempatureF) : 0;
-            const c = sp.tempatureC !== undefined ? sp.tempatureC : f;
+            const f = sp.temperatureF !== undefined ? Converter.ftoc(sp.temperatureF) : 0;
+            const c = sp.temperatureC !== undefined ? sp.temperatureC : f;
             const setpointActive = sp.active !== undefined ? sp.active : false;
-            return { tempatureC: c, durationMs: ms, active: setpointActive };
+            return { temperatureC: c, durationMs: ms, active: setpointActive };
           });
         }
 
@@ -118,5 +118,3 @@ class Config {
     });
   }
 }
-
-module.exports = Config;

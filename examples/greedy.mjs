@@ -1,21 +1,19 @@
-import i2c from 'i2c-bus'
+import { FivdiBusProvider } from './fivdi-bus.js'
 
-import aod  from '@johntalton/and-other-delights'
-const { I2CAddressedBus, I2CMockBus } = aod
+import { I2CAddressedBus, I2CMockBus } from '@johntalton/and-other-delights'
 
-import ieu from '@johntalton/boschieu'
-const { BoschIEU, Chip } = ieu
+import { BoschIEU, Chip } from '@johntalton/boschieu'
 
 const delayMs = ms => new Promise(resolve => setTimeout(resolve, ms))
 
 const options = {
   busNumber: 1,
-  busAddress: 0x77
+  busAddress: 0x76
 }
 
-const i2c1 = await i2c.openPromisified(options.busNumber)
+const i2c1 = await FivdiBusProvider.openPromisified(options.busNumber)
 const addressedI2C1 = new I2CAddressedBus(i2c1, options.busAddress)
-const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID })
+const sensor = await BoschIEU.sensor(addressedI2C1, { chipId: Chip.BMP390_ID, legacy: false })
 await sensor.calibration()
 
 await sensor.fifo.flush()
@@ -51,6 +49,8 @@ await sensor.setProfile({
   }
 })
 
+await delayMs(550)
+
 const profile = await sensor.profile()
 console.log(profile)
 
@@ -66,6 +66,9 @@ process.on('SIGINT', () => {
 while(run) {
   const fifoData = await sensor.fifo.read()
   await delayMs(500)
-  console.log(fifoData.map(item => item.type === 'sensor' ? item.temperature.C : 0).filter(item => item !== 0).reduce((acc, item) => acc + '\n' + item, ''))
+  console.log(fifoData.map(item => item.type === 'sensor' ? 
+    JSON.stringify({ temperature: item.temperature.C, pressure: (!Number.isNaN(item.pressure.Pa) ? item.pressure.Pa : item.pressure.adc)  }) : 
+    JSON.stringify(item))
+    .reduce((acc, item) => acc + '\n' + item, ''))
 }
 

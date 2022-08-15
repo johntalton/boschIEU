@@ -1,4 +1,2 @@
-const { bmp3xxFifo } = require('./bmp3xxFifo.js');
-const { bmp3xxFifoParser } = require('./bmp3xxFifoParser.js');
-
-module.exports = { bmp3xxFifo, bmp3xxFifoParser };
+export { bmp3xxFifo } from './bmp3xxFifo.js'
+export { bmp3xxFifoParser } from './bmp3xxFifoParser.js'

@@ -14,10 +14,10 @@ const profile = {
   gas: {
     enabled: true,
     setpoints: [
-      { tempatureC: 350, durationMs: 2000 }, // high value
+      { temperatureC: 350, durationMs: 2000 }, // high value
       { skip: true }, // skip index when setting profile
-      { tempatureC: 150, durationMs: 2000 }, // low value
-      { tempatureC: 320, durationMs: 150, active: true } // default
+      { temperatureC: 150, durationMs: 2000 }, // low value
+      { temperatureC: 320, durationMs: 150, active: true } // default
     ]
   },
 

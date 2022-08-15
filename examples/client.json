@@ -15,9 +15,9 @@
       "pollIntervalS": 5
     },
     {
-      "active": false,
+      "active": true,
       "name": "front room",
-      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
         "mode": "NORMAL",
         "oversampling_p": 2,
@@ -33,7 +33,7 @@
       "active": false,
       "sign": "sha1",
       "name": "cigar room (aka w/ gas)",
-      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
       "profile": {
         "mode": "FORCED",
         "oversampling_p": 2,
@@ -44,9 +44,9 @@
         "gas": {
           "enabled": true,
           "setpoints": [
-            { "tempatureC": 320, "durationMs": 150, "active": true },
+            { "temperatureC": 320, "durationMs": 150, "active": true },
             { "active": false },
-            { "tempatureC": 322, "durationMs": 202 }
+            { "temperatureC": 322, "durationMs": 202 }
           ]
         }
       },
@@ -56,7 +56,7 @@
       "active": false,
       "mock": false,
       "name": "ThreeEightyEight",
-      "bus": { "driver": "i2c", "id": [ 1, 119 ] },
+      "bus": { "driver": "i2c", "id": [ 1, 118 ] },
 
       "pollIntervalS": 10,
       "onStartSetProfile": true,
@@ -91,7 +91,7 @@
       }
     },
     {
-      "active": true,
+      "active": false,
       "mock": false,
       "name": "tree ninny",
       "bus": { "driver": "i2c", "id": [ 1, 119 ] },
@@ -113,6 +113,22 @@
           "time": true
         }
       }
+    },
+
+    {
+      "active": false,
+      "mock": true,
+      "name": "mock device",
+      "bus": { "id": [ "bmp280.json", 120 ] },
+
+      "profile": {
+        "mode": "NORMAL",
+        "oversampling_p": 2,
+        "oversampling_t": 2,
+        "filter_coefficient": false,
+        "standby_time": true
+      },
+      "pollIntervalS": 5
     }
 
   ],

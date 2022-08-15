@@ -1,11 +1,7 @@
 /* eslint-disable import/no-nodejs-modules */
 /* eslint-disable promise/no-nesting */
 
-const {
-  Worker, isMainThread,
-  // parentPort,
-  MessageChannel
-} = require('worker_threads');
+import { Worker, isMainThread, MessageChannel } from 'worker_threads'
 
 if(!isMainThread) { throw new Error('main worker called as child'); }
 
@@ -14,8 +10,8 @@ console.log(process.argv);
 const mock = process.argv.includes('--mock');
 
 const devices = [
-  { name: '388', busNumber: 1, busAddress: 118 },
-  { name: '390', busNumber: 1, busAddress: 119 }
+  { name: 'one-eighteen', busNumber: 1, busAddress: 118 },
+  { name: 'one-nineteen', busNumber: 1, busAddress: 119 }
 ];
 
 const workers = devices.map(device => {
@@ -27,7 +23,7 @@ const workers = devices.map(device => {
     busAddress: device.busAddress
   };
 
-  const worker = new Worker(__dirname + '/worker-child.js', { workerData });
+  const worker = new Worker('./worker-child.js', { workerData });
   worker.on('online', () => { console.log('online - worker', device.name); });
   worker.on('error', e => { console.log('error - worker', device.name, e); });
 

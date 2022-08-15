@@ -1,17 +1,16 @@
 /* eslint-disable promise/no-nesting */
 // eslint-disable-next-line import/no-nodejs-modules
-const crypto = require('crypto');
+import crypto from 'crypto'
 
-const i2c = require('i2c-bus');
+import { FivdiBusProvider } from './fivdi-bus.js'
 
-const { I2CAddressedBus, I2CMockBus } = require('@johntalton/and-other-delights');
+import { I2CAddressedBus, I2CMockBus } from '@johntalton/and-other-delights'
 
-const { BoschIEU } = require('../');
+import { BoschIEU } from '@johntalton/boschieu'
 
-const { Util, State } = require('./client-util.js');
-const Store = require('./client-store.js');
+import { Util, State } from './client-util.js'
+import { Store } from './client-store.js'
 
-const { deviceDef_bmp388 } = require('./deviceDefs.js');
 
 const SIGNATURE_CRYPTO_MD5 = 'md5';
 
@@ -31,7 +30,7 @@ function signature(devcfg, sensor) {
   }
 }
 
-class Device {
+export class Device {
   /**
    * Calls setup with retry on all active device clients.
    *
@@ -92,56 +91,40 @@ class Device {
       .catch(e => { console.log('reconnect failure', e); });
   }
 
-  static setupDevice(application, devcfg) {
-    const client = {};
-    const idary = Array.isArray(devcfg.bus.id) ? devcfg.bus.id : [ devcfg.bus.id ];
+  static async setupDevice(application, devcfg) {
 
-    const [busNumber, busAddress] = idary;
+    const bus = devcfg.mock ? 
+      await I2CMockBus.openPromisified(devcfg.bus.id[0]) :
+      await FivdiBusProvider.openPromisified(devcfg.bus.id[0])
 
-    //
-    if(devcfg.mock === true) {
-      console.log('MOCK Device', devcfg.name);
-      // setup for mock
-      // todo does setup only happen once, move this to main?
-      I2CMockBus.addDevice(busNumber, busAddress, deviceDef_bmp388); // todo ... always bmp388
+    const abus = I2CAddressedBus.from(bus, devcfg.bus.id[1])
+
+    const sensor = await BoschIEU.detect(abus, {})
+    console.log('detected sensor', sensor)
+    if(sensor.isGeneric) { throw new Error('generic device', bus.name) }
+
+    await sensor.calibration()
+
+    // support suppressing via config (hope you trust the current settings :P)
+    if(devcfg.onStartSetProfile) {
+      console.log('profile set on startup')
+      await sensor.setProfile(devcfg.profile);
     }
-    devcfg.provider = devcfg.mock === true ? I2CMockBus : i2c;
 
-    return devcfg.provider.openPromisified(busNumber)
-      .then(bus => new I2CAddressedBus(bus, busAddress))
-      .then(bus => { client.bus = bus; return true; })
-      .then(() => BoschIEU.sensor(client.bus, {}).then(sensor => { client.sensor = sensor; return true; }))
-      .then(() => client.sensor.detectChip())
-      .then(() => {
-        if(!client.sensor.valid()) { throw new Error('invalid device on', client.bus.name); }
-        return true;
-      })
-      .then(() => client.sensor.calibration())
-      .then(() => {
-        // todo skip if forced?
+    devcfg.client = {
+      bus, sensor,
+      name: devcfg.name,
+      signature: signature(devcfg, sensor)
+    }
 
-        // support suppressing via config (hope you trust the current settings :P)
-        if(!devcfg.onStartSetProfile) { console.log('skipping profile set on startup'); return Promise.resolve(); }
+    // todo also publish message here
 
-        return client.sensor.setProfile(devcfg.profile);
-      })
-      // .then(() => client.sensor.profile().then(p => console.log('profile after set', p))) // todo remove
-
-      .then(() => {
-        devcfg.client = client;
-        client.name = devcfg.name;
-        client.signature = signature(devcfg, client.sensor);
-
-        // todo also publish message here
-
-        console.log();
-        console.log('Chip Up:', client.sensor.chip.name);
-        console.log(' bus ', client.bus.name);
-        console.log(' name', client.name);
-        console.log(' signature', client.signature);
-        console.log();
-        return true;
-      });
+    console.log();
+    console.log('Chip Up:', sensor.chip.name);
+    console.log(' bus ', bus.name);
+    console.log(' name', devcfg.name);
+    console.log();
+    return true;
   }
 
   static reapDevice(application, devcfg) {
@@ -333,5 +316,3 @@ class Device {
     return { measure: false, sleep: true };
   }
 }
-
-module.exports = Device;
