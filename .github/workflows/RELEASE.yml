@@ -8,7 +8,7 @@ jobs:
     steps:
     - uses: actions/checkout@v3
     # Publish to NPM
-    - uses: actions/setup-node@v3.4.1
+    - uses: actions/setup-node@v3.5.1
       with:
         node-version: 18
         registry-url: 'https://registry.npmjs.org/'
@@ -19,7 +19,7 @@ jobs:
         NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
     # Publish to GitHub
-    - uses: actions/setup-node@v3.4.1
+    - uses: actions/setup-node@v3.5.1
       with:
         node-version: 18
         registry-url: 'https://npm.pkg.github.com/'
