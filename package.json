@@ -144,7 +144,7 @@
     "eslint-plugin-node": "^11.1.0",
     "eslint-plugin-promise": "^6.0.0",
     "eslint-plugin-security": "^1.5.0",
-    "eslint-plugin-spellcheck": "^0.0.19",
+    "eslint-plugin-spellcheck": "^0.0.20",
     "i2c-bus": "^5.2.1",
     "mocha": "^10.0.0",
     "mqtt": "^4.2.6",
