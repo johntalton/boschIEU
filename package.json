@@ -152,7 +152,7 @@
     "repler": "github:johntalton/repler",
     "rxjs": "^7.5.6",
     "typescript": "^4.7.4",
-    "zen-observable": "^0.8.13"
+    "zen-observable": "^0.10.0"
   },
   "repository": {
     "type": "git",
