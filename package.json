@@ -135,7 +135,7 @@
     "chai": "^4.3.0",
     "eslint": "^8.22.0",
     "eslint-plugin-fp": "^2.3.0",
-    "eslint-plugin-functional": "^4.2.2",
+    "eslint-plugin-functional": "^5.0.6",
     "eslint-plugin-immutable": "^1.0.0",
     "eslint-plugin-import": "^2.26.0",
     "eslint-plugin-mocha": "^10.1.0",
