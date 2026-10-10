@@ -1,0 +1,53 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+
+    "target": "ESNext",
+    "module": "nodenext",
+    "lib": ["ESNext", "DOM", "DOM.AsyncIterable", "WebWorker" ],
+    "moduleResolution": "nodenext",
+
+    "noEmitOnError": false,
+
+    "erasableSyntaxOnly": true,
+
+    "strict": true,
+    "allowUnreachableCode": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "isolatedModules": true,
+    "forceConsistentCasingInFileNames": true,
+
+    "allowJs": true,
+    "checkJs": true,
+
+    "removeComments": false,
+    "preserveConstEnums": true,
+
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+
+    "declaration": true,
+    "declarationMap": true,
+    "diagnostics": true,
+    "pretty": true,
+    "sourceMap": true,
+
+    "outDir": "./lib"
+  },
+  "compileOnSave": true,
+  "include": [
+      "./src/**/*.js",
+      "./public/**/*.js"
+  ],
+  "exclude": [
+      "node_modules"
+  ]
+}

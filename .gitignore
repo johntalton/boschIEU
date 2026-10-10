@@ -1,3 +1,6 @@
-node_modules
-coverage
+node_modules/
+coverage/
+.vscode/
+
 .DS_Store
+package-lock.json

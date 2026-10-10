@@ -1,7 +1,8 @@
 {
   "name": "@johntalton/boschieu",
-  "version": "6.0.1",
-  "description": "Common driver for the range of Bosch IEUs",
+  "version": "8.0.0",
+  "license": "MIT",
+  "type": "module",
   "keywords": [
     "bosch",
     "IEU",
@@ -10,149 +11,24 @@
     "bmp388",
     "bmp390"
   ],
-  "license": "MIT",
-  "type": "module",
   "exports": {
-    "import": "./src/boschieu.js"
+    ".": "./src/index.js"
   },
   "files": [
     "src/**/*.js"
   ],
   "scripts": {
-    "lint": "./node_modules/.bin/eslint .",
-    "test": "mocha",
-    "coverage": "c8  -reporter=lcov --src ./src --check-coverage --all --lines 70 --functions 50 --branches 60 npm --silent run test -- --no-parallel --reporter min"
-  },
-  "eslintConfig": {
-    "extends": [
-      "@johntalton/eslint-config/js",
-      "@johntalton/eslint-config/es"
-    ],
-    "ignorePatterns": [
-      "test/**",
-      "examples/**"
-    ],
-    "globals": {
-      "console": false
-    },
-    "env": {
-      "node": false
-    },
-    "rules": {
-      "semi": "warn",
-      "max-len": [
-        "error",
-        {
-          "code": 100
-        }
-      ],
-      "fp/no-throw": "off",
-      "no-undefined": "off",
-      "fp/no-nil": "off",
-      "fp/no-unused-expression": "off",
-      "require-await": "off",
-      "fp/no-this": "off",
-      "immutable/no-this": "off",
-      "fp/no-mutation": "off",
-      "immutable/no-mutation": "off",
-      "no-magic-numbers": "off",
-      "import/prefer-default-export": "off",
-      "import/extensions": "off",
-      "fp/no-class": "off",
-      "import/no-internal-modules": [
-        "error",
-        {
-          "allow": [
-            "chip/**",
-            "fifo/**"
-          ]
-        }
-      ],
-      "spellcheck/spell-checker": [
-        "error",
-        {
-          "identifiers": false,
-          "minLength": 4,
-          "skipWords": [
-            "johntalton",
-            "todo",
-            "const",
-            "eslint",
-            "bitwise",
-            "util",
-            "spi",
-            "md5",
-            "nodejs",
-            "param",
-            "parens",
-            "Tfine",
-            "fifo",
-            "gpio",
-            "mqtt",
-            "mbar",
-            "mempage",
-            "opcode",
-            "2xy",
-            "3xy",
-            "6xy",
-            "bmp280",
-            "bme280",
-            "bmp3xx",
-            "bmp384",
-            "bmp380",
-            "bmp388",
-            "bmp390",
-            "bme680",
-            "bme688",
-            "smush"
-          ]
-        }
-      ]
-    }
-  },
-  "mocha": {
-    "spec": [
-      "test/*.spec.js"
-    ],
-    "grep": "@broken|@slow",
-    "invert": true,
-    "parallel": true,
-    "slow": 2,
-    "timeout": 60,
-    "watch": false,
-    "sort": false,
-    "forbitOnly": true,
-    "check-leaks": true,
-    "global": []
+    "lint": "biome check",
+    "test": "node --test test/**/*.test.js",
+    "coverage": "c8 --src src --check-coverage --statements 95 --branches 95 --functions 95 --lines 95 -r lcovonly -r text node --test test/**/*.test.js"
   },
   "dependencies": {
-    "@johntalton/and-other-delights": "^6.0.0",
-    "@johntalton/bitsmush": "^1.0.0"
+    "@johntalton/and-other-delights": "^8.6.6",
+    "@johntalton/bitsmush": "^1.0.4"
   },
   "devDependencies": {
-    "@johntalton/eslint-config": "github:johntalton/eslint-config",
-    "c8": "^7.12.0",
-    "chai": "^4.3.0",
-    "eslint": "^8.22.0",
-    "eslint-plugin-fp": "^2.3.0",
-    "eslint-plugin-functional": "^4.2.2",
-    "eslint-plugin-immutable": "^1.0.0",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-mocha": "^10.1.0",
-    "eslint-plugin-no-loops": "^0.3.0",
-    "eslint-plugin-no-use-extend-native": "^0.5.0",
-    "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^6.0.0",
-    "eslint-plugin-security": "^1.5.0",
-    "eslint-plugin-spellcheck": "^0.0.20",
-    "i2c-bus": "^5.2.1",
-    "mocha": "^10.0.0",
-    "mqtt": "^4.2.6",
-    "onoff": "^6.0.1",
-    "repler": "github:johntalton/repler",
-    "rxjs": "^7.5.6",
-    "typescript": "^4.7.4",
-    "zen-observable": "^0.8.13"
+    "@biomejs/biome": "^2.5.15",
+    "c8": "^12.0.0"
   },
   "repository": {
     "type": "git",

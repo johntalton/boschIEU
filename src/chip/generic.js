@@ -1,11 +1,6 @@
-/* eslint-disable fp/no-nil */
-/* eslint-disable fp/no-throw */
-/* eslint-disable key-spacing */
-/* eslint-disable no-magic-numbers */
-/* eslint-disable no-multi-spaces */
-/* eslint-disable import/group-exports */
-/* eslint max-classes-per-file: ["error", 2] */
 
+/** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
+/** @import { Profile } from '../types/profile.js' */
 export const enumMap = {
   oversamples: [ //
     { name: false, value: 0 },
@@ -65,12 +60,20 @@ export const enumMap = {
     // alias
     { name: true, value: 5 }  // MAX
   ]
-};
+}
 
 //
 export class genericFifo {
-  static flush(bus) { throw new Error('fifo flush not supported by generic chip'); }
-  static read(bus) { throw new Error('fifo read not supported by generic chip'); }
+  /**
+   * @param {I2CAddressedBus} _bus
+   */
+  static flush(_bus) { throw new Error('fifo flush not supported by generic chip') }
+
+  /**
+   * @param {I2CAddressedBus} _bus
+   * @param {Array<any>} _options
+   */
+  static read(_bus, ..._options) { throw new Error('fifo read not supported by generic chip') }
 }
 
 //
@@ -85,32 +88,67 @@ export class genericChip {
       interrupt: false,
       fifo: false,
       time: false
-    };
+    }
   }
 
   static isChipIdAtZero() { return false }
 
-  static get name() { return 'generic'; }
-  static get chipId() { return undefined; }
-  static get skip_value() { return 0x80000; }
+  static get name() { return 'generic' }
+
+  /** @returns {number|undefined} */
+  static get chipId() { return undefined }
+  static get skip_value() { return 0x08_00_00 }
+
+  /**
+   * @param {I2CAddressedBus} bus
+   */
   static id(bus) { throw new Error('generic read for legacy, use Chip specific id implementation') }
+
+  /**
+   * @param {I2CAddressedBus} bus
+   */
   static reset(bus) { return bus.writeI2cBlock(0xE0, Uint8Array.from([ 0xB6 ])) }
 
-  static get fifo() { return genericFifo; } // return the class as a shorthand
+  static get fifo() { return genericFifo } // return the class as a shorthand
 
-  // calibrate
-  // profile
-  // measure
   // estimateMeasurementWait
-  // ready
-  // setProfile
 
-  // eslint-disable-next-line class-methods-use-this
+  /**
+   * @param {I2CAddressedBus} _bus
+   */
+  static async ready(_bus) { throw new Error('ready not defined for generic chip') }
+
+  /**
+   * @param {I2CAddressedBus} _bus
+   */
+
+  /**
+   * @param {I2CAddressedBus} _bus
+   */
+  static async measurement(_bus, _calibration) { throw new Error('measurement not defined for generic chip') }
+
+  /**
+   * @param {I2CAddressedBus} _bus
+   */
+  static async setProfile(_bus, _calibration) { throw new Error('setProfile not defined for generic chip') }
+
+  /**
+   * @param {I2CAddressedBus} _bus
+   * @returns {Promise<Profile>}
+   */
+  static async profile(_bus) { throw new Error('profile not defined for generic chip') }
+
+  /**
+   * @param {I2CAddressedBus} _bus
+   */
+  static async calibration(_bus) { throw new Error('calibration not defined for generic chip') }
+
+
   get ranges() {
     return {
       temperatureC: [0, 60],
       pressurehP: [900, 1100],
       humidityPercent: [20, 80]
-    };
+    }
   }
 }

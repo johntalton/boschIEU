@@ -1,21 +1,15 @@
-# https://help.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
-
 version: 2
 updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "daily"
-    assignees:
-      - "octocat"
+      interval: "weekly"
     commit-message:
       # Prefix all commit messages with "npm"
       prefix: "NPM"
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "daily"
-    assignees:
-      - "octocat"
+      interval: "weekly"
     commit-message:
       prefix: "GitHub-Actions"

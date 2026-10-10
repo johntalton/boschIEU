@@ -30,12 +30,12 @@ The API is organized around simple sensor class `BoschSensor` which provides an 
 
 A simple demo usage follows.
 ```js
-const i2c1 = await i2c.openPromisified(1);
-const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77);
-const sensor = await BoschIEU.sensor(addressedI2C1);
-await sensor.detectChip();
-await sensor.calibration();
-const result = await sensor.measurement();
+const i2c1 = await i2c.openPromisified(1)
+const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77)
+const sensor = await BoschIEU.sensor(addressedI2C1)
+await sensor.detectChip()
+await sensor.calibration()
+const result = await sensor.measurement()
 
 ```
 
@@ -61,7 +61,7 @@ Returns the chips id as defined by the vendor. This is only valid after a chip h
 (note that legacy `id()` call will internal run `detectChip()` for now...)
 ```js
 sensor.id()
-   .then(id => console.log('sensors Id', id);
+   .then(id => console.log('sensors Id', id)
 ```
 #### :page_facing_up: calibration()
 Fetches the calibration constants from the chip.  These values are unique for each chip and needed to perform compensation of the raw data values into temperature and pressure readings.
@@ -90,7 +90,7 @@ Reads and calculates related measurement data from the `Chip`.
 ```js
 sensor.measurement().then(results => {
   // process results
-});
+})
 ```
 
 
