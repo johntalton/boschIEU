@@ -13,6 +13,8 @@ import { enumMap, genericChip } from './generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Profile, ProfileReady } from '../types/profile.js' */
+/** @import { Calibration } from '../types/calibration.js' */
+/** @import { CompensateResult } from './compensate.js' */
 
 // Chip ID
 const CHIP_ID = 0x60
@@ -97,7 +99,9 @@ export class bme280 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<Calibration>}
 	 */
 	static async calibration(bus) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, CALIBRATION_BLOCK)
@@ -140,10 +144,11 @@ export class bme280 extends genericChip {
 
 		const H = [dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6]
 
-		return { T, P, H, G: [] }
+		return { T, P, H }
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @returns {Promise<Profile>}
 	 */
@@ -191,8 +196,10 @@ export class bme280 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @param {Partial<Profile>} profile
+	 * @returns {Promise<void>}
 	 */
 	static async setProfile(bus, profile) {
 		const mode = NameValueUtil.toValue(profile.mode, enumMap.modes)
@@ -209,7 +216,7 @@ export class bme280 extends genericChip {
 		const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
 
 		// TODO this should call serial promises, `all` does not guarantee order
-		return Promise.all([
+		await Promise.all([
 			bus.writeI2cBlock(REGISTER.CTRL_HUM, Uint8Array.from([ctrl_hum])),
 			bus.writeI2cBlock(REGISTER.CTRL_MEAS, Uint8Array.from([ctrl_meas])),
 			bus.writeI2cBlock(REGISTER.CONFIG, Uint8Array.from([config]))
@@ -225,7 +232,10 @@ export class bme280 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {Calibration} calibration
+	 * @returns {Promise<CompensateResult>}
 	 */
 	static async measurement(bus, calibration) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, MEASUREMENT_BLOCK)
@@ -249,12 +259,17 @@ export class bme280 extends genericChip {
 		const T = bme280.skip_value === adcT ? false : adcT
 		const H = bme280.skip_value === adcH ? false : adcH
 
-		const base = { adcP: P, adcT: T, adcH: H, type: '2xy' }
-
-		return Compensate.from(base, calibration)
+		return Compensate.from({
+				adcP: P,
+				adcT: T,
+				adcH: H,
+				adcG: false,
+				type: '2xy'
+			}, calibration)
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @returns {Promise<ProfileReady>}
 	 */

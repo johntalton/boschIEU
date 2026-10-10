@@ -15,7 +15,9 @@ import { enumMap, genericChip } from './generic.js'
 import { Util } from './util.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile, ProfileReady } from '../types/profile.js' */
+/** @import { Profile, ProfileReady, GasSetpoint } from '../types/profile.js' */
+/** @import { Calibration } from '../types/calibration.js' */
+/** @import { CompensateResult } from './compensate.js' */
 
 // todo move to common enumerations in generic? but its not
 const gwMultipliers = [
@@ -53,7 +55,9 @@ export class bme680 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<Calibration>}
 	 */
 	static async calibration(bus) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x89, 25], [0xE1, 16], [0x00, 1], [0x02, 1], [0x04, 1]])
@@ -130,16 +134,18 @@ export class bme680 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @returns {Promise<Profile>}
 	 */
 	static async profile(bus) {
 
-		/** @param {number} gaswait  */
-		function gasWaitToDuration(gaswait) {
-			const multiplyer = NameValueUtil.toName(BitSmush.extractBits(gaswait, 7, 2), gwMultipliers)
-			const baseMs = BitSmush.extractBits(gaswait, 5, 6)
-			return baseMs * multiplyer
+		/** @param {number|undefined} gasWait  */
+		function gasWaitToDuration(gasWait) {
+			if(gasWait === undefined) { return undefined }
+			const multiplier = NameValueUtil.toName(BitSmush.extractBits(gasWait, 7, 2), gwMultipliers)
+			const baseMs = BitSmush.extractBits(gasWait, 5, 6)
+			return baseMs * multiplier
 		}
 
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x50, 30], [0x70, 6]])
@@ -174,6 +180,7 @@ export class bme680 extends genericChip {
 		const spi_3w_en = BitSmush.extractBits(config, 0, 1) === 1
 		const spi_mem_page = BitSmush.extractBits(status, 4, 1)
 
+		/** @type {Array<GasSetpoint>} */
 		const setpoints = res_heat.map((v, i) => ({
 			index: i,
 			active: i === nb_conv,
@@ -204,8 +211,11 @@ export class bme680 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @param {Partial<Profile>} profile
+	 * @param {Calibration} calibration
+	 * @returns {Promise<void>}
 	 */
 	static async setProfile(bus, profile, calibration) {
 
@@ -215,14 +225,18 @@ export class bme680 extends genericChip {
 		function durationToGasWait(durationMs) {
 			if (durationMs < 30) { console.log('low wait duration not recommended', durationMs) }
 
-			function foo(ms, mult) {
-				const intMs = Math.trunc(ms / mult)
-				const actual = intMs * mult
+			/**
+			 * @param {number} ms
+			 * @param {number} multiplier
+			 */
+			function foo(ms, multiplier) {
+				const intMs = Math.trunc(ms / multiplier)
+				const actual = intMs * multiplier
 				const err = actual - ms
 				if (err !== 0) { console.log('approximating gas wait', actual, 'delta', err) }
 				return {
 					base: intMs,
-					multiplyer: mult,
+					multiplier,
 					error: err
 				}
 			}
@@ -242,14 +256,23 @@ export class bme680 extends genericChip {
 		}
 
 		/**
-		 * @param {number} temperatureC
+		 * @param {number|undefined} temperatureC
 		 * @param {number} ambientTemperatureC
+		 * @param {Calibration['G']} caliG
 		 */
 		// 320 25 -> 0x74
 		function temperatureToHeaterRes(temperatureC, ambientTemperatureC, caliG) {
+			if(temperatureC === undefined) { throw new Error('undefined temperature') }
 			if (temperatureC > 400) { throw new Error('max temperature 400 C') }
+			if(caliG === undefined) { throw new Error('calibration undefined') }
 			if (caliG.G.length !== 3) { throw new Error('calibration mismatch') }
 			const [gh1, gh2, gh3] = caliG.G
+
+			if(gh1 === undefined) { throw new Error('gh1 undefined') }
+			if(gh2 === undefined) { throw new Error('gh2 undefined') }
+			if(gh3 === undefined) { throw new Error('gh3 undefined') }
+
+			if(caliG.res_heat_range === undefined) { throw new Error('res_heat_range undefined') }
 
 			const var1 = (gh1 / 16.0) + 49.0
 			const var2 = ((gh2 / 32768.0) * 0.0005) + 0.00235
@@ -306,7 +329,7 @@ export class bme680 extends genericChip {
 			if (sp.skip === true) { return [[...out[0], false], [...out[1], false]] }
 
 			const gw = durationToGasWait(sp.durationMs)
-			const multi = NameValueUtil.toValue(gw.multiplyer, gwMultipliers)
+			const multi = NameValueUtil.toValue(gw.multiplier, gwMultipliers)
 			const gas_wait_x = BitSmush.smushBits([[7, 2], [5, 6]], [multi, gw.base])
 
 			const pat = profile.ambientTemperatureC === undefined ? 25 : profile.ambientTemperatureC // or 25C
@@ -343,7 +366,10 @@ export class bme680 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {Calibration} calibration
+	 * @returns {Promise<CompensateResult>}
 	 */
 	static async measurement(bus, calibration) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x1D, 15]])
@@ -367,7 +393,7 @@ export class bme680 extends genericChip {
 		}
 
 		// console.log(ready)
-		if (!ready.ready) { return { skip: true, ready: false } }
+		if (!ready.ready) { return {} }
 
 		const pres_msb = dv.getUint8(2)
 		const pres_lsb = dv.getUint8(3)
@@ -412,10 +438,17 @@ export class bme680 extends genericChip {
 		// console.log(G)
 		// console.log(ready, meas_index, gas_valid_r, heat_stab_r, gas_r, gas_range_r)
 
-		return Compensate.from({ adcP: P, adcT: T, adcH: H, adcG: G, type: '6xy' }, calibration)
+		return Compensate.from({
+				adcP: P,
+				adcT: T,
+				adcH: H,
+				adcG: G,
+				type: '6xy'
+			}, calibration)
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @returns {Promise<ProfileReady>}
 	 */
@@ -437,11 +470,16 @@ export class bme680 extends genericChip {
 
 	/**
 	 * @param {Profile} profile
+	 *
 	 */
 	static estimateMeasurementWait(profile) {
 		// converts enumeration oversampling from profile into
 		// a known cycles - currently uses the side effect
 		// of the enumeration layout to map to known cycles (aka 1:1).
+		/**
+		 * @param {number|false} os
+		 * @returns {number}
+		 */
 		function oversampleToCycles(os) {
 			if (os === false) { return 0 }
 			const cycles = [0, 1, 2, 4, 8, 16]
@@ -462,9 +500,9 @@ export class bme680 extends genericChip {
 
 		// it takes a while
 		let gasWaitMs = 0
-		if (profile.gas.enabled) {
+		if (profile.gas?.enabled === true) {
 			const active = profile.gas.setpoints.find(sp => sp.active)
-			if (active) { gasWaitMs = active.durationMs }
+			if (active) { gasWaitMs = active.durationMs ?? 0 }
 		}
 
 		const totalMs = ((tph_durUs + 500) / 1000) + gasWaitMs

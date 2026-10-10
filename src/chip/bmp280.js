@@ -10,7 +10,9 @@ import { Compensate } from './compensate.js'
 import { enumMap, genericChip } from './generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile } from '../types/profile.js' */
+/** @import { Profile, ProfileReady } from '../types/profile.js' */
+/** @import { CompensateResult } from './compensate.js' */
+/** @import { Calibration } from '../types/calibration.js' */
 
 export class bmp280 extends genericChip {
 	/**
@@ -39,7 +41,9 @@ export class bmp280 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<Calibration>}
 	 */
 	static async calibration(bus) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x88, 25]])
@@ -66,11 +70,12 @@ export class bmp280 extends genericChip {
 
 		return {
 			T, P,
-			H: [], G: []
+			H: []
 		}
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @returns {Promise<Profile>}
 	 */
@@ -113,10 +118,12 @@ export class bmp280 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @param {Partial<Profile>} profile
+	 * @returns {Promise<void>}
 	 */
-	static setProfile(bus, profile) {
+	static async setProfile(bus, profile) {
 		const mode = NameValueUtil.toValue(profile.mode, enumMap.modes)
 		const os_p = NameValueUtil.toValue(profile.oversampling_p, enumMap.oversamples)
 		const os_t = NameValueUtil.toValue(profile.oversampling_t, enumMap.oversamples)
@@ -127,7 +134,7 @@ export class bmp280 extends genericChip {
 		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
 		const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
 
-		return Promise.all([
+		await Promise.all([
 			bus.writeI2cBlock(0xF4, Uint8Array.from([ctrl_meas])),
 			bus.writeI2cBlock(0xF5, Uint8Array.from([config]))
 		])
@@ -142,7 +149,10 @@ export class bmp280 extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {Calibration} calibration
+	 * @returns {Promise<CompensateResult>}
 	 */
 	static async measurement(bus, calibration) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0xF7, 6]])
@@ -163,11 +173,19 @@ export class bmp280 extends genericChip {
 		const P = bmp280.skip_value === adcP ? false : adcP
 		const T = bmp280.skip_value === adcT ? false : adcT
 
-		return Compensate.from({ adcP: P, adcT: T, adcH: false, type: '2xy' }, calibration)
+		return Compensate.from({
+				adcP: P,
+				adcT: T,
+				adcH: false,
+				adcG: false,
+				type: '2xy'
+			}, calibration)
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<ProfileReady>}
 	 */
 	static async ready(bus) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0xF3, 1]])
@@ -178,6 +196,7 @@ export class bmp280 extends genericChip {
 		const status = dv.getUint8(0)
 		const measuring = BitSmush.extractBits(status, 3, 1) === 1
 		const updating = BitSmush.extractBits(status, 0, 1) === 1
+
 		return {
 			ready: !measuring,
 			measuring,

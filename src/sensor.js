@@ -2,9 +2,9 @@ import { Chip } from './chip/chip.js'
 import { BoschFifo } from './fifo.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile } from './types/profile.js' */
+/** @import { Profile, ProfileReady } from './types/profile.js' */
 /** @import { Calibration } from './types/calibration.js' */
-
+/** @import { CompensateResult } from './chip/compensate.js' */
 /**
  * @typedef {Object} BoschUIEOptions
  * @property {number|undefined} [chipId]
@@ -74,6 +74,9 @@ export class BoschSensor {
 
 	get fifo() { return this._fifo }
 
+	/**
+	 * @returns {this is this & { _calibration: Calibration }}
+	 */
 	get calibrated() { return this._calibration !== undefined }
 
 	get isGeneric() { return this._chip.chipId === Chip.generic().chipId }
@@ -107,10 +110,17 @@ export class BoschSensor {
 		await this._chip.setProfile(this._bus, profile, this._calibration)
 	}
 
+	/**
+	 * @returns {Promise<ProfileReady>}
+	 */
 	async ready() { return this._chip.ready(this._bus) }
 
+	/**
+	 * @returns {Promise<CompensateResult>}
+	 */
 	async measurement() {
-		if (!this.calibrated) { throw new Error('calibration undefined') }
+		//if (!this.calibrated) { throw new Error('calibration undefined') }
+		if(this._calibration === undefined) { throw new Error('calibration undefined') }
 		return this._chip.measurement(this._bus, this._calibration)
 	}
 }

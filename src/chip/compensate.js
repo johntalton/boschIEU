@@ -13,18 +13,21 @@
  * @typedef {Object} CompensateTemperature
  * @property {number} adc
  * @property {number} C
+ * @property {number} [Tfine]
  */
 
 /**
  * @typedef {Object} CompensatePressure
  * @property {number} adc
  * @property {number} Pa
+ * @property {number} [Tfine]
  */
 
 /**
  * @typedef {Object} CompensateHumidity
  * @property {number} adc
  * @property {number} percent
+ * @property {number} unclampedPercent
  */
 
 
@@ -33,13 +36,16 @@
  * @property {number} adc
  * @property {number} Ohm
  * @property {boolean} stable
+ * @property {boolean} skip
  */
 
 /**
  * @typedef {Object} CompensateSkip
  * @property {false} adc
  * @property {true} skip
+ * @property {string} [why]
  */
+
 
 /**
  * @typedef {Object} CompensateResult
@@ -77,12 +83,12 @@ export class Compensate {
 		return {
 			...Compensate.sensortime(measurement.sensortime),
 			temperature: t,
-			pressure: Compensate.pressure_3xy(measurement.adcP, t.tlin, calibration.P)
+			pressure: Compensate.pressure_3xy(measurement.adcP, t.C, calibration.P)
 		}
 	}
 
 	/**
-	 * @param {number} sensortime
+	 * @param {number|undefined} sensortime
 	 */
 	static sensortime(sensortime) {
 		if (sensortime === undefined) { return {} }
@@ -106,50 +112,59 @@ export class Compensate {
 	static temperature_3xy(adcT, caliT) {
 		if(adcT === false) { return { adc: false, skip: true }}
 		const [T1, T2, T3] = caliT
-		/*
-		const data1 = adcT - (256 * T1)
-		const data2 = data1 * T2
-		const data3 = (data1 * data1) * T3
-		const t_lin = ((data2 * 262144) + data3) / 4294967296
 
-		const c = (t_line * 25 ) / 16384
-		*/
+		if(T1 === undefined) { return { adc: false, skip: true, why: 'T1 undefined' } }
+		if(T2 === undefined) { return { adc: false, skip: true, why: 'T2 undefined' } }
+		if(T3 === undefined) { return { adc: false, skip: true, why: 'T3 undefined' } }
 
 		const data1 = adcT - T1
 		const data2 = data1 * T2
-		const t_lin = data2 + (data1 * data1) * T3
-		const c = t_lin
+		const C = data2 + (data1 * data1) * T3
 
-		return { adc: adcT, tlin: t_lin, C: c }
+		return { adc: adcT, C }
 	}
 
 	/**
 	 * @param {Measurement['adcP']} adcP
-	 * @param {number} tlin
+	 * @param {number} C
 	 * @param {Calibration['P']} caliP
 	 * @returns {CompensatePressure | CompensateSkip}
 	 */
-	static pressure_3xy(adcP, tlin, caliP) {
+	static pressure_3xy(adcP, C, caliP) {
+		if(adcP === false) { return { skip: true, adc: false } }
+
 		const [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11] = caliP
 
-		const data1 = P6 * tlin
-		const data2 = P7 * (tlin * tlin)
-		const data3 = P8 * (tlin * tlin * tlin)
+		if(P1 === undefined) { return { adc: false, skip: true, why: 'P1 undefined' } }
+		if(P2 === undefined) { return { adc: false, skip: true, why: 'P2 undefined' } }
+		if(P3 === undefined) { return { adc: false, skip: true, why: 'P3 undefined' } }
+		if(P4 === undefined) { return { adc: false, skip: true, why: 'P4 undefined' } }
+		if(P5 === undefined) { return { adc: false, skip: true, why: 'P5 undefined' } }
+		if(P6 === undefined) { return { adc: false, skip: true, why: 'P6 undefined' } }
+		if(P7 === undefined) { return { adc: false, skip: true, why: 'P7 undefined' } }
+		if(P8 === undefined) { return { adc: false, skip: true, why: 'P8 undefined' } }
+		if(P9 === undefined) { return { adc: false, skip: true, why: 'P9 undefined' } }
+		if(P10 === undefined) { return { adc: false, skip: true, why: 'P10 undefined' } }
+		if(P11 === undefined) { return { adc: false, skip: true, why: 'P11 undefined' } }
+
+		const data1 = P6 * C
+		const data2 = P7 * (C * C)
+		const data3 = P8 * (C * C * C)
 		const out1 = P5 + data1 + data2 + data3
 
-		const data4 = P2 * tlin
-		const data5 = P3 * (tlin * tlin)
-		const data6 = P4 * (tlin * tlin * tlin)
+		const data4 = P2 * C
+		const data5 = P3 * (C * C)
+		const data6 = P4 * (C * C * C)
 		const out2 = adcP * (P1 + data4 + data5 + data6)
 
 		const data7 = adcP * adcP
-		const data8 = P9 + P10 * tlin
+		const data8 = P9 + P10 * C
 		const data9 = data7 * data8
 		const data10 = data9 + (adcP * adcP * adcP) * P11
 
 		const press = out1 + out2 + data10
 
-		return { adc: adcP, tlin, Pa: press }
+		return { adc: adcP, Pa: press }
 	}
 
 	/**
@@ -175,32 +190,19 @@ export class Compensate {
 	static temperature_6xy(adcT, caliT) {
 		if (adcT === false) { return { adc: false, skip: true } }
 
-		if (caliT.length !== 3) { return { adc: adcT, skip: true, calibration: caliT.length } }
-		const [T1, T2, T3] = caliT
+		if (caliT.length !== 3) { return { adc: false, skip: true, why: 'calibration length' } }
+		const [ T1, T2, T3 ] = caliT
 
-		function tfloat() {
-			const var1f = (adcT / 16384.0 - T1 / 1024.0) * T2
-			const var2f = (adcT / 131072.0 - T1 / 8192.0) * (adcT / 131072.0 - T1 / 8192.0) * T3
-			const Tfinef = var1f + var2f
-			const cf = Tfinef / 5120.0
+		if(T1 === undefined) { return { adc: false, skip: true, why: 'T1 undefined' } }
+		if(T2 === undefined) { return { adc: false, skip: true, why: 'T2 undefined' } }
+		if(T3 === undefined) { return { adc: false, skip: true, why: 'T3 undefined' } }
 
-			return [cf, Tfinef]
-		}
+		const var1f = (adcT / 16384.0 - T1 / 1024.0) * T2
+		const var2f = (adcT / 131072.0 - T1 / 8192.0) * (adcT / 131072.0 - T1 / 8192.0) * T3
+		const Tfinef = var1f + var2f
+		const cf = Tfinef / 5120.0
 
-		function tint() {
-			const var1i = (adcT >> 3) - (T1 << 1)
-			const var2i = (var1i * T2) >> 11
-			const tmpi = ((var1i >> 1) * (var1i >> 1)) >> 12
-			const var3i = (tmpi * (T3 << 4)) >> 14
-			const Tfinei = var2i + var3i
-			const ci = (Tfinei * 5 + 128) >> 8
-
-			return [ci, Tfinei]
-		}
-
-		const [fC, fTfine] = tfloat()
-
-		return { adc: adcT, C: fC, Tfine: fTfine }
+		return { adc: adcT, C: cf, Tfine: Tfinef }
 	}
 
 	/**
@@ -212,32 +214,41 @@ export class Compensate {
 	static pressure_6xy(adcP, Tfine, caliP) {
 		if (adcP === false) { return { adc: false, skip: true } }
 
-		if (caliP.length !== 10) { return { skip: true, calibration: caliP.length } }
+		if (caliP.length !== 10) { return { skip: true, adc: false, why: 'calibration length' } }
 		const [P1, P2, P3, P4, P5, P6, P7, P8, P9, P10] = caliP
 
-		function pfloat() {
-			let var1 = (Tfine / 2.0) - 64000.0
-			let var2 = var1 * var1 * (P6 / 131072.0)
-			var2 = var2 + (var1 * P5 * 2.0)
-			var2 = (var2 / 4.0) + (P4 * 65536.0)
-			var1 = (((P3 * var1 * var1) / 16384.0) + (P2 * var1)) / 524288.0
-			var1 = (1.0 + (var1 / 32768.0)) * P1
+		if(P1 === undefined) { return { adc: false, skip: true, why: 'P1 undefined' } }
+		if(P2 === undefined) { return { adc: false, skip: true, why: 'P2 undefined' } }
+		if(P3 === undefined) { return { adc: false, skip: true, why: 'P3 undefined' } }
+		if(P4 === undefined) { return { adc: false, skip: true, why: 'P4 undefined' } }
+		if(P5 === undefined) { return { adc: false, skip: true, why: 'P5 undefined' } }
+		if(P6 === undefined) { return { adc: false, skip: true, why: 'P6 undefined' } }
+		if(P7 === undefined) { return { adc: false, skip: true, why: 'P7 undefined' } }
+		if(P8 === undefined) { return { adc: false, skip: true, why: 'P8 undefined' } }
+		if(P9 === undefined) { return { adc: false, skip: true, why: 'P9 undefined' } }
+		if(P10 === undefined) { return { adc: false, skip: true, why: 'P10 undefined' } }
 
-			let pressure_hPa = 0
+		let var1 = (Tfine / 2.0) - 64000.0
+		let var2 = var1 * var1 * (P6 / 131072.0)
+		var2 = var2 + (var1 * P5 * 2.0)
+		var2 = (var2 / 4.0) + (P4 * 65536.0)
+		var1 = (((P3 * var1 * var1) / 16384.0) + (P2 * var1)) / 524288.0
+		var1 = (1.0 + (var1 / 32768.0)) * P1
 
-			if (var1 !== 0) {
-				let p = 1048576.0 - adcP
-				p = ((p - (var2 / 4096.0)) * 6250.0) / var1
-				var1 = (P9 * p * p) / 2147483648.0
-				var2 = p * (P8 / 32768.0)
-				const var3 = (p / 256.0) * (p / 256.0) * (p / 256.0) * (P10 / 131072.0)
-				p = p + (var1 + var2 + var3 + (P7 * 128.0)) / 16
-				pressure_hPa = p / 100
-			}
-			return pressure_hPa * 100
+		let pressure_hPa = 0
+
+		if (var1 !== 0) {
+			let p = 1048576.0 - adcP
+			p = ((p - (var2 / 4096.0)) * 6250.0) / var1
+			var1 = (P9 * p * p) / 2147483648.0
+			var2 = p * (P8 / 32768.0)
+			const var3 = (p / 256.0) * (p / 256.0) * (p / 256.0) * (P10 / 131072.0)
+			p = p + (var1 + var2 + var3 + (P7 * 128.0)) / 16
+			pressure_hPa = p / 100
 		}
 
-		const fPa = pfloat()
+
+		const fPa = pressure_hPa * 100
 
 		return { adc: adcP, Pa: fPa, Tfine }
 	}
@@ -251,31 +262,34 @@ export class Compensate {
 	static humidity_6xy(adcH, Tfine, caliH) {
 		if (adcH === false) { return { adc: false, skip: true } }
 
-		if (caliH.length !== 7) { return { skip: true, calibration: caliH.length } }
+		if (caliH.length !== 7) { return { skip: true, adc: false, why: 'calibration length' } }
 		const [H1, H2, H3, H4, H5, H6, H7] = caliH
 
-		function hfloat() {
-			const temp_comp = Tfine / 5120.0
-			const var1 = adcH - ((H1 * 16.0) + ((H3 / 2.0) * temp_comp))
-			const var2 = var1 * (
-				(
-					(H2 / 262144.0) *
-					(1.0 +
-						((H4 / 16384.0) * temp_comp) +
-						((H5 / 1048576.0) * temp_comp * temp_comp)
-					)
+		if(H1 === undefined) { return { adc: false, skip: true, why: 'H1 undefined' } }
+		if(H2 === undefined) { return { adc: false, skip: true, why: 'H2 undefined' } }
+		if(H3 === undefined) { return { adc: false, skip: true, why: 'H3 undefined' } }
+		if(H4 === undefined) { return { adc: false, skip: true, why: 'H4 undefined' } }
+		if(H5 === undefined) { return { adc: false, skip: true, why: 'H5 undefined' } }
+		if(H6 === undefined) { return { adc: false, skip: true, why: 'H6 undefined' } }
+		if(H7 === undefined) { return { adc: false, skip: true, why: 'H7 undefined' } }
+
+		const temp_comp = Tfine / 5120.0
+		const var1 = adcH - ((H1 * 16.0) + ((H3 / 2.0) * temp_comp))
+		const var2 = var1 * (
+			(
+				(H2 / 262144.0) *
+				(1.0 +
+					((H4 / 16384.0) * temp_comp) +
+					((H5 / 1048576.0) * temp_comp * temp_comp)
 				)
 			)
-			const var3 = H6 / 16384.0
-			const var4 = H7 / 2097152.0
-			const unclamped = var2 + ((var3 + (var4 * temp_comp)) * var2 * var2)
-			const hum = Math.min(Math.max(unclamped, 0), 100) // clamp(0, 100)
-			return [hum, unclamped]
-		}
+		)
+		const var3 = H6 / 16384.0
+		const var4 = H7 / 2097152.0
+		const unclamped = var2 + ((var3 + (var4 * temp_comp)) * var2 * var2)
+		const hum = Math.min(Math.max(unclamped, 0), 100) // clamp(0, 100)
 
-		const [hum, raw] = hfloat()
-
-		return { adc: adcH, percent: hum, Hunclamped: raw, skip: false }
+		return { adc: adcH, percent: hum, unclampedPercent: unclamped, }
 	}
 
 	/**
@@ -287,28 +301,31 @@ export class Compensate {
 		if (adcG === false) { return { adc: false, skip: true } }
 
 		const Gg = caliG.G
-		if (Gg.length !== 3) { return { skip: true, calibration: Gg.length } }
+		if (Gg.length !== 3) { return { adc: false, skip: true, why: 'calibration length' } }
 		// const [ g1, g2, g3 ] = Gg
 
-		function gfloat() {
-			const lookup1 = [
-				0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -0.8, 0.0, 0.0, -0.2, -0.5, 0.0, -1.0, 0.0, 0.0
-			]
+		const lookup1 = [
+			0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, -0.8, 0.0, 0.0, -0.2, -0.5, 0.0, -1.0, 0.0, 0.0
+		]
 
-			const lookup2 = [
-				0.0, 0.0, 0.0, 0.0, 0.1, 0.7, 0.0, -0.8, -0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-			]
+		const lookup2 = [
+			0.0, 0.0, 0.0, 0.0, 0.1, 0.7, 0.0, -0.8, -0.1, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+		]
 
-			const var1 = (1340.0 + (5.0 * caliG.range_switching_error))
-			const var2 = var1 * (1.0 + (lookup1[adcG.range] / 100.0))
-			const var3 = 1.0 + (lookup2[adcG.range] / 100.0)
-			const calc_gas_res = 1.0 / (var3 * (0.000000125) * (1 << adcG.range) * ((((adcG.resistance) - 512.0) / var2) + 1.0))
-			return calc_gas_res
-		}
+		const range1 = lookup1[adcG.range]
+		const range2 = lookup2[adcG.range]
 
-		const ohms = gfloat()
+		if(range1 === undefined) { return { adc: false, skip: true, why: 'lookup 1' } }
+		if(range2 === undefined) { return { adc: false, skip: true, why: 'lookup 2' } }
 
-		return { adc: adcG, Ohm: ohms, skip: !adcG.stable, stable: adcG.stable }
+		const var1 = (1340.0 + (5.0 * caliG.range_switching_error))
+		const var2 = var1 * (1.0 + (range1 / 100.0))
+		const var3 = 1.0 + (range2 / 100.0)
+		const calc_gas_res = 1.0 / (var3 * (0.000000125) * (1 << adcG.range) * ((((adcG.resistance) - 512.0) / var2) + 1.0))
+
+		const ohms = calc_gas_res
+
+		return { adc: adcG.range, Ohm: ohms, skip: !adcG.stable, stable: adcG.stable }
 	}
 
 	/**
@@ -318,9 +335,8 @@ export class Compensate {
 	 */
 	static from_2xy(measurement, calibration) {
 		const ct = Compensate.temperature(measurement.adcT, calibration.T)
-		const Tfine = ct.skip ? false : ct.Tfine
-		const cp = Compensate.pressure(measurement.adcP, Tfine, calibration.P)
-		const ch = Compensate.humidity(measurement.adcH, Tfine, calibration.H)
+		const cp = Compensate.pressure(measurement.adcP, ct.Tfine, calibration.P)
+		const ch = Compensate.humidity(measurement.adcH, ct.Tfine, calibration.H)
 
 		return {
 			temperature: ct,
@@ -337,21 +353,20 @@ export class Compensate {
 	static temperature(adcT, caliT) {
 		if (adcT === false) { return { adc: false, skip: true } }
 
-		if (caliT.length !== 3) { return { skip: true, calibration: caliT.length } }
-		const [dig_T1, dig_T2, dig_T3] = caliT
+		if (caliT.length !== 3) { return { skip: true, adc: false, why: 'calibration length' } }
+		const [ T1, T2, T3 ] = caliT
 
-		// console.log(T, dig_T1, dig_T2, dig_T3)
-		if (dig_T1 === undefined) { return { undef: 't1' } }
-		if (dig_T2 === undefined) { return { undef: 't2' } }
-		if (dig_T3 === undefined) { return { undef: 't3' } }
+		// console.log(T, T1, T2, T3)
+		if (T1 === undefined) { return { adc: false, skip: true, why: 'T1 undefined' } }
+		if (T2 === undefined) { return { adc: false, skip: true, why: 'T2 undefined' } }
+		if (T3 === undefined) { return { adc: false, skip: true, why: 'T3 undefined' } }
 
-		const var1f = (adcT / 16384.0 - dig_T1 / 1024.0) * dig_T2
-		const var2f = (adcT / 131072.0 - dig_T1 / 8192.0) * (adcT / 131072.0 - dig_T1 / 8192.0) * dig_T3
+		const var1f = (adcT / 16384.0 - T1 / 1024.0) * T2
+		const var2f = (adcT / 131072.0 - T1 / 8192.0) * (adcT / 131072.0 - T1 / 8192.0) * T3
 		const Tfine = var1f + var2f
 		const cf = Tfine / 5120.0
 
 		return {
-			skip: false,
 			adc: adcT,
 			Tfine,
 			C: cf
@@ -366,10 +381,23 @@ export class Compensate {
 	 */
 	static pressure(adcP, Tfine, caliP) {
 		if (adcP === false) { return { skip: true, adc: false } }
-		if (Tfine === false) { return { skip: true, Tfine: false } }
+		if (Tfine === false) { return { skip: true, adc: false, why: 'Tfine false' } }
 
-		if (caliP.length !== 9) { return { skip: true, calibration: caliP.length } }
-		const [dig_P1, dig_P2, dig_P3, dig_P4, dig_P5, dig_P6, dig_P7, dig_P8, dig_P9] = caliP
+		if (caliP.length !== 9) { return { skip: true, adc: false, why: 'calibration length' } }
+		const [
+			dig_P1, dig_P2, dig_P3, dig_P4,
+			dig_P5, dig_P6, dig_P7, dig_P8, dig_P9
+		] = caliP
+
+		if(dig_P1 === undefined) { return { adc: false, skip: true, why: 'P1 undefined' } }
+		if(dig_P2 === undefined) { return { adc: false, skip: true, why: 'P2 undefined' } }
+		if(dig_P3 === undefined) { return { adc: false, skip: true, why: 'P3 undefined' } }
+		if(dig_P4 === undefined) { return { adc: false, skip: true, why: 'P4 undefined' } }
+		if(dig_P5 === undefined) { return { adc: false, skip: true, why: 'P5 undefined' } }
+		if(dig_P6 === undefined) { return { adc: false, skip: true, why: 'P6 undefined' } }
+		if(dig_P7 === undefined) { return { adc: false, skip: true, why: 'P7 undefined' } }
+		if(dig_P8 === undefined) { return { adc: false, skip: true, why: 'P8 undefined' } }
+		if(dig_P9 === undefined) { return { adc: false, skip: true, why: 'P9 undefined' } }
 
 		let pvar1 = Tfine / 2 - 64000
 		let pvar2 = pvar1 * pvar1 * dig_P6 / 32768
@@ -399,18 +427,18 @@ export class Compensate {
 	 */
 	static humidity(adcH, Tfine, caliH) {
 		if (adcH === false) { return { skip: true, adc: false } }
-		if (Tfine === false) { return { skip: true, Tfine: false } }
+		if (Tfine === false) { return { adc: false, skip: true, why: 'Tfine false' } }
 
-		if (caliH.length !== 6) { return { skip: true, calibration: caliH.length } }
+		if (caliH.length !== 6) { return { adc: false, skip: true, why: 'calibration length' } }
 		const [dig_H1, dig_H2, dig_H3, dig_H4, dig_H5, dig_H6] = caliH
 
-		if (Tfine === undefined) { return { undef: 'Tfine' } }
-		if (dig_H1 === undefined) { return { undef: 'h1' } }
-		if (dig_H2 === undefined) { return { undef: 'h2' } }
-		if (dig_H3 === undefined) { return { undef: 'h3' } }
-		if (dig_H4 === undefined) { return { undef: 'h4' } }
-		if (dig_H5 === undefined) { return { undef: 'h5' } }
-		if (dig_H6 === undefined) { return { undef: 'h6' } }
+		if (Tfine === undefined) { return { adc: false, skip: true, why: 'undefined Tfine' } }
+		if (dig_H1 === undefined) { return { adc: false, skip: true, why: 'undefined h1' } }
+		if (dig_H2 === undefined) { return { adc: false, skip: true, why: 'undefined h2' } }
+		if (dig_H3 === undefined) { return { adc: false, skip: true, why: 'undefined h3' } }
+		if (dig_H4 === undefined) { return { adc: false, skip: true, why: 'undefined h4' } }
+		if (dig_H5 === undefined) { return { adc: false, skip: true, why: 'undefined h5' } }
+		if (dig_H6 === undefined) { return { adc: false, skip: true, why: 'undefined h6' } }
 
 		const var1 = Tfine - 76800.0
 
@@ -421,7 +449,7 @@ export class Compensate {
 
 		return {
 			adc: adcH,
-			Hunclamped: var3,
+			unclampedPercent: var3,
 			percent: h
 		}
 	}

@@ -14,7 +14,9 @@ import { enumMap, genericChip } from './generic.js'
 import { bmp3xxFifo } from './fifo/index.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile } from '../types/profile.js' */
+/** @import { Profile, ProfileReady } from '../types/profile.js' */
+/** @import { CompensateResult } from './compensate.js' */
+/** @import { Calibration } from '../types/calibration.js' */
 
 const oversamplings = [
 	{ name: 1, value: 0x0 },
@@ -158,7 +160,9 @@ const DEFAULT_PROFILE = {
 // const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity
 
 
-
+/**
+ * @param {string|undefined} mode
+ */
 function interruptMode(mode) {
 	const INT_DEFAULT_MODE = { od: INT_PUSH_PULL, level: INT_ACTIVE_HIGH }
 
@@ -168,6 +172,10 @@ function interruptMode(mode) {
 	return { od, level }
 }
 
+/**
+ * @param {number} opendrain
+ * @param {number} level
+ */
 function modeFrom(opendrain, level) {
 	if (opendrain === INT_OPEN_DRAIN) { return 'open-drain' }
 	if (level === INT_ACTIVE_HIGH) { return 'active-high' }
@@ -226,6 +234,7 @@ export class bmp3xx extends genericChip {
 	static get fifo() { return bmp3xxFifo }
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 */
 	static async sensorTime(bus) {
@@ -236,11 +245,17 @@ export class bmp3xx extends genericChip {
 
 		const [ time_0_7, time_15_8, time_23_16 ] = u8
 
+		if(time_0_7 === undefined) { throw new Error('time undefined') }
+		if(time_15_8 === undefined) { throw new Error('time undefined') }
+		if(time_23_16 === undefined) { throw new Error('time undefined') }
+
 		return reconstruct24bit(time_23_16, time_15_8, time_0_7)
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<Calibration>}
 	 */
 	static async calibration(bus) {
 		console.log('bmp3xx calibration')
@@ -296,6 +311,7 @@ export class bmp3xx extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @returns {Promise<Profile>}
 	 */
@@ -392,6 +408,7 @@ export class bmp3xx extends genericChip {
 
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @param {Partial<Profile>} p
 	 */
@@ -400,9 +417,9 @@ export class bmp3xx extends genericChip {
 		const profile = { ...defaultProfile, ...p }
 
 		//
-		const intMode = interruptMode(profile.interrupt.mode)
+		const intMode = interruptMode(profile.interrupt?.mode)
 
-		if (profile.fifo.highWatermark >= Math.pow(2, 9) || profile.fifo.highWatermark < 0) {
+		if (profile.fifo === undefined || profile.fifo.highWatermark >= Math.pow(2, 9) || profile.fifo.highWatermark < 0) {
 			throw new Error('invalid high watermark')
 		}
 
@@ -431,15 +448,15 @@ export class bmp3xx extends genericChip {
 
 		const spi3 = SPI3 // todo add support
 
-		const drdy_en = profile.interrupt.onReady ? ONREADY_ENABLED : ONREADY_DISABLED
-		const ffull_en = profile.interrupt.onFifoFull ? ONFULL_ENABLED : ONFULL_DISABLED
-		const fwtm_en = profile.interrupt.onFifoWatermark ? ONWATER_ENABLED : ONWATER_DISABLED
-		const int_latch = profile.interrupt.latched ? LATCHED : NON_LATCHED
+		const drdy_en = profile.interrupt?.onReady === true ? ONREADY_ENABLED : ONREADY_DISABLED
+		const ffull_en = profile.interrupt?.onFifoFull === true ? ONFULL_ENABLED : ONFULL_DISABLED
+		const fwtm_en = profile.interrupt?.onFifoWatermark === true ? ONWATER_ENABLED : ONWATER_DISABLED
+		const int_latch = profile.interrupt?.latched === true ? LATCHED : NON_LATCHED
 		const int_level = intMode.level
 		const int_od = intMode.od
 
 		const data_select = NameValueUtil.toValue(profile.fifo.data, dataselects)
-		const fifo_subsampling = Number.parseInt(profile.fifo.subsampling, 10)
+		const fifo_subsampling = profile.fifo.subsampling
 		const fifo_temp_en = profile.fifo.active && profile.fifo.temp ? FIFO.TEMP_ENABLED : FIFO.TEMP_DISABLED
 		const fifo_press_en = profile.fifo.active && profile.fifo.press ? FIFO.PRESS_ENABLED : FIFO.PRESS_DISABLED
 		const fifo_time_en = profile.fifo.active && profile.fifo.time ? FIFO.TIME_ENABLED : FIFO.TIME_DISABLED
@@ -492,7 +509,10 @@ export class bmp3xx extends genericChip {
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {Calibration} calibration
+	 * @returns {Promise<CompensateResult>}
 	 */
 	static async measurement(bus, calibration) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x04, 12]])
@@ -526,16 +546,19 @@ export class bmp3xx extends genericChip {
 		const T = bmp3xx.skip_value === adcT ? false : adcT
 
 		return Compensate.from({
-			sensortime: time,
-			adcP: P,
-			adcT: T,
-			adcH: false,
-			type: '3xy'
-		}, calibration)
+				sensortime: time,
+				adcP: P,
+				adcT: T,
+				adcH: false,
+				adcG: false,
+				type: '3xy'
+			}, calibration)
 	}
 
 	/**
+	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<ProfileReady>}
 	 */
 	static async ready(bus) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x02, 2], [0x10, 2]])

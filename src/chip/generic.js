@@ -1,6 +1,9 @@
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile } from '../types/profile.js' */
+/** @import { Profile, ProfileReady } from '../types/profile.js' */
+/** @import { Calibration } from '../types/calibration.js' */
+/** @import { CompensateResult } from './compensate.js' */
+
 export const enumMap = {
   oversamples: [ //
     { name: false, value: 0 },
@@ -97,12 +100,14 @@ export class genericChip {
 
   /** @returns {number|undefined} */
   static get chipId() { return undefined }
+
   static get skip_value() { return 0x08_00_00 }
 
   /**
-   * @param {I2CAddressedBus} bus
+   * @param {I2CAddressedBus} _bus
+   * @returns {Promise<number>}
    */
-  static id(bus) { throw new Error('generic read for legacy, use Chip specific id implementation') }
+  static async id(_bus) { throw new Error('generic read for legacy, use Chip specific id implementation') }
 
   /**
    * @param {I2CAddressedBus} bus
@@ -111,26 +116,35 @@ export class genericChip {
 
   static get fifo() { return genericFifo } // return the class as a shorthand
 
+  /**
+   * @param {I2CAddressedBus} _bus
+   * @returns {Promise<SensorTime>}
+   */
+  static async sensorTime(_bus) {
+    throw new Error('sensorTime not defined for generic chip')
+  }
+
   // estimateMeasurementWait
 
   /**
    * @param {I2CAddressedBus} _bus
+   * @returns {Promise<ProfileReady>}
    */
   static async ready(_bus) { throw new Error('ready not defined for generic chip') }
 
   /**
    * @param {I2CAddressedBus} _bus
-   */
-
-  /**
-   * @param {I2CAddressedBus} _bus
+   * @param {Calibration} _calibration
+   * @returns {Promise<CompensateResult>}
    */
   static async measurement(_bus, _calibration) { throw new Error('measurement not defined for generic chip') }
 
   /**
    * @param {I2CAddressedBus} _bus
+   * @param {Partial<Profile>} _profile
+   * @param {Calibration} [_calibration]
    */
-  static async setProfile(_bus, _calibration) { throw new Error('setProfile not defined for generic chip') }
+  static async setProfile(_bus, _profile, _calibration) { throw new Error('setProfile not defined for generic chip') }
 
   /**
    * @param {I2CAddressedBus} _bus
@@ -140,6 +154,7 @@ export class genericChip {
 
   /**
    * @param {I2CAddressedBus} _bus
+   * @returns {Promise<Calibration>}
    */
   static async calibration(_bus) { throw new Error('calibration not defined for generic chip') }
 

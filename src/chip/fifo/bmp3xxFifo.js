@@ -1,8 +1,10 @@
+import { reconstruct9bit } from '../bits.js'
 import { Compensate } from '../compensate.js'
 import { genericFifo } from '../generic.js'
 import { bmp3xxFifoParser } from './bmp3xxFifoParser.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
+/** @import { Calibration } from '../../types/calibration.js' */
 
 const FIFO_SIZE = 512
 
@@ -11,11 +13,6 @@ const CMD_FIFO_FLUSH = 0xB0
 
 const FIFO_LENGTH_REGISTER = 0x12
 const FIFO_DATA_REGISTER = 0x14
-
-// use generic reconstruction
-function reconstruct9bit(msb, lsb) {
-	return msb << 8 | lsb
-}
 
 /**
  *
@@ -33,6 +30,7 @@ export class bmp3xxFifo extends genericFifo {
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {Calibration} calibration
 	 */
 	static async read(bus, calibration, overRead = false) {
 		const aBuffer = await bus.readI2cBlock(FIFO_LENGTH_REGISTER, 2)
@@ -62,9 +60,9 @@ export class bmp3xxFifo extends genericFifo {
 		const readSize = fifo_byte_counter + (overRead ? 4 + 2 : 0)
 		// console.log('fifo size', readSize)
 
-		// await bus.sendByte(FIFO_DATA_REGISTER)
-		// const framesABuffer = await bus.i2cRead(readSize)
-		const framesABuffer = await bus.readI2cBlock(FIFO_DATA_REGISTER, readSize)
+		await bus.sendByte(FIFO_DATA_REGISTER)
+		const framesABuffer = await bus.i2cRead(readSize)
+		// const framesABuffer = await bus.readI2cBlock(FIFO_DATA_REGISTER, readSize)
 		const frames = framesABuffer
 
 		const messages = bmp3xxFifoParser.parseFrames(frames)

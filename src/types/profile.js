@@ -5,7 +5,7 @@
 
 /**
  * @typedef {Object} ProfileInterrupt
- * @property {boolean} active
+ * @property {boolean} [active]
  * @property {string} mode
  * @property {boolean} latched
  * @property {boolean} onFifoWatermark
@@ -28,15 +28,15 @@
 /**
  * @typedef {Object} GasSetpoint
  * @property {number} index
- * @property {boolean} skip
+ * @property {boolean} [skip]
  *
- * @property {number} temperatureC
- * @property {number} durationMs
+ * @property {number} [temperatureC]
+ * @property {number|undefined} durationMs
  * @property {boolean} active
  * @property {number} ohms
- * @property {number} lastIdac
+ * @property {number|undefined} lastIdac
  *
- * @property {number} ambientTemperatureC
+ * @property {number} [ambientTemperatureC]
  */
 
 /**
@@ -48,36 +48,36 @@
 /**
  * @typedef {Object} ProfileSPI
  * @property {boolean} enable3w
- * @property {boolean} interrupt
+ * @property {boolean} [interrupt]
  */
 
 /**
  * @typedef {Object} ProfileReady
  * @property {boolean} ready
  * @property {boolean} measuring
- * @property {boolean} updating
- * @property {boolean} measuringGas
- * @property {number} active_profile_idx
+ * @property {boolean} [updating]
+ * @property {boolean} [measuringGas]
+ * @property {number} [active_profile_idx]
  */
 
 /**
  * @typedef {Object} Profile
  * @property {string} mode
- * @property {number|boolean} oversampling_p
- * @property {number|boolean} oversampling_t
- * @property {number|boolean} oversampling_h
+ * @property {number|false} oversampling_p
+ * @property {number|false} oversampling_t
+ * @property {number|false} [oversampling_h]
  * @property {boolean|number} filter_coefficient
- * @property {number} standby_time
- * @property {number} standby_prescaler
- * @property {ProfileSPI} spi
- * @property {ProfileWatchdog} watchdog
- * @property {ProfileInterrupt} interrupt
- * @property {ProfileFIFO} fifo
- * @property {ProfileGas} gas
+ * @property {number} [standby_time]
+ * @property {number} [standby_prescaler]
+ * @property {ProfileSPI} [spi]
+ * @property {ProfileWatchdog} [watchdog]
+ * @property {ProfileInterrupt} [interrupt]
+ * @property {ProfileFIFO} [fifo]
+ * @property {ProfileGas} [gas]
  *
- * @property {number} ambientTemperatureC
+ * @property {number} [ambientTemperatureC]
  *
- * @property {ProfileReady} ready
+ * @property {ProfileReady} [ready]
  */
 
 export {}

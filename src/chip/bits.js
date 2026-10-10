@@ -55,8 +55,21 @@ export class Bits {
 			.reduce((acc, part) => acc | part, ZERO)
 	}
 
+	/**
+	 * @param {number} msb
+	 * @param {number} lsb_2bit
+	 */
 	static reconstruct10bit(msb, lsb_2bit) { return Bits.reconstructNBit(TEN, [msb, lsb_2bit]) }
+	/**
+	 * @param {number} msb
+	 * @param {number} lsb_4bit
+	 */
 	static reconstruct12bit(msb, lsb_4bit) { return Bits.reconstructNBit(TWELVE, [msb, lsb_4bit]) }
+	/**
+	 * @param {number} msb
+	 * @param {number} lsb
+	 * @param {number} xlsb
+	 */
 	static reconstruct20bit(msb, lsb, xlsb) { return Bits.reconstructNBit(TWENTY, [msb, lsb, xlsb]) }
 }
 

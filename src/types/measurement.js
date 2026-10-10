@@ -13,7 +13,7 @@
  * @property {number|false} adcH
  * @property {MeasurementGas|false} adcG
  *
- * @property {number} sensortime
+ * @property {number} [sensortime]
  */
 
 
