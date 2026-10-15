@@ -9,12 +9,14 @@ import { Bits } from './bits.js'
 
 import { BusUtil } from '../util.js'
 import { Compensate } from './compensate.js'
-import { enumMap, genericChip } from './generic.js'
+import { enumMap, GENERIC_OVERSAMPLES, GenericChip } from './generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile, ProfileReady } from '../types/profile.js' */
+/** @import { Profile2xx, ProfileReady } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { CompensateResult } from './compensate.js' */
+/** @import { Features } from '../types/features.js' */
+/** @import { ChipKind } from './chip.js'  */
 
 // Chip ID
 const CHIP_ID = 0x60
@@ -71,7 +73,7 @@ const STATUS_LENGTH = 1
 const STATUS_BLOCK = [[STATUS_START_ADDRESS, STATUS_LENGTH]]
 
 //
-export class bme280 extends genericChip {
+export class bme280 extends GenericChip {
 	/**
 	 * @override
 	 */
@@ -79,11 +81,13 @@ export class bme280 extends genericChip {
 
 	/**
 	 * @override
+	 * @returns {ChipKind}
 	 */
-	static get chipId() { return CHIP_ID }
+	static get kind() { return '2xx' }
 
 	/**
 	 * @override
+	 * @returns {Features}
 	 */
 	static get features() {
 		return {
@@ -94,9 +98,19 @@ export class bme280 extends genericChip {
 			normalMode: true,
 			interrupt: false,
 			fifo: false,
-			time: false
+			time: false,
+			modes: [ 'SLEEP', 'FORCED', 'NORMAL' ]
 		}
 	}
+
+	/**
+	 * @override
+	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<void>}
+	 */
+  static async reset(bus) {
+    await bus.writeI2cBlock(0xE0, Uint8Array.from([ 0xB6 ]))
+  }
 
 	/**
 	 * @override
@@ -150,7 +164,7 @@ export class bme280 extends genericChip {
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
-	 * @returns {Promise<Profile>}
+	 * @returns {Promise<Profile2xx}
 	 */
 	static async profile(bus) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, PROFILE_BLOCK)
@@ -178,9 +192,9 @@ export class bme280 extends genericChip {
 
 		return {
 			mode: NameValueUtil.toName(mode, enumMap.modes),
-			oversampling_p: NameValueUtil.toName(osrs_p, enumMap.oversamples),
-			oversampling_t: NameValueUtil.toName(osrs_t, enumMap.oversamples),
-			oversampling_h: NameValueUtil.toName(osrs_h, enumMap.oversamples),
+			oversampling_p: NameValueUtil.toName(osrs_p, GENERIC_OVERSAMPLES),
+			oversampling_t: NameValueUtil.toName(osrs_t, GENERIC_OVERSAMPLES),
+			oversampling_h: NameValueUtil.toName(osrs_h, GENERIC_OVERSAMPLES),
 			filter_coefficient: NameValueUtil.toName(filter, enumMap.filters),
 			standby_time: NameValueUtil.toName(t_sb, enumMap.standbys_hires),
 
@@ -204,9 +218,9 @@ export class bme280 extends genericChip {
 	static async setProfile(bus, profile) {
 		const mode = NameValueUtil.toValue(profile.mode, enumMap.modes)
 
-		const os_p = NameValueUtil.toValue(profile.oversampling_p, enumMap.oversamples)
-		const os_t = NameValueUtil.toValue(profile.oversampling_t, enumMap.oversamples)
-		const os_h = NameValueUtil.toValue(profile.oversampling_h, enumMap.oversamples)
+		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
+		const os_h = NameValueUtil.toValue(profile.oversampling_h, GENERIC_OVERSAMPLES)
 		const sb_t = NameValueUtil.toValue(profile.standby_time, enumMap.standbys_hires)
 		const filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters)
 		const en3w = profile.spi === undefined ? false : profile.spi.enable3w
@@ -221,14 +235,6 @@ export class bme280 extends genericChip {
 			bus.writeI2cBlock(REGISTER.CTRL_MEAS, Uint8Array.from([ctrl_meas])),
 			bus.writeI2cBlock(REGISTER.CONFIG, Uint8Array.from([config]))
 		])
-	}
-
-	/**
-	 * @param {I2CAddressedBus} _bus
-	 * @param {Partial<Profile>} _patch
-	 */
-	static patchProfile(_bus, _patch) {
-		throw new Error('patch profile unavailable')
 	}
 
 	/**

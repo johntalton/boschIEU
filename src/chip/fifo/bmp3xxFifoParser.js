@@ -1,6 +1,8 @@
 
 /** @import { I2CBufferSource } from '@johntalton/and-other-delights' */
 
+import { reconstruct24bit } from '../bits.js'
+
 
 export const FRAME_TYPE_TIME = 'sensor.time'
 export const FRAME_TYPE_CONTROL_ERROR = 'control.error'
@@ -41,16 +43,6 @@ export const FRAME_TYPE_MEASUREMENT = 'sensor'
 
 /** @typedef {FifoFrameSensorTime | FifoFrameControlError | FifoFrameControlConfig | FifoFrameEmpty | FifoFrameMeasurement } FifoFrame */
 
-
-/**
- * @param {number} msb
- * @param {number} lsb
- * @param {number} xlsb
- */
-export function reconstruct24bit(msb, lsb, xlsb) {
-	return (msb << 16) | (lsb << 8) | xlsb
-}
-
 export class bmp3xxFifoParser {
 
 	/**
@@ -72,16 +64,16 @@ export class bmp3xxFifoParser {
 		if (sourceBuffer.byteLength <= 0) { return [] }
 		const [size, frame] = bmp3xxFifoParser.parseFrame(sourceBuffer)
 		if(size === undefined) {
-			console.log('frame under read', size, frame)
+			console.warn('frame under read', size, frame)
 			return []
 		}
 		if (size < 0) {
-			console.log('frame under read', size, frame)
+			console.warn('frame under read', size, frame)
 			return []
 		}
 
 		if(frame === undefined) {
-			console.log('frame undefined')
+			console.warn('frame undefined')
 			return []
 		}
 
@@ -205,7 +197,7 @@ export class bmp3xxFifoParser {
 	 */
 	static parseSensorTimeFrame(sourceBuffer) {
 		if (sourceBuffer.byteLength < 4) {
-			console.log('unexpected time frame')
+			console.warn('unexpected time frame')
 			 return [-4]
 		}
 
@@ -246,7 +238,7 @@ export class bmp3xxFifoParser {
 
 		if (t) {
 			if (dv.byteLength < 4) {
-				console.log('unexpected measurement frame')
+				console.warn('unexpected measurement frame')
 				return [-4]
 			}
 
@@ -255,12 +247,12 @@ export class bmp3xxFifoParser {
 
 		if (p) {
 			if (t && dv.byteLength < 7) {
-				console.log('unexpected pressure ')
+				console.warn('unexpected pressure ')
 				return [-7]
 			}
 
 			if (!t && dv.byteLength < 4) {
-				console.log('unexpected pressure ')
+				console.warn('unexpected pressure ')
 				return [-4]
 			}
 

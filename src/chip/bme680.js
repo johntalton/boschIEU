@@ -10,36 +10,42 @@ import { BusUtil } from '../util.js'
 import { Bits } from './bits.js'
 //
 
+import {
+	REGISTERS as BME6XX_REGISTERS,
+	bme6xx
+} from './bme6xx.js'
 import { Compensate } from './compensate.js'
-import { enumMap, genericChip } from './generic.js'
+import { enumMap, GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES } from './generic.js'
 import { Util } from './util.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile, ProfileReady, GasSetpoint } from '../types/profile.js' */
+/** @import { Profile6xx, ProfileReady, ProfileModes } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { CompensateResult } from './compensate.js' */
+/** @import { Features } from '../types/features.js' */
 
-// todo move to common enumerations in generic? but its not
-const gwMultipliers = [
-	{ name: 1, value: 0 },
-	{ name: 4, value: 1 },
-	{ name: 16, value: 2 },
-	{ name: 64, value: 3 }
+/** @type {Array<{ name: Extract<ProfileModes, 'SLEEP'|'FORCED'>, value: number }>} */
+export const MODES = [
+	{ name: 'SLEEP',  value: 0 },
+	{ name: 'FORCED', value: 1 }
 ]
 
-export class bme680 extends genericChip {
+export const REGISTERS = {
+
+}
+
+/** @type {Array<[ number, number ]>} */
+export const SET_POINTS_BLOCK = [ [ BME6XX_REGISTERS.GAS_WAIT_0, 30 ] ]
+
+export class bme680 extends bme6xx {
 	/**
 	 * @override
 	 */
 	static get name() { return 'bme680' }
-	/**
-	 * @override
-	 */
-	static get chipId() { return 0x61 }
 
-	// features
 	/**
 	 * @override
+	 * @returns {Features}
 	 */
 	static get features() {
 		return {
@@ -50,160 +56,59 @@ export class bme680 extends genericChip {
 			normalMode: false,
 			interrupt: false,
 			fifo: false,
-			time: false
+			time: false,
+			modes: [ 'SLEEP', 'FORCED' ]
 		}
 	}
 
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
-	 * @returns {Promise<Calibration>}
-	 */
-	static async calibration(bus) {
-		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x89, 25], [0xE1, 16], [0x00, 1], [0x02, 1], [0x04, 1]])
-		const dv = ArrayBuffer.isView(aBuffer) ?
-			new DataView(aBuffer.buffer, aBuffer.byteOffset) :
-			new DataView(aBuffer)
-
-		// console.log(buffer)
-		const t1 = dv.getUint16(33, true)
-		const t2 = dv.getInt16(1, true)
-		const t3 = dv.getInt8(3)
-
-		const T = [t1, t2, t3]
-
-		const p1 = dv.getUint16(5, true)
-		const p2 = dv.getInt16(7, true)
-		const p3 = dv.getInt8(9)
-		const p4 = dv.getInt16(11, true)
-		const p5 = dv.getInt16(13, true)
-		const p6 = dv.getInt8(16)
-		const p7 = dv.getInt8(15)
-		const p8 = dv.getInt16(19, true)
-		const p9 = dv.getInt16(21, true)
-		const p10 = dv.getInt8(23)
-
-		const P = [p1, p2, p3, p4, p5, p6, p7, p8, p9, p10]
-
-		const h2_msb = dv.getUint8(25)
-		const h1_2_lsb = dv.getUint8(26)
-		const h1_msb = dv.getUint8(27)
-
-		const h1_lsb = BitSmush.extractBits(h1_2_lsb, 3, 4)
-		const h2_lsb = BitSmush.extractBits(h1_2_lsb, 7, 4)
-
-		const h1 = Bits.reconstruct12bit(h1_msb, h1_lsb)
-		const h2 = Bits.reconstruct12bit(h2_msb, h2_lsb)
-		const h3 = dv.getInt8(28)
-		const h4 = dv.getInt8(29)
-		const h5 = dv.getInt8(30)
-		const h6 = dv.getUint8(31)
-		const h7 = dv.getInt8(32)
-
-		const H = [h1, h2, h3, h4, h5, h6, h7]
-
-		const g1 = dv.getInt8(37)
-		const g2 = dv.getInt16(35, true)
-		const g3 = dv.getInt8(38)
-
-		const G = [g1, g2, g3]
-
-		// console.log('\tcalibration', T, P, H, G)
-
-		const anon0 = dv.getUint8(42) // what else is in here?
-		const anon1 = dv.getInt8(43) // what else is in here?
-
-		const res_heat_val = dv.getInt8(41)
-		const res_heat_range = BitSmush.extractBits(anon0, 5, 2)
-		const range_switching_error = Bits.decodeTwos(BitSmush.extractBits(anon1, 7, 4), 4)
-
-		// console.log('res heat val', res_heat_val)
-		// console.log('res heat range', res_heat_range)
-		// console.log('range switching error', range_switching_error)
-
-
-		return {
-			T, P, H,
-			G: {
-				G,
-				res_heat_val,
-				res_heat_range,
-				range_switching_error
-			}
-		}
-	}
-
-	/**
-	 * @override
-	 * @param {I2CAddressedBus} bus
-	 * @returns {Promise<Profile>}
+	 * @returns {Promise<Profile6xx>}
 	 */
 	static async profile(bus) {
+		const {
+			ctrl_gas_1,
+			filter,
+			spi_3w_en,
+			mode,
+			osrs_t,
+			osrs_p,
+			osrs_h,
+			spi_3w_int_en,
+			spi_mem_page,
+			nb_conv,
+			heat_off
+		} = await bme6xx.rawProfile(bus)
 
-		/** @param {number|undefined} gasWait  */
-		function gasWaitToDuration(gasWait) {
-			if(gasWait === undefined) { return undefined }
-			const multiplier = NameValueUtil.toName(BitSmush.extractBits(gasWait, 7, 2), gwMultipliers)
-			const baseMs = BitSmush.extractBits(gasWait, 5, 6)
-			return baseMs * multiplier
-		}
+		const buffer = await BusUtil.readI2cBlocks(bus, SET_POINTS_BLOCK)
+		const dv = ArrayBuffer.isView(buffer) ?
+			new DataView(buffer.buffer, buffer.byteOffset) :
+			new DataView(buffer)
 
-		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x50, 30], [0x70, 6]])
-		const dv = ArrayBuffer.isView(aBuffer) ?
-			new DataView(aBuffer.buffer, aBuffer.byteOffset) :
-			new DataView(aBuffer)
-
-		// console.log(buffer)
 		const idac_heat = Util.range(0, 9).map(idx => dv.getUint8(idx))
 		const res_heat = Util.range(10, 19).map(idx => dv.getUint8(idx))
 		const gas_wait = Util.range(20, 29).map(idx => dv.getUint8(idx))
-		const ctrl_gas0 = dv.getUint8(30)
-		const ctrl_gas1 = dv.getUint8(31)
-		const ctrl_hum = dv.getUint8(32)
-		const status = dv.getUint8(33)
-		const ctrl_meas = dv.getUint8(34)
-		const config = dv.getUint8(35)
 
-		const heat_off = BitSmush.extractBits(ctrl_gas0, 3, 1) === 1
-		const run_gas = BitSmush.extractBits(ctrl_gas1, 4, 1) === 1
-		const nb_conv = BitSmush.extractBits(ctrl_gas1, 3, 4)
+		//
+		const run_gas = BitSmush.extractBits(ctrl_gas_1, 4, 1) === 1
 
-		const spi_3w_int_en = BitSmush.extractBits(ctrl_hum, 6, 1) === 1
-
-		const osrs_h = BitSmush.extractBits(ctrl_hum, 2, 3)
-		const osrs_t = BitSmush.extractBits(ctrl_meas, 7, 3)
-		const osrs_p = BitSmush.extractBits(ctrl_meas, 4, 3)
-
-		const mode = BitSmush.extractBits(ctrl_meas, 1, 2)
-
-		const filter = BitSmush.extractBits(config, 4, 3)
-		const spi_3w_en = BitSmush.extractBits(config, 0, 1) === 1
-		const spi_mem_page = BitSmush.extractBits(status, 4, 1)
-
-		/** @type {Array<GasSetpoint>} */
-		const setpoints = res_heat.map((v, i) => ({
-			index: i,
-			active: i === nb_conv,
-			ohms: v,
-			durationMs: gasWaitToDuration(gas_wait[i]),
-			lastIdac: idac_heat[i]
-		}))
-			.filter(v => (v.ohms !== 0) || (v.durationMs !== 0))
-
+		const setpoints = bme6xx.parseSetpoint(idac_heat, res_heat, gas_wait, nb_conv)
 
 		return {
-			mode: NameValueUtil.toName(mode, enumMap.modes_sans_normal),
-			oversampling_p: NameValueUtil.toName(osrs_p, enumMap.oversamples),
-			oversampling_t: NameValueUtil.toName(osrs_t, enumMap.oversamples),
-			oversampling_h: NameValueUtil.toName(osrs_h, enumMap.oversamples),
-			filter_coefficient: NameValueUtil.toName(filter, enumMap.filters_more),
+			mode: NameValueUtil.toName(mode, MODES),
+			oversampling_p: NameValueUtil.toName(osrs_p, GENERIC_OVERSAMPLES),
+			oversampling_t: NameValueUtil.toName(osrs_t, GENERIC_OVERSAMPLES),
+			oversampling_h: NameValueUtil.toName(osrs_h, GENERIC_OVERSAMPLES),
+			filter_coefficient: NameValueUtil.toName(filter, GENERIC_FILTER_EXT),
 
 			gas: {
-				enabled: run_gas && !heat_off,
+				headerEnabled: !heat_off,
+				conversionEnabled: run_gas,
 				setpoints
 			},
 			spi: {
-				// mempage: spi_mem_page,
+				page: spi_mem_page === 0 ? 0 : 1,
 				enable3w: spi_3w_en,
 				interrupt: spi_3w_int_en
 			}
@@ -213,7 +118,7 @@ export class bme680 extends genericChip {
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
-	 * @param {Partial<Profile>} profile
+	 * @param {Profile6xx} profile
 	 * @param {Calibration} calibration
 	 * @returns {Promise<void>}
 	 */
@@ -304,12 +209,12 @@ export class bme680 extends genericChip {
 		const run_gas = active === undefined ? false : active.active
 		const nb_conv = active === undefined ? 15 : active.index// todo why 0b1111
 
-		const mode = NameValueUtil.toValue(profile.mode, enumMap.modes)
-		const os_p = NameValueUtil.toValue(profile.oversampling_p, enumMap.oversamples)
-		const os_t = NameValueUtil.toValue(profile.oversampling_t, enumMap.oversamples)
-		const os_h = NameValueUtil.toValue(profile.oversampling_h, enumMap.oversamples)
+		const mode = NameValueUtil.toValue(profile.mode, MODES)
+		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
+		const os_h = NameValueUtil.toValue(profile.oversampling_h, GENERIC_OVERSAMPLES)
 
-		const filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters_more)
+		const filter = NameValueUtil.toValue(profile.filter_coefficient, GENERIC_FILTER_EXT)
 		const en3w = profile.spi?.enable3w ?? false
 
 		const ctrl_gas0 = BitSmush.smushBits([[3, 1]], [heat_off])
@@ -355,14 +260,6 @@ export class bme680 extends genericChip {
 
 		// now set valid mode
 		await bus.writeI2cBlock(0x74, Uint8Array.from([ctrl_meas]))
-	}
-
-	/**
-	 * @param {I2CAddressedBus} bus
-	 * @param {Partial<Profile>} patch
-	 */
-	static patchProfile(bus, patch) {
-		throw new Error('patch profile unavailable')
 	}
 
 	/**

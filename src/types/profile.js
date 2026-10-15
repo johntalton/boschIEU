@@ -1,4 +1,7 @@
 
+/** @typedef {"PARALLEL"|"NON-STOP"|"NORMAL"|"FORCED"|"SLEEP"} ProfileModes */
+
+
 /**
  * @typedef {Object} ProfileWatchdog
  */
@@ -28,25 +31,24 @@
 /**
  * @typedef {Object} GasSetpoint
  * @property {number} index
- * @property {boolean} [skip]
+ * @property {boolean} selected
  *
- * @property {number} [temperatureC]
- * @property {number|undefined} durationMs
- * @property {boolean} active
- * @property {number} ohms
- * @property {number|undefined} lastIdac
- *
- * @property {number} [ambientTemperatureC]
+ * @property {number} temperatureC
+ * @property {number} durationMs
+ * @property {number} initialMa
  */
 
 /**
  * @typedef {Object} ProfileGas
- * @property {boolean} enabled
+ * @property {boolean} headerEnabled
+ * @property {boolean} conversionEnabled
  * @property {Array<GasSetpoint>} setpoints
+ * @property {number} [gas_wait_shared]
  */
 
 /**
  * @typedef {Object} ProfileSPI
+ * @property {0|1} page
  * @property {boolean} enable3w
  * @property {boolean} [interrupt]
  */
@@ -60,24 +62,57 @@
  * @property {number} [active_profile_idx]
  */
 
+
 /**
- * @typedef {Object} Profile
- * @property {string} mode
+ * @typedef {Object} Profile2xx
+ * @property {ProfileModes} mode
+ * @property {boolean|number} filter_coefficient
+ * @property {number} [standby_time]
  * @property {number|false} oversampling_p
  * @property {number|false} oversampling_t
  * @property {number|false} [oversampling_h]
- * @property {boolean|number} filter_coefficient
- * @property {number} [standby_time]
- * @property {number} [standby_prescaler]
- * @property {ProfileSPI} [spi]
- * @property {ProfileWatchdog} [watchdog]
- * @property {ProfileInterrupt} [interrupt]
- * @property {ProfileFIFO} [fifo]
- * @property {ProfileGas} [gas]
  *
- * @property {number} [ambientTemperatureC]
- *
- * @property {ProfileReady} [ready]
+ * @property {ProfileSPI} spi
+ * @property {ProfileReady} ready
  */
+
+/**
+ * @typedef {Object} Profile3xx
+ * @property {ProfileModes} mode
+ * @property {number} standby_prescaler
+ * @property {number|false} oversampling_p
+ * @property {number|false} oversampling_t
+ * @property {boolean|number} filter_coefficient
+ *
+ * @property {ProfileWatchdog} watchdog
+ * @property {ProfileInterrupt} interrupt
+ * @property {ProfileFIFO} fifo
+ */
+
+/**
+ * @typedef {Object} Profile5xx
+ * @property {ProfileModes} mode
+ *
+ */
+
+/**
+ * @typedef {Object} Profile6xx
+ * @property {Extract<ProfileModes, 'SLEEP'|'FORCED'|'PARALLEL'>} mode
+ * @property {number|false} oversampling_p
+ * @property {number|false} oversampling_t
+ * @property {number|false} oversampling_h
+ * @property {boolean|number} filter_coefficient
+ *
+ * @property {ProfileGas} gas
+ * @property {ProfileSPI} spi
+ */
+
+
+/**
+ * @property {number} [ambientTemperatureC]
+ */
+
+
+/** @typedef {Profile2xx | Profile3xx | Profile5xx | Profile6xx} Profile */
 
 export {}

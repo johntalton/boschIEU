@@ -1,26 +1,36 @@
-
-/** @import {BoschSensor} from './sensor.js' */
+/** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
+/** @import { BoschSensor } from './sensor.js' */
+/** @import { GenericChip } from './chip/generic.js'  */
 
 /**
- * Instance Helper for Interacting with static chips via the Sensor.
- * Wrap calls into the chips static fifo methods and is accessible
- *   via the sensors fifo property (creating a name space for higher level
- *   API).
+ * @template {typeof GenericChip} C
  */
 export class BoschFifo {
+	/** @type {I2CAddressedBus} */
+	#bus
+
+	/** @type {BoschSensor<C>} */
+	#sensor
+
 	/**
-	 * @param {BoschSensor} sensor
+	 * @param {I2CAddressedBus} bus
+	 * @param {BoschSensor<C>} sensor
 	 */
-	constructor(sensor) {
-		this.sensor = sensor
+	constructor(bus, sensor) {
+		this.#bus = bus
+		this.#sensor = sensor
 	}
 
-	async flush() { return this.sensor.chip.fifo.flush(this.sensor._bus) }
+	async flush() {
+		if(!this.#sensor.chip.features.fifo) { return }
+		return this.#sensor.chip.fifo.flush(this.#bus)
+	}
 
 	/**
 	 * @param {boolean} overRead
 	 */
 	async read(overRead) {
-		return this.sensor.chip.fifo.read(this.sensor._bus, this.sensor._calibration, overRead)
+		if(!this.#sensor.chip.features.fifo) { return }
+		return this.#sensor.chip.fifo.read(this.#bus, this.#sensor.calibration, overRead)
 	}
 }

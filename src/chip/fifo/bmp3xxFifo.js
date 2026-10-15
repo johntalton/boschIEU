@@ -1,7 +1,7 @@
 import { reconstruct9bit } from '../bits.js'
 import { Compensate } from '../compensate.js'
 import { genericFifo } from '../generic.js'
-import { bmp3xxFifoParser } from './bmp3xxFifoParser.js'
+import { bmp3xxFifoParser, FRAME_TYPE_MEASUREMENT, FRAME_TYPE_TIME } from './bmp3xxFifoParser.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Calibration } from '../../types/calibration.js' */
@@ -24,6 +24,7 @@ export class bmp3xxFifo extends genericFifo {
 	 * @param {I2CAddressedBus} bus
 	 */
 	static flush(bus) {
+		// bmp3xx.sendCommand(bus, CMD_FIFO_FLUSH)
 		return bus.writeI2cBlock(CMD_REGISTER, Uint8Array.from([CMD_FIFO_FLUSH]))
 	}
 
@@ -68,15 +69,21 @@ export class bmp3xxFifo extends genericFifo {
 		const messages = bmp3xxFifoParser.parseFrames(frames)
 
 		return messages.map(msg => {
-			if (msg.type === 'sensor') {
+			if (msg.type === FRAME_TYPE_MEASUREMENT) {
 				return {
 					// we do not explode message here as it may not be clean
 					type: msg.type,
-					...Compensate.from({ adcP: msg.press, adcT: msg.temp, type: '3xy' }, calibration)
+					...Compensate.from({
+							adcP: msg.press,
+							adcT: msg.temp,
+							adcH: false,
+							adcG: false,
+							type: '3xy'
+						}, calibration)
 				}
 			}
 
-			if (msg.type === 'sensor.time') {
+			if (msg.type === FRAME_TYPE_TIME) {
 				return {
 					// we do not explode message here as it may not be clean
 					type: msg.type,

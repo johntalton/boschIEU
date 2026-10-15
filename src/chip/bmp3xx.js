@@ -8,17 +8,19 @@ import { reconstruct9bit, reconstruct24bit } from './bits.js'
 //
 
 import { Compensate } from './compensate.js'
-import { enumMap, genericChip } from './generic.js'
+import { enumMap, GENERIC_FILTER_EXT, GenericChip } from './generic.js'
 //
 
 import { bmp3xxFifo } from './fifo/index.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile, ProfileReady } from '../types/profile.js' */
+/** @import { Profile3xx, ProfileReady } from '../types/profile.js' */
 /** @import { CompensateResult } from './compensate.js' */
 /** @import { Calibration } from '../types/calibration.js' */
+/** @import { Features } from '../types/features.js' */
+/** @import { ChipKind } from './chip.js'  */
 
-const oversamplings = [
+export const OVERSAMPLES_3XX = [
 	{ name: 1, value: 0x0 },
 	{ name: 2, value: 0x1 },
 	{ name: 4, value: 0x2 },
@@ -42,7 +44,7 @@ const watchdogtimes = [
 	{ name: false, value: 0 } // just pick one (that is, zero)
 ]
 
-const prescalers = [
+export const ODR_PRESCALER = [
 	{ name: 1, value: 0x00 },
 	{ name: 2, value: 0x01 },
 	{ name: 4, value: 0x02 },
@@ -160,10 +162,57 @@ const DEFAULT_PROFILE = {
 // const BLOCK_LIMIT = MAX_BLOCK_SIZE * Infinity
 
 
+export const REGISTERS = {
+	CHIP_ID: 0x00,
+	REV_ID: 0x01,
+	ERR_REG: 0x02,
+	STATUS: 0x03,
+	DATA_0: 0x04,
+	DATA_1: 0x05,
+	DATA_2: 0x06,
+	DATA_3: 0x07,
+	DATA_4: 0x08,
+	DATA_5: 0x09,
+	// RESERVED: 0x0A,
+	// RESERVED: 0x0B,
+	SENSOR_TIME_0: 0x0C,
+	SENSOR_TIME_1: 0x0D,
+	SENSOR_TIME_2: 0x0E,
+	// RESERVED: 0x0F,
+	EVENT: 0x10,
+	INT_STATUS: 0x11,
+	FIFO_LENGTH_0: 0x12,
+	FIFO_LENGTH_1: 0x13,
+	FIFO_DATA: 0x14,
+	FIFO_WTM_0: 0x15,
+	FIFO_WTM_1: 0x16,
+	FIFO_CONFIG_1: 0x17,
+	FIFO_CONFIG_2: 0x18,
+	INT_CTRL: 0x19,
+	IF_CONF: 0x1A,
+	PWR_CTRL: 0x1B,
+	OSR: 0x1C,
+	ODR: 0x1D,
+	// RESERVED: 0x1E,
+	CONFIG: 0x1F,
+	// RESERVED: 0x20,
+
+	CMD: 0x7E
+
+}
+
+export const RESET_MAGIC = 0xB6
+
+/** @type {Array<[ number, number ]>} */
+export const PROFILE_BLOCK = [ [ REGISTERS.FIFO_WTM_0, 11 ] ]
+
+
+
+
 /**
  * @param {string|undefined} mode
  */
-function interruptMode(mode) {
+export function interruptMode(mode) {
 	const INT_DEFAULT_MODE = { od: INT_PUSH_PULL, level: INT_ACTIVE_HIGH }
 
 	if (mode === undefined || mode === '') { return INT_DEFAULT_MODE }
@@ -176,7 +225,7 @@ function interruptMode(mode) {
  * @param {number} opendrain
  * @param {number} level
  */
-function modeFrom(opendrain, level) {
+export function modeFrom(opendrain, level) {
 	if (opendrain === INT_OPEN_DRAIN) { return 'open-drain' }
 	if (level === INT_ACTIVE_HIGH) { return 'active-high' }
 	if (level === INT_ACTIVE_LOW) { return 'active-low' }
@@ -187,9 +236,22 @@ function modeFrom(opendrain, level) {
 /**
  *
  */
-export class bmp3xx extends genericChip {
+export class bmp3xx extends GenericChip {
 	/**
 	 * @override
+	 */
+	static get name() { return 'bmp3xx' }
+
+	/**
+	 * @override
+	 * @returns {ChipKind}
+	 */
+	static get kind() { return '3xx' }
+
+
+	/**
+	 * @override
+	 * @returns {Features}
 	 */
 	static get features() {
 		return {
@@ -200,33 +262,28 @@ export class bmp3xx extends genericChip {
 			normalMode: true,
 			interrupt: true,
 			fifo: true,
-			time: true
+			time: true,
+			modes: [ 'SLEEP', 'FORCED', 'NORMAL' ]
 		}
 	}
 
 	/**
-	 * @override
-	 */
-	static isChipIdAtZero() { return true }
-
-	/**
-	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {number} command
+	 * @returns {Promise<void>}
 	 */
-	static async id(bus) {
-		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x00, 1]])
-		const dv = ArrayBuffer.isView(aBuffer) ?
-			new DataView(aBuffer.buffer, aBuffer.byteOffset) :
-			new DataView(aBuffer)
-
-		return dv.getInt8(0)
+	static async sendCommand(bus, command) {
+		await bus.writeI2cBlock(REGISTERS.CMD, Uint8Array.from([ command ]))
 	}
 
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<void>}
 	 */
-	static reset(bus) { return bus.writeI2cBlock(0x7E, Uint8Array.from([0xB6])) }
+	static async reset(bus) {
+		await bmp3xx.sendCommand(bus, RESET_MAGIC)
+	}
 
 	/**
 	 * @override
@@ -238,6 +295,8 @@ export class bmp3xx extends genericChip {
 	 * @param {I2CAddressedBus} bus
 	 */
 	static async sensorTime(bus) {
+		// todo  bmp384 has 32-bit sensor time
+		//  bmp388 / bmp390 has 24-bit sensor time
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0xC0, 3]])
 		const u8 = ArrayBuffer.isView(aBuffer) ?
 			new Uint8Array(aBuffer.buffer, aBuffer.byteOffset) :
@@ -258,7 +317,7 @@ export class bmp3xx extends genericChip {
 	 * @returns {Promise<Calibration>}
 	 */
 	static async calibration(bus) {
-		console.log('bmp3xx calibration')
+		// console.log('bmp3xx calibration')
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x31, 21]])
 		const dv = ArrayBuffer.isView(aBuffer) ?
 			new DataView(aBuffer.buffer, aBuffer.byteOffset) :
@@ -311,106 +370,45 @@ export class bmp3xx extends genericChip {
 	}
 
 	/**
-	 * @override
 	 * @param {I2CAddressedBus} bus
-	 * @returns {Promise<Profile>}
+	 * @returns {Promise<never>}
 	 */
-	static async profile(bus) {
-		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0x15, 11]])
-		const buffer = ArrayBuffer.isView(aBuffer) ?
+	static async _rawProfile(bus) {
+		const aBuffer = await BusUtil.readI2cBlocks(bus, PROFILE_BLOCK)
+		const dv = ArrayBuffer.isView(aBuffer) ?
 			new DataView(aBuffer.buffer, aBuffer.byteOffset) :
 			new DataView(aBuffer)
 
-		// console.log('profile buffer', buffer)
-
-		const config = buffer.getUint8(10)
-		// 9
-		const odr = buffer.getUint8(8)
-		const osr = buffer.getUint8(7)
-		const pwr_ctrl = buffer.getUint8(6)
-		const if_conf = buffer.getUint8(5)
-		const int_ctrl = buffer.getUint8(4)
-		const fifo_config_2 = buffer.getUint8(3)
-		const fifo_config_1 = buffer.getUint8(2)
-		const fifo_wtm_1 = buffer.getUint8(1)
-		const fifo_wtm_0 = buffer.getUint8(0)
-
-		//
-		const iff_filter = BitSmush.extractBits(config, 3, 3)
-		// const short_in = BitSmush.extractBits(config, 0, 1)
-		const odr_sel = BitSmush.extractBits(odr, 4, 5)
-		const osr_p = BitSmush.extractBits(osr, 2, 3)
-		const osr_t = BitSmush.extractBits(osr, 5, 3)
-		const mode = BitSmush.extractBits(pwr_ctrl, 5, 2)
-		const temp_en = BitSmush.extractBits(pwr_ctrl, 1, 1)
-		const press_en = BitSmush.extractBits(pwr_ctrl, 0, 1)
-		const i2c_wdt_sel = BitSmush.extractBits(if_conf, 2, 1)
-		const i2c_wdt_en = BitSmush.extractBits(if_conf, 1, 1)
-		// const spi3 = BitSmush.extractBits(if_conf, 0, 1)
-		const drdy_en = BitSmush.extractBits(int_ctrl, 6, 1)
-		// const int_ds = BitSmush.extractBits(int_ctrl, 5, 1) // bmp390
-		const ffull_en = BitSmush.extractBits(int_ctrl, 4, 1)
-		const fwtm_en = BitSmush.extractBits(int_ctrl, 3, 1)
-		const int_latch = BitSmush.extractBits(int_ctrl, 2, 1)
-		const int_level = BitSmush.extractBits(int_ctrl, 1, 1)
-		const int_od = BitSmush.extractBits(int_ctrl, 0, 1)
-		const data_select = BitSmush.extractBits(fifo_config_2, 4, 2)
-		const fifo_subsampling = BitSmush.extractBits(fifo_config_2, 2, 3)
-		const fifo_temp_en = BitSmush.extractBits(fifo_config_1, 4, 1)
-		const fifo_press_en = BitSmush.extractBits(fifo_config_1, 3, 1)
-		const fifo_time_en = BitSmush.extractBits(fifo_config_1, 2, 1)
-		const fifo_stop_on_full = BitSmush.extractBits(fifo_config_1, 1, 1)
-		const fifo_mode = BitSmush.extractBits(fifo_config_1, 0, 1)
-		const fifo_water_mark_8 = BitSmush.extractBits(fifo_wtm_1, 0, 1)
-		const fifo_water_mark_7_0 = fifo_wtm_0
-
-		//
-		const fifo_watermark = reconstruct9bit(fifo_water_mark_8, fifo_water_mark_7_0)
-		const intMode = modeFrom(int_od, int_level)
+		const config = dv.getUint8(10)
+		// reserved 9
+		const odr = dv.getUint8(8)
+		const osr = dv.getUint8(7)
+		const pwr_ctrl = dv.getUint8(6)
+		const if_conf = dv.getUint8(5)
+		const int_ctrl = dv.getUint8(4)
+		const fifo_config_2 = dv.getUint8(3)
+		const fifo_config_1 = dv.getUint8(2)
+		const fifo_wtm_1 = dv.getUint8(1)
+		const fifo_wtm_0 = dv.getUint8(0)
 
 		return {
-			mode: NameValueUtil.toName(mode, enumMap.modes),
-			standby_prescaler: NameValueUtil.toName(odr_sel, prescalers),
-			oversampling_p: press_en === PRESS_ENABLED ?
-				NameValueUtil.toName(osr_p, oversamplings) : false,
-			oversampling_t: temp_en === TEMP_ENABLED ?
-				NameValueUtil.toName(osr_t, oversamplings) : false,
-			filter_coefficient: NameValueUtil.toName(iff_filter, enumMap.filters),
-
-			watchdog: i2c_wdt_en === WATCHDOG_ENABLED ?
-				NameValueUtil.toName(i2c_wdt_sel, watchdogtimes) : false,
-
-			interrupt: {
-				mode: intMode,
-				latched: int_latch === LATCHED,
-				onFifoWatermark: fwtm_en === ONWATER_ENABLED,
-				onFifoFull: ffull_en === ONFULL_ENABLED,
-				onReady: drdy_en === ONREADY_ENABLED
-			},
-			fifo: {
-				active: fifo_mode === FIFO.ENABLED,
-				data: NameValueUtil.toName(data_select, dataselects),
-				subsampling: fifo_subsampling,
-				highWatermark: fifo_watermark,
-				stopOnFull: fifo_stop_on_full === FIFO.FULL_STOP_ENABLED,
-				temp: fifo_temp_en === FIFO.TEMP_ENABLED,
-				press: fifo_press_en === FIFO.PRESS_ENABLED,
-				time: fifo_time_en === FIFO.TIME_ENABLED
-			},
-
-			ready: {
-				// ready: !measuring,
-				// measuring: measuring,
-				// updating: updating
-			}
+			config,
+			odr,
+			osr,
+			pwr_ctrl,
+			if_conf,
+			int_ctrl,
+			fifo_config_2,
+			fifo_config_1,
+			fifo_wtm_1,
+			fifo_wtm_0
 		}
 	}
-
 
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
-	 * @param {Partial<Profile>} p
+	 * @param {Profile3xx} p
 	 */
 	static async setProfile(bus, p) {
 		const defaultProfile = structuredClone(DEFAULT_PROFILE)
@@ -435,10 +433,10 @@ export class bmp3xx extends genericChip {
 		// console.log('sub-sampling', profile.fifo.subSampling)
 
 		//
-		const iff_filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters_more)
-		const odr_sel = NameValueUtil.toValue(profile.standby_prescaler, prescalers)
-		const osr_p = NameValueUtil.toValue(profile.oversampling_p, oversamplings)
-		const osr_t = NameValueUtil.toValue(profile.oversampling_t, oversamplings)
+		const iff_filter = NameValueUtil.toValue(profile.filter_coefficient, GENERIC_FILTER_EXT)
+		const odr_sel = NameValueUtil.toValue(profile.standby_prescaler, ODR_PRESCALER)
+		const osr_p = NameValueUtil.toValue(profile.oversampling_p, OVERSAMPLES_3XX)
+		const osr_t = NameValueUtil.toValue(profile.oversampling_t, OVERSAMPLES_3XX)
 		const mode = NameValueUtil.toValue(profile.mode.toUpperCase(), enumMap.modes)
 		const temp_en = profile.oversampling_t === false ? TEMP_DISABLED : TEMP_ENABLED
 		const press_en = profile.oversampling_p === false ? PRESS_DISABLED : PRESS_ENABLED
@@ -493,19 +491,6 @@ export class bmp3xx extends genericChip {
 		await bus.writeI2cBlock(0x1F, Uint8Array.from([config]))
 
 		await bus.writeI2cBlock(0x1B, Uint8Array.from([pwr_ctrl]))
-	}
-
-	/**
-	 * @param {I2CAddressedBus} bus
-	 * @param {Partial<Profile>} patch
-	 */
-	static patchProfile(bus, patch) {
-		// diff the json with the existing profile? given?
-		// identify the touched registers
-		// power mode sleep
-		// set register bulk
-		// power mode to final state prof + patch
-		throw new Error('patch profile not available')
 	}
 
 	/**

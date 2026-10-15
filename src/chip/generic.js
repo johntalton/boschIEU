@@ -3,16 +3,34 @@
 /** @import { Profile, ProfileReady } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { CompensateResult } from './compensate.js' */
+/** @import { Features } from '../types/features.js' */
+/** @import { ChipKind } from './chip.js' */
+/** @import { NVMap } from '../nvutil.js' */
+
+/** @type {NVMap<false|number>} */
+export const GENERIC_OVERSAMPLES = [
+  { name: false, value: 0 },
+  { name: 1,     value: 1 },
+  { name: 2,     value: 2 },
+  { name: 4,     value: 3 },
+  { name: 8,     value: 4 },
+  { name: 16,    value: 5 }
+]
+
+/** @type {NVMap<false|number>} */
+export const GENERIC_FILTER_EXT = [ // bme680 / bmp388
+  { name: false, value: 0 },
+  { name: 1,     value: 1 },
+  { name: 3,     value: 2 },
+  { name: 7,     value: 3 },
+  { name: 15,    value: 4 },
+  { name: 31,    value: 5 },
+  { name: 63,    value: 6 },
+  { name: 127,   value: 7 }
+]
+
 
 export const enumMap = {
-  oversamples: [ //
-    { name: false, value: 0 },
-    { name: 1,     value: 1 },
-    { name: 2,     value: 2 },
-    { name: 4,     value: 3 },
-    { name: 8,     value: 4 },
-    { name: 16,    value: 5 }
-  ],
   filters: [ // bmp280 / bme280
     { name: false, value: 0 },
     { name: 2,     value: 1 },
@@ -20,16 +38,7 @@ export const enumMap = {
     { name: 8,     value: 3 },
     { name: 16,    value: 4 }
   ],
-  filters_more: [ // bme680 / bmp388
-    { name: false, value: 0 },
-    { name: 1,     value: 1 },
-    { name: 3,     value: 2 },
-    { name: 7,     value: 3 },
-    { name: 15,    value: 4 },
-    { name: 31,    value: 5 },
-    { name: 63,    value: 6 },
-    { name: 127,   value: 7 }
-  ],
+
   modes: [ // bmp280 / bme280 / bmp388
     { name: 'SLEEP',  value: 0 },
     { name: 'FORCED', value: 1 },
@@ -80,7 +89,10 @@ export class genericFifo {
 }
 
 //
-export class genericChip {
+export class GenericChip {
+  /**
+   * @returns {Features}
+   */
   static get features() {
     return {
       pressure: false,
@@ -94,12 +106,12 @@ export class genericChip {
     }
   }
 
-  static isChipIdAtZero() { return false }
-
   static get name() { return 'generic' }
 
-  /** @returns {number|undefined} */
-  static get chipId() { return undefined }
+  /**
+   * @returns {ChipKind}
+   */
+  static get kind() { throw new Error('generic is not a kind') }
 
   static get skip_value() { return 0x08_00_00 }
 
@@ -110,18 +122,20 @@ export class genericChip {
   static async id(_bus) { throw new Error('generic read for legacy, use Chip specific id implementation') }
 
   /**
-   * @param {I2CAddressedBus} bus
+   * @param {I2CAddressedBus} _bus
+   * @returns {Promise<void>}
    */
-  static reset(bus) { return bus.writeI2cBlock(0xE0, Uint8Array.from([ 0xB6 ])) }
+  static async reset(_bus) { throw new Error('reset undefined for generic chip') }
 
-  static get fifo() { return genericFifo } // return the class as a shorthand
+  static get fifo() { return genericFifo }
 
   /**
    * @param {I2CAddressedBus} _bus
-   * @returns {Promise<SensorTime>}
+   * @returns {Promise<number>}
    */
   static async sensorTime(_bus) {
-    throw new Error('sensorTime not defined for generic chip')
+    // throw new Error('sensorTime not defined for generic chip')
+    return 0
   }
 
   // estimateMeasurementWait
@@ -159,11 +173,11 @@ export class genericChip {
   static async calibration(_bus) { throw new Error('calibration not defined for generic chip') }
 
 
-  get ranges() {
-    return {
-      temperatureC: [0, 60],
-      pressurehP: [900, 1100],
-      humidityPercent: [20, 80]
-    }
-  }
+  // get ranges() {
+  //   return {
+  //     temperatureC: [0, 60],
+  //     pressurehP: [900, 1100],
+  //     humidityPercent: [20, 80]
+  //   }
+  // }
 }

@@ -5,122 +5,104 @@ import { BoschFifo } from './fifo.js'
 /** @import { Profile, ProfileReady } from './types/profile.js' */
 /** @import { Calibration } from './types/calibration.js' */
 /** @import { CompensateResult } from './chip/compensate.js' */
+/** @import { GenericChip } from './chip/generic.js'  */
+
 /**
+ * @template {typeof GenericChip} C
  * @typedef {Object} BoschUIEOptions
- * @property {number|undefined} [chipId]
- * @property {boolean|undefined} [legacy]
+ * @property {C} chip
  */
 
 /**
- * Acts as a cache around the Chip implementation.
+ * @template {typeof GenericChip} C
  */
 export class BoschSensor {
+	/** @type {I2CAddressedBus} */
+	#bus
+
+	/** @type {typeof GenericChip} */
+	#chip
+
+	/** @type {BoschFifo<C>} */
+	#fifo
+
 	/** @type {Calibration|undefined} */
-	_calibration
+	#calibration
 
 	/**
 	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<BoschSensor<typeof GenericChip>>}
 	 */
 	static async detect(bus) {
-		/**
-		 * @param {number} reg
-		 */
-		async function readId(reg) {
-			const aBuffer = await bus.readI2cBlock(reg, 1)
-			const u8 = ArrayBuffer.isView(aBuffer) ?
-			new Uint8Array(aBuffer.buffer, aBuffer.byteOffset) :
-			new Uint8Array(aBuffer)
-
-			return u8[0]
-		}
-
-		// console.log('detect: attempt legacy register')
-		const legacyReadId = await readId(0xD0)
-		if (legacyReadId !== 0) {
-			// console.log('detect: via legacy register read', legacyReadId)
-			return new BoschSensor(bus, { chipId: legacyReadId, legacy: true })
-		}
-
-		// console.log('detect: attempt standard register')
-		const atZeroReadId = await readId(0x00) // bmp388/bmp390 register
-		if (atZeroReadId === 0) {
-			// console.log('detect: zero reg return zero')
-			throw new Error('id scan resulted in zeros')
-		}
-
-		return new BoschSensor(bus, { chipId: atZeroReadId, legacy: false })
+		const chip = await Chip.detect(bus)
+		if(chip === undefined) { throw new Error('unable to detect chip') }
+		return new BoschSensor(bus, { chip })
 	}
 
 	/**
 	 * @param {I2CAddressedBus} bus
-	 * @param {BoschUIEOptions} [options={}]
+	 * @param {BoschUIEOptions<C>} options
 	 */
-	constructor(bus, options = {}) {
-		this._bus = bus
-		this._options = options
+	constructor(bus, options) {
+		this.#bus = bus
 
-		this._chip = options.chipId === undefined ?
-			Chip.generic() :
-			Chip.fromId(options.chipId, options.legacy === undefined ? true : options.legacy)
+		this.#chip = options.chip
+		this.#calibration = undefined
 
-		this._calibration = undefined
-
-		this._fifo = new BoschFifo(this)
+		this.#fifo = new BoschFifo(bus, this)
 	}
 
-	// exposed to allow for chip specific calls (390 `refId` etc)
-	//  and to provide comparison of `.chip.chipId`
-	get chip() { return this._chip }
+	get chip() { return this.#chip }
 
-	get fifo() { return this._fifo }
+	get fifo() { return this.#fifo }
 
 	/**
-	 * @returns {this is this & { _calibration: Calibration }}
+	 * @returns {this is this & { #calibration: Calibration }}
 	 */
-	get calibrated() { return this._calibration !== undefined }
+	get calibrated() { return this.#calibration !== undefined }
 
-	get isGeneric() { return this._chip.chipId === Chip.generic().chipId }
+	/**
+	 * @returns {Promise<number>}
+	 */
+	async sensorTime() { return this.#chip.sensorTime(this.#bus) }
 
-	async sensorTime() { return this._chip.sensorTime(this._bus) }
-
-	async readId() {
-		return this._chip.id(this._bus)
-	}
-
-	async reset() { return this._chip.reset(this._bus) }
+	/**
+	 * @returns {Promise<void>}
+	 */
+	async reset() { return this.#chip.reset(this.#bus) }
 
 	/**
 	 * @returns {Promise<Calibration|undefined>}
 	 */
 	async calibration() {
-		this._calibration = await this._chip.calibration(this._bus)
-		return this._calibration
+		this.#calibration = await this.#chip.calibration(this.#bus)
+		return this.#calibration
 	}
 
 	/**
 	 * @returns {Promise<Profile>}
 	 */
-	async profile() { return this._chip.profile(this._bus) }
+	async profile() { return this.#chip.profile(this.#bus) }
 
 	/**
 	 * @param {Partial<Profile>} profile
 	 */
 	async setProfile(profile) {
 		// calibration passed unchecked as only applies to bme680
-		await this._chip.setProfile(this._bus, profile, this._calibration)
+		await this.#chip.setProfile(this.#bus, profile, this.#calibration)
 	}
 
 	/**
 	 * @returns {Promise<ProfileReady>}
 	 */
-	async ready() { return this._chip.ready(this._bus) }
+	async ready() { return this.#chip.ready(this.#bus) }
 
 	/**
 	 * @returns {Promise<CompensateResult>}
 	 */
 	async measurement() {
 		//if (!this.calibrated) { throw new Error('calibration undefined') }
-		if(this._calibration === undefined) { throw new Error('calibration undefined') }
-		return this._chip.measurement(this._bus, this._calibration)
+		if(this.#calibration === undefined) { throw new Error('calibration undefined') }
+		return this.#chip.measurement(this.#bus, this.#calibration)
 	}
 }
