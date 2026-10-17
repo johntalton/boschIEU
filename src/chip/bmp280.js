@@ -7,17 +7,37 @@ import { Bits } from './bits.js'
 //
 
 import { Compensate } from './compensate.js'
-import { enumMap, GENERIC_OVERSAMPLES, GenericChip } from './generic.js'
+import { GENERIC_FILTER, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } from './generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile2xx, ProfileReady } from '../types/profile.js' */
-/** @import { CompensateResult } from './compensate.js' */
+/** @import { Profile2xx, ProfileModes } from '../types/profile.js' */
+/** @import { Measurement2xx } from '../types/measurement.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { Features } from '../types/features.js' */
 /** @import { ChipKind } from './chip.js'  */
+/** @import { NVMap } from '../nvutil.js' */
+
+/** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'|'NORMAL'>>} */
+export const MODES = [
+	{ name: 'SLEEP',  value: 0 },
+	{ name: 'FORCED', value: 1 },
+	{ name: 'NORMAL', value: 3 }
+]
+
+/** @type {NVMap<number>} */
+export const STANDBY_TIME = [ // bmp280
+    { name:  0.5, value: 0 }, //    0.5 ms
+    { name: 62.5, value: 1 }, //   62.5
+    { name:  125, value: 2 }, //  125
+    { name:  250, value: 3 }, //  250
+    { name:  500, value: 4 }, //  500
+    { name: 1000, value: 5 }, // 1000
+    { name: 2000, value: 6 }, // 2000
+    { name: 4000, value: 7 }, // 4000
+  ]
 
 export const REGISTERS = {
-	CALIB_00: 0x88,
+	CALIBRATION_00: 0x88,
 
 	ID: 0xD0,
 	RESET: 0xE0,
@@ -31,10 +51,10 @@ export const REGISTERS = {
 }
 
 export const RESET_MAGIC = 0xB6
-export const SKIP_VALUE = 0x08_00_00
+export const SKIP_VALUE_20_BIT = 0x08_00_00
 
 /** @type {Array<[ number, number ]>} */
-export const CALIBRATION_BLOCK = [ [ REGISTERS.CALIB_00, 26 ] ]
+export const CALIBRATION_BLOCK = [ [ REGISTERS.CALIBRATION_00, 26 ] ]
 
 /** @type {Array<[ number, number ]>} */
 export const PROFILE_BLOCK = [ [ REGISTERS.STATUS, 3 ] ]
@@ -70,7 +90,7 @@ export class bmp280 extends GenericChip {
 			interrupt: false,
 			fifo: false,
 			time: false,
-			modes: [ 'sleep', 'forced', 'normal' ]
+			modes: [ 'SLEEP', 'FORCED', 'NORMAL' ]
 		}
 	}
 
@@ -145,53 +165,53 @@ export class bmp280 extends GenericChip {
 
 		const t_sb = BitSmush.extractBits(config, 7, 3)
 		const filter = BitSmush.extractBits(config, 4, 3)
-		const spi_3w_en = BitSmush.extractBits(config, 0, 1) === 1
+		const spi_3w_en = BitSmush.extractBits(config, 0, 1)
 
 		return {
-			mode: NameValueUtil.toName(mode, enumMap.modes),
+			mode: NameValueUtil.toName(mode, MODES),
 			oversampling_p: NameValueUtil.toName(osrs_p, GENERIC_OVERSAMPLES),
 			oversampling_t: NameValueUtil.toName(osrs_t, GENERIC_OVERSAMPLES),
-			filter_coefficient: NameValueUtil.toName(filter, enumMap.filters),
-			standby_time: NameValueUtil.toName(t_sb, enumMap.standbys),
+			filter_coefficient: NameValueUtil.toName(filter, GENERIC_FILTER),
+			standby_time: NameValueUtil.toName(t_sb, STANDBY_TIME),
 			spi: {
-				enable3w: spi_3w_en
+				page: 0,
+				mode: NameValueUtil.toName(spi_3w_en, GENERIC_SPI_MODE),
 			},
 			ready: {
-				ready: !measuring,
 				measuring,
 				updating
 			}
 		}
 	}
 
-	/**
-	 * @override
-	 * @param {I2CAddressedBus} bus
-	 * @param {Partial<Profile>} profile
-	 * @returns {Promise<void>}
-	 */
-	static async setProfile(bus, profile) {
-		const mode = NameValueUtil.toValue(profile.mode, enumMap.modes)
-		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
-		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
-		const sb_t = NameValueUtil.toValue(profile.standby_time, enumMap.standbys)
-		const filter = NameValueUtil.toValue(profile.filter_coefficient, enumMap.filters)
-		const en3w = profile.spi === undefined ? 0 : profile.spi.enable3w
+	// /**
+	//  * @override
+	//  * @param {I2CAddressedBus} bus
+	//  * @param {Partial<Profile>} profile
+	//  * @returns {Promise<void>}
+	//  */
+	// static async setProfile(bus, profile) {
+	// 	const mode = NameValueUtil.toValue(profile.mode, MODES)
+	// 	const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+	// 	const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
+	// 	const sb_t = NameValueUtil.toValue(profile.standby_time, STANDBY_TIME)
+	// 	const filter = NameValueUtil.toValue(profile.filter_coefficient, GENERIC_FILTER)
+	// 	const en3w = profile.spi === undefined ? 0 : profile.spi.enable3w
 
-		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
-		const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
+	// 	const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
+	// 	const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
 
-		await Promise.all([
-			bus.writeI2cBlock(0xF4, Uint8Array.from([ctrl_meas])),
-			bus.writeI2cBlock(0xF5, Uint8Array.from([config]))
-		])
-	}
+	// 	await Promise.all([
+	// 		bus.writeI2cBlock(0xF4, Uint8Array.from([ctrl_meas])),
+	// 		bus.writeI2cBlock(0xF5, Uint8Array.from([config]))
+	// 	])
+	// }
 
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @param {Calibration} calibration
-	 * @returns {Promise<CompensateResult>}
+	 * @returns {Promise<Measurement2xx>}
 	 */
 	static async measurement(bus, calibration) {
 		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0xF7, 6]])
@@ -201,16 +221,18 @@ export class bmp280 extends GenericChip {
 
 		const pres_msb = dv.getUint8(0)
 		const pres_lsb = dv.getUint8(1)
-		const pres_xlsb = dv.getUint8(2)
+		const pres_xlsb_ext = dv.getUint8(2)
+		const pres_xlsb = BitSmush.extractBits(pres_xlsb_ext, 7, 4)
 		const adcP = Bits.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb)
 
 		const temp_msb = dv.getUint8(3)
 		const temp_lsb = dv.getUint8(4)
-		const temp_xlsb = dv.getUint8(5)
+		const temp_xlsb_ext = dv.getUint8(5)
+		const temp_xlsb = BitSmush.extractBits(temp_xlsb_ext, 7, 4)
 		const adcT = Bits.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb)
 
-		const P = bmp280.skip_value === adcP ? false : adcP
-		const T = bmp280.skip_value === adcT ? false : adcT
+		const P = SKIP_VALUE_20_BIT === adcP ? false : adcP
+		const T = SKIP_VALUE_20_BIT === adcT ? false : adcT
 
 		return Compensate.from({
 				adcP: P,
@@ -221,33 +243,33 @@ export class bmp280 extends GenericChip {
 			}, calibration)
 	}
 
-	/**
-	 * @override
-	 * @param {I2CAddressedBus} bus
-	 * @returns {Promise<ProfileReady>}
-	 */
-	static async ready(bus) {
-		const aBuffer = await BusUtil.readI2cBlocks(bus, [[0xF3, 1]])
-		const dv = ArrayBuffer.isView(aBuffer) ?
-			new DataView(aBuffer.buffer, aBuffer.byteOffset) :
-			new DataView(aBuffer)
+	// /**
+	//  * @override
+	//  * @param {I2CAddressedBus} bus
+	//  * @returns {Promise<ProfileReady>}
+	//  */
+	// static async ready(bus) {
+	// 	const aBuffer = await BusUtil.readI2cBlocks(bus, [[0xF3, 1]])
+	// 	const dv = ArrayBuffer.isView(aBuffer) ?
+	// 		new DataView(aBuffer.buffer, aBuffer.byteOffset) :
+	// 		new DataView(aBuffer)
 
-		const status = dv.getUint8(0)
-		const measuring = BitSmush.extractBits(status, 3, 1) === 1
-		const updating = BitSmush.extractBits(status, 0, 1) === 1
+	// 	const status = dv.getUint8(0)
+	// 	const measuring = BitSmush.extractBits(status, 3, 1) === 1
+	// 	const updating = BitSmush.extractBits(status, 0, 1) === 1
 
-		return {
-			ready: !measuring,
-			measuring,
-			updating
-		}
-	}
+	// 	return {
+	// 		ready: !measuring,
+	// 		measuring,
+	// 		updating
+	// 	}
+	// }
 
-	/**
-	 * @param {Profile} profile
-	 */
-	static estimateMeasurementWait(profile) {
-		// TODO
-		return { totalWaitMs: 0 }
-	}
+	// /**
+	//  * @param {Profile} profile
+	//  */
+	// static estimateMeasurementWait(profile) {
+	// 	// TODO
+	// 	return { totalWaitMs: 0 }
+	// }
 }

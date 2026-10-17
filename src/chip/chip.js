@@ -26,6 +26,7 @@ export const REGISTER_REV_F0 = 0xF0
  * @typedef {Object} ChipInfo
  * @property {string} name
  * @property {number} idReg
+ * @property {number} [idMask]
  * @property {number} id
  * @property {number|undefined} revReg
  * @property {number|undefined} rev
@@ -36,20 +37,20 @@ export const REGISTER_REV_F0 = 0xF0
 /** @type {Array<ChipInfo>} */
 export const Ahoy = [
 	// BMP 2xx
-	{ name: 'bmp280', idReg: REGISTER_ID_D0, id: 0x58, revReg: undefined,       rev: undefined, chip: bmp280 },
+	{ name: 'bmp280', idReg: REGISTER_ID_D0, id: 0x58,               revReg: undefined,       rev: undefined, chip: bmp280 },
 	// BMP 3xx
-	{ name: 'bmp38x', idReg: REGISTER_ID_00, id: 0x50, revReg: undefined,       rev: undefined, chip: bmp38x },
-	{ name: 'bmp390', idReg: REGISTER_ID_00, id: 0x60, revReg: REGISTER_REV_01, rev: 0x01,      chip: bmp390 },
+	{ name: 'bmp38x', idReg: REGISTER_ID_00, id: 0x50, idMask: 0xF0, revReg: undefined,       rev: undefined, chip: bmp38x },
+	{ name: 'bmp390', idReg: REGISTER_ID_00, id: 0x60, idMask: 0xF0, revReg: REGISTER_REV_01, rev: 0x01,      chip: bmp390 },
 	// BMP 5xx
-	{ name: 'bmp58x', idReg: REGISTER_ID_01, id: 0x50, revReg: REGISTER_REV_02, rev: 0x32,      chip: bmp58x },
-	{ name: 'bmp585', idReg: REGISTER_ID_01, id: 0x51, revReg: REGISTER_REV_02, rev: 0x32,      chip: bmp585 },
+	{ name: 'bmp58x', idReg: REGISTER_ID_01, id: 0x50,               revReg: REGISTER_REV_02, rev: 0x32,      chip: bmp58x },
+	{ name: 'bmp585', idReg: REGISTER_ID_01, id: 0x51,               revReg: REGISTER_REV_02, rev: 0x32,      chip: bmp585 },
 
 	//
 	// BME 2xx
-	{ name: 'bme280', idReg: REGISTER_ID_D0, id: 0x60, revReg: undefined,       rev: undefined, chip: bme280 },
+	{ name: 'bme280', idReg: REGISTER_ID_D0, id: 0x60,               revReg: undefined,       rev: undefined, chip: bme280 },
 	// BME 6xx
-	{ name: 'bme680', idReg: REGISTER_ID_D0, id: 0x61, revReg: undefined,       rev: undefined, chip: bme680 },
-	{ name: 'bme688', idReg: REGISTER_ID_D0, id: 0x61, revReg: REGISTER_REV_F0, rev: 0x01,      chip: bme688 },
+	{ name: 'bme680', idReg: REGISTER_ID_D0, id: 0x61,               revReg: undefined,       rev: undefined, chip: bme680 },
+	{ name: 'bme688', idReg: REGISTER_ID_D0, id: 0x61,               revReg: REGISTER_REV_F0, rev: 0x01,      chip: bme688 },
 
 ]
 
@@ -76,6 +77,7 @@ export async function _detect(bus, reg) {
 	const regValue = await readRegister(bus, reg)
 	// console.log('detect', reg, regValue)
 
+	// todo when filter for valid id match, take into account the idMask
 	const potentials = Ahoy.filter(c => c.idReg === reg && c.id === regValue)
 	// console.log('potentials', potentials)
 

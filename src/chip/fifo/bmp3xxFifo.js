@@ -87,7 +87,7 @@ export class bmp3xxFifo extends genericFifo {
 				return {
 					// we do not explode message here as it may not be clean
 					type: msg.type,
-					...Compensate.sensortime(msg.time)
+					...Compensate.sensorTime(msg.time)
 				}
 			}
 

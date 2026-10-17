@@ -2,7 +2,7 @@ import { Chip } from './chip/chip.js'
 import { BoschFifo } from './fifo.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile, ProfileReady } from './types/profile.js' */
+/** @import { Profile } from './types/profile.js' */
 /** @import { Calibration } from './types/calibration.js' */
 /** @import { CompensateResult } from './chip/compensate.js' */
 /** @import { GenericChip } from './chip/generic.js'  */
@@ -62,7 +62,7 @@ export class BoschSensor {
 	get calibrated() { return this.#calibration !== undefined }
 
 	/**
-	 * @returns {Promise<number>}
+	 * @returns {Promise<number|undefined>}
 	 */
 	async sensorTime() { return this.#chip.sensorTime(this.#bus) }
 
@@ -91,11 +91,6 @@ export class BoschSensor {
 		// calibration passed unchecked as only applies to bme680
 		await this.#chip.setProfile(this.#bus, profile, this.#calibration)
 	}
-
-	/**
-	 * @returns {Promise<ProfileReady>}
-	 */
-	async ready() { return this.#chip.ready(this.#bus) }
 
 	/**
 	 * @returns {Promise<CompensateResult>}

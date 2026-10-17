@@ -1,21 +1,25 @@
 import { BitSmush } from '@johntalton/bitsmush'
+
 import { NameValueUtil } from '../nvutil.js'
 import { BusUtil } from '../util.js'
-
+import { Bits } from './bits.js'
 import {
 	REGISTERS as BME6XX_REGISTERS,
-	bme6xx
+	bme6xx,
+	SKIP_VALUE_20_BIT,
 } from './bme6xx.js'
-import { enumMap, GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES } from './generic.js'
+import { Compensate } from './compensate.js'
+import { GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES } from './generic.js'
 import { Util } from './util.js'
 
-/** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
+/** @import { I2CAddressedBus, I2CBufferSource } from '@johntalton/and-other-delights' */
 /** @import { Features } from '../types/features.js' */
-/** @import { Profile6xx, ProfileReady, ProfileModes } from '../types/profile.js' */
+/** @import { Profile6xx, ProfileModes } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { NVMap } from '../nvutil.js' */
+/** @import { Measurement6xx, Measurement688 } from '../types/measurement.js' */
 
-/** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'|'PARALLEL'>}>} */
+/** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'|'PARALLEL'>>} */
 export const MODES = [
 	{ name: 'SLEEP',  value: 0 },
 	{ name: 'FORCED', value: 1 },
@@ -23,11 +27,23 @@ export const MODES = [
 ]
 
 export const REGISTERS = {
-	GAS_WAIT_SHARED: 0x6E
+	GAS_WAIT_SHARED: 0x6E,
+
+	MEASUREMENT_STATUS_0: 0x1D,
+	MEASUREMENT_STATUS_1: 0x2E,
+	MEASUREMENT_STATUS_2: 0x3F
 }
 
 /** @type {Array<[ number, number ]>} */
 export const SET_POINTS_BLOCK = [ [ BME6XX_REGISTERS.GAS_WAIT_0, 31 ] ]
+
+/** @type {Array<[ number, number ]>} */
+export const MEASUREMENT_BLOCK_0 = [ [ REGISTERS.MEASUREMENT_STATUS_0, 17 ] ]
+
+/** @type {Array<[ number, number ]>} */
+export const MEASUREMENT_BLOCK_ALL = [ [ REGISTERS.MEASUREMENT_STATUS_0, 17 * 3 ] ]
+
+
 
 export class bme688 extends bme6xx {
 	/**
@@ -53,13 +69,13 @@ export class bme688 extends bme6xx {
 		}
 	}
 
-	/**
-	 * @param {I2CAddressedBus} bus
-	 * @returns {Promise<number>}
-	 */
-	static async revId(bus) {
-		// todo
-	}
+	// /**
+	//  * @param {I2CAddressedBus} bus
+	//  * @returns {Promise<number>}
+	//  */
+	// static async revId(bus) {
+	// 	// todo
+	// }
 
 	/**
 	 * @override
@@ -69,16 +85,16 @@ export class bme688 extends bme6xx {
 	static async profile(bus) {
 		const {
 			ctrl_gas_1,
-			filter,
-			spi_3w_en,
 			mode,
-			osrs_t,
-			osrs_p,
-			osrs_h,
-			spi_3w_int_en,
-			spi_mem_page,
 			nb_conv,
-			heat_off
+			heat_off,
+
+			oversampling_t,
+			oversampling_p,
+			oversampling_h,
+			filter_coefficient,
+
+			spi
 		} = await bme6xx.rawProfile(bus)
 
 		const buffer = await BusUtil.readI2cBlocks(bus, SET_POINTS_BLOCK)
@@ -86,62 +102,181 @@ export class bme688 extends bme6xx {
 			new DataView(buffer.buffer, buffer.byteOffset) :
 			new DataView(buffer)
 
-		const gas_wait_shared = dv.getUint8(30)
-
 		const idac_heat = Util.range(0, 9).map(idx => dv.getUint8(idx))
 		const res_heat = Util.range(10, 19).map(idx => dv.getUint8(idx))
 		const gas_wait = Util.range(20, 29).map(idx => dv.getUint8(idx))
 
-		const setpoints = bme6xx.parseSetpoint(idac_heat, res_heat, gas_wait, nb_conv)
+		const gas_wait_shared = dv.getUint8(30)
 
 		//
 		const run_gas = BitSmush.extractBits(ctrl_gas_1, 5, 1) === 1
 
+		const setpoints = bme6xx.parseSetpoint(idac_heat, res_heat, gas_wait, nb_conv)
+
 		return {
 			mode: NameValueUtil.toName(mode, MODES),
-			oversampling_p: NameValueUtil.toName(osrs_p, GENERIC_OVERSAMPLES),
-			oversampling_t: NameValueUtil.toName(osrs_t, GENERIC_OVERSAMPLES),
-			oversampling_h: NameValueUtil.toName(osrs_h, GENERIC_OVERSAMPLES),
-			filter_coefficient: NameValueUtil.toName(filter, GENERIC_FILTER_EXT),
+			oversampling_h,
+			oversampling_p,
+			oversampling_t,
+			filter_coefficient,
 
 			gas: {
-				headerEnabled: !heat_off,
+				heaterEnabled: !heat_off,
 				conversionEnabled: run_gas,
 				setpoints,
 				gas_wait_shared
 			},
-			spi: {
-				page: spi_mem_page === 0 ? 0 : 1,
-				enable3w: spi_3w_en,
-				interrupt: spi_3w_int_en
-			}
+			spi
 		}
 	}
 
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
-	 * @param {Profile6xx} p
+	 * @param {Profile6xx} profile
+	 * @param {Calibration} calibration
 	 */
-	static async setProfile(bus, p) {
+	static async setProfile(bus, profile, calibration) {
 
+		const en3wint = false // todo profile.spi.interrupt
+
+		//
+		if (calibration === undefined) { throw new Error('calibration required for gas temp calculation') }
+		if (profile.gas === undefined) { throw new Error('missing gas in profile') }
+		if (profile.gas.setpoints === undefined) { throw new Error('missing set-point') }
+		if (profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10') }
+
+
+		const heat_off = profile.gas.heaterEnabled ? 0 : 1
+		const run_gas = profile.gas.conversionEnabled ? 0 : 1
+		const nb_conv = 0
+
+		const mode = NameValueUtil.toValue(profile.mode, MODES)
+		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
+		const os_h = NameValueUtil.toValue(profile.oversampling_h, GENERIC_OVERSAMPLES)
+
+		const filter = NameValueUtil.toValue(profile.filter_coefficient, GENERIC_FILTER_EXT)
+		const en3w = profile.spi?.enable3w ?? false
+
+		const ctrl_gas0 = BitSmush.smushBits([[3, 1]], [heat_off])
+		const ctrl_gas1 = BitSmush.smushBits([[5, 1], [3, 4]], [run_gas, nb_conv])
+		const ctrl_hum = BitSmush.smushBits([[6, 1], [2, 3]], [en3wint, os_h])
+		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
+		const config = BitSmush.smushBits([[4, 3], [0, 1]], [filter, en3w])
+
+
+
+
+		//
+		await bus.writeI2cBlock(0x74, Uint8Array.from([ctrl_meas & ~0b11])) // sleep
+
+
+		await Promise.all([
+			bus.writeI2cBlock(0x72, Uint8Array.from([ctrl_hum])),
+			bus.writeI2cBlock(0x75, Uint8Array.from([config])),
+			bus.writeI2cBlock(0x71, Uint8Array.from([ctrl_gas1])),
+			bus.writeI2cBlock(0x70, Uint8Array.from([ctrl_gas0])),
+		])
+
+		// now set valid mode
+		await bus.writeI2cBlock(0x74, Uint8Array.from([ctrl_meas]))
+	}
+
+	/**
+	 * @param {I2CBufferSource} buffer
+	 * @param {Calibration} calibration
+	 * @returns {Measurement6xx}
+	 */
+	static #measurementX(buffer, calibration) {
+		const dv = ArrayBuffer.isView(buffer) ?
+			new DataView(buffer.buffer, buffer.byteOffset) :
+			new DataView(buffer)
+
+		const meas_status = dv.getUint8(0)
+		const sub_measuring_index = dv.getUint8(1)
+
+		const newData = BitSmush.extractBits(meas_status, 7, 1) === 1
+		const measuringGas = BitSmush.extractBits(meas_status, 6, 1) === 1
+		const measuring = BitSmush.extractBits(meas_status, 5, 1) === 1
+		const active_profile_idx = BitSmush.extractBits(meas_status, 3, 4)
+
+		const pres_msb = dv.getUint8(2)
+		const pres_lsb = dv.getUint8(3)
+		const pres_xlsb_ext = dv.getUint8(4)
+		const pres_xlsb = BitSmush.extractBits(pres_xlsb_ext, 7, 4)
+		const adcP = Bits.reconstruct20bit(pres_msb, pres_lsb, pres_xlsb)
+
+		const temp_msb = dv.getUint8(5)
+		const temp_lsb = dv.getUint8(6)
+		const temp_xlsb_ext = dv.getUint8(7)
+		const temp_xlsb = BitSmush.extractBits(temp_xlsb_ext, 7, 4)
+		const adcT = Bits.reconstruct20bit(temp_msb, temp_lsb, temp_xlsb)
+
+		const adcH = dv.getUint16(8, false)
+
+		const gas_r_msb = dv.getUint8(15) // unique for 688
+		const gas_r_ext = dv.getUint8(16)
+
+		const gas_r_lsb = BitSmush.extractBits(gas_r_ext, 7, 2)
+		const gas_valid_r = BitSmush.extractBits(gas_r_ext, 5, 1) === 1
+		const heat_stab_r = BitSmush.extractBits(gas_r_ext, 4, 1) === 1
+		const gas_range_r = BitSmush.extractBits(gas_r_ext, 3, 4)
+
+		const gas_r = Bits.reconstruct10bit(gas_r_msb, gas_r_lsb)
+
+		const P = SKIP_VALUE_20_BIT === adcP ? false : adcP
+		const T = SKIP_VALUE_20_BIT === adcT ? false : adcT
+		const H = SKIP_VALUE_20_BIT === adcH ? false : adcH
+
+		const G = gas_valid_r ? { resistance: gas_r, range: gas_range_r, stable: heat_stab_r } : false
+
+		return {
+			ready: {
+				newData,
+				measuringGas, // active gas measurement
+				measuring, // active TPH measurement
+				active_profile_idx,
+				sub_measuring_index,
+				gasValid: gas_valid_r,
+				heaterStable: heat_stab_r
+			},
+			...Compensate.from({
+				adcP: P,
+				adcT: T,
+				adcH: H,
+				adcG: G,
+				type: '6xy'
+			}, calibration)
+		}
 	}
 
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
 	 * @param {Calibration} calibration
-	 * @returns {Promise<CompensateResult>}
+	 * @returns {Promise<Measurement688>}
 	 */
 	static async measurement(bus, calibration) {
+		const buffer = await BusUtil.readI2cBlocks(bus, MEASUREMENT_BLOCK_ALL)
 
-	}
+		const u8 = ArrayBuffer.isView(buffer) ?
+			new Uint8Array(buffer.buffer, buffer.byteOffset) :
+			new Uint8Array(buffer)
 
-	/**
-	 * @override
-	 * @returns {Promise<ProfileReady>}
-	 */
-	static async ready() {
 
+		const measurement0 = bme688.#measurementX(u8.subarray(0, 16), calibration)
+		const measurement1 = bme688.#measurementX(u8.subarray(17, 33), calibration)
+		const measurement2 = bme688.#measurementX(u8.subarray(34, 50), calibration)
+
+		return {
+			...measurement0,
+
+			measurements: [
+				measurement0,
+				measurement1,
+				measurement2
+			]
+		}
 	}
 }

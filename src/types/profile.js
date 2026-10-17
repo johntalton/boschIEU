@@ -1,15 +1,18 @@
+/** @import { ReadyStatus2xx } from './ready.js' */
+
 
 /** @typedef {"PARALLEL"|"NON-STOP"|"NORMAL"|"FORCED"|"SLEEP"} ProfileModes */
 
 
 /**
- * @typedef {Object} ProfileWatchdog
+ * @typedef {'LONG'|'SHORT'|false} ProfileWatchdog
  */
 
 /**
  * @typedef {Object} ProfileInterrupt
- * @property {boolean} [active]
- * @property {string} mode
+ * @property {'push-pull'|'open-drain'} mode
+ * @property {'active-low'|'active-high'} level
+ * @property {'high'|'low'} driveStrength
  * @property {boolean} latched
  * @property {boolean} onFifoWatermark
  * @property {boolean} onFifoFull
@@ -19,13 +22,13 @@
 /**
  * @typedef {Object} ProfileFIFO
  * @property {boolean} active
- * @property {number} highWatermark
- * @property {any} data
- * @property {number} subsampling
  * @property {boolean} stopOnFull
  * @property {boolean} temp
  * @property {boolean} press
  * @property {boolean} time
+ * @property {'filtered'|'unfiltered'} data
+ * @property {number} subSampling
+ * @property {number} highWatermark
  */
 
 /**
@@ -40,7 +43,7 @@
 
 /**
  * @typedef {Object} ProfileGas
- * @property {boolean} headerEnabled
+ * @property {boolean} heaterEnabled
  * @property {boolean} conversionEnabled
  * @property {Array<GasSetpoint>} setpoints
  * @property {number} [gas_wait_shared]
@@ -49,19 +52,9 @@
 /**
  * @typedef {Object} ProfileSPI
  * @property {0|1} page
- * @property {boolean} enable3w
+ * @property {'3-wire'|'4-wire'} mode
  * @property {boolean} [interrupt]
  */
-
-/**
- * @typedef {Object} ProfileReady
- * @property {boolean} ready
- * @property {boolean} measuring
- * @property {boolean} [updating]
- * @property {boolean} [measuringGas]
- * @property {number} [active_profile_idx]
- */
-
 
 /**
  * @typedef {Object} Profile2xx
@@ -73,7 +66,7 @@
  * @property {number|false} [oversampling_h]
  *
  * @property {ProfileSPI} spi
- * @property {ProfileReady} ready
+ * @property {ReadyStatus2xx} ready
  */
 
 /**
@@ -84,9 +77,10 @@
  * @property {number|false} oversampling_t
  * @property {boolean|number} filter_coefficient
  *
+ * @property {ProfileFIFO} fifo
  * @property {ProfileWatchdog} watchdog
  * @property {ProfileInterrupt} interrupt
- * @property {ProfileFIFO} fifo
+ * @property {ProfileSPI} spi
  */
 
 /**
@@ -101,7 +95,7 @@
  * @property {number|false} oversampling_p
  * @property {number|false} oversampling_t
  * @property {number|false} oversampling_h
- * @property {boolean|number} filter_coefficient
+ * @property {number|false} filter_coefficient
  *
  * @property {ProfileGas} gas
  * @property {ProfileSPI} spi

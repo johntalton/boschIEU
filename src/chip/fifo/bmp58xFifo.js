@@ -1,3 +1,4 @@
+import { bmp58x } from '../bmp58x.js'
 import { genericFifo } from '../generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
@@ -5,15 +6,18 @@ import { genericFifo } from '../generic.js'
 
 export const FIFO_EMPTY = 0x7F
 
+
 export class bmp58xFifo extends genericFifo {
 
 
 	/**
 	 * @override
-	 * @param {I2CAddressedBus} bus
+	 * @param {I2CAddressedBus} _bus
+	 * @return {Promise<void>}
 	 */
-	static flush(bus) {
-		await bmp58x.sendCommand(bus, CMD_FIFO_FLUSH)
+	static flush(_bus) {
+		// no-op
+		return Promise.resolve()
 	}
 
 	/**
@@ -21,8 +25,8 @@ export class bmp58xFifo extends genericFifo {
 	 * @param {I2CAddressedBus} bus
 	 * @param {Calibration} calibration
 	 */
-	static async read(bus, calibration, overRead = false) {
-
+	static async read(bus, calibration, _overRead = false) {
+		//
 	}
 
 }

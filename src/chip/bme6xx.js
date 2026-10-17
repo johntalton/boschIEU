@@ -3,14 +3,14 @@ import { BitSmush } from '@johntalton/bitsmush'
 import { NameValueUtil } from '../nvutil.js'
 import { BusUtil } from '../util.js'
 import { Bits } from './bits.js'
-import { GenericChip } from './generic.js'
+import { GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } from './generic.js'
 import { Util } from './util.js'
 
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { ChipKind } from './chip.js'  */
-/** @import { GasSetpoint } from '../types/profile.js' */
+/** @import { GasSetpoint, Profile6xx } from '../types/profile.js' */
 
 /**
  * @typedef {Object} IntermediateProfile6xx
@@ -22,7 +22,7 @@ import { Util } from './util.js'
  * @property {number} config
  *
  * @property {number} filter
- * @property {boolean} spi_3w_en
+ * @property {number} spi_3w_en
  * @property {number} mode
  * @property {number} osrs_t
  * @property {number} osrs_p
@@ -31,6 +31,13 @@ import { Util } from './util.js'
  * @property {number} spi_mem_page
  * @property {number} nb_conv
  * @property {boolean} heat_off
+ *
+ * @property {Profile6xx['oversampling_p']} oversampling_p
+ * @property {Profile6xx['oversampling_t']} oversampling_t
+ * @property {Profile6xx['oversampling_h']} oversampling_h
+ * @property {Profile6xx['filter_coefficient']} filter_coefficient
+ *
+ * @property {Profile6xx['spi']} spi
  */
 
 export const REGISTERS = {
@@ -46,8 +53,8 @@ export const REGISTERS = {
 	CTRL_GAS_0: 0x70,
 
 
-	IDAC_HEAD_0: 0x50,
-	RES_HEAD_0: 0x5A,
+	IDAC_HEAT_0: 0x50,
+	RES_HEAT_0: 0x5A,
 	GAS_WAIT_0: 0x64
 }
 
@@ -57,6 +64,7 @@ export const PROFILE_BLOCK = [ [ REGISTERS.CTRL_GAS_0, 6 ] ]
 
 export const RESET_MAGIC = 0xB6
 
+export const SKIP_VALUE_20_BIT = 0x08_00_00
 
 // todo move to common enumerations in generic? but its not
 export const gwMultipliers = [
@@ -79,16 +87,15 @@ export function gasWaitToDuration(gasWait) {
  * @param {number|undefined} resHeat
  */
 export function resHeatToTemperature(resHeat) {
-	return resHeat
+	return resHeat // todo
 }
 
 /**
  * @param {number|undefined} idacHeat
  */
 export function idacHeatToMa(idacHeat) {
-	return idacHeat
+	return idacHeat // todo
 }
-
 
 export class bme6xx extends GenericChip {
 	/**
@@ -96,7 +103,6 @@ export class bme6xx extends GenericChip {
 	 * @returns {ChipKind}
 	 */
 	static get kind() { return '6xx' }
-
 
 	/**
 	 * @override
@@ -227,7 +233,7 @@ export class bme6xx extends GenericChip {
 
 
 		const filter = BitSmush.extractBits(config, 4, 3)
-		const spi_3w_en = BitSmush.extractBits(config, 0, 1) === 1
+		const spi_3w_en = BitSmush.extractBits(config, 0, 1)
 
 		const mode = BitSmush.extractBits(ctrl_meas, 1, 2)
 
@@ -241,6 +247,7 @@ export class bme6xx extends GenericChip {
 		const nb_conv = BitSmush.extractBits(ctrl_gas_1, 3, 4)
 		const heat_off = BitSmush.extractBits(ctrl_gas_0, 3, 1) === 1
 
+
 		return {
 			ctrl_gas_0,
 			ctrl_gas_1,
@@ -249,6 +256,7 @@ export class bme6xx extends GenericChip {
 			ctrl_meas,
 			config,
 
+			//
 			filter,
 			spi_3w_en,
 			mode,
@@ -258,7 +266,19 @@ export class bme6xx extends GenericChip {
 			spi_3w_int_en,
 			spi_mem_page,
 			nb_conv,
-			heat_off
+			heat_off,
+
+			//
+			oversampling_p: NameValueUtil.toName(osrs_p, GENERIC_OVERSAMPLES),
+			oversampling_t: NameValueUtil.toName(osrs_t, GENERIC_OVERSAMPLES),
+			oversampling_h: NameValueUtil.toName(osrs_h, GENERIC_OVERSAMPLES),
+			filter_coefficient: NameValueUtil.toName(filter, GENERIC_FILTER_EXT),
+
+			spi: {
+				page: spi_mem_page === 0 ? 0 : 1,
+				mode: NameValueUtil.toName(spi_3w_en, GENERIC_SPI_MODE),
+				interrupt: spi_3w_int_en
+			}
 		}
 
 	}

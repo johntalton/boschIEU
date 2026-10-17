@@ -32,7 +32,7 @@ export class bmp58x extends GenericChip {
 			interrupt: false,
 			fifo: true,
 			time: false,
-			modes: [ 'standby', 'normal', 'forced', 'non-stop' ]
+			modes: [ 'STANDBY', 'NORMAL', 'FORCED', 'NON-STOP' ]
 		}
 	}
 

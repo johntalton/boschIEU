@@ -1,7 +1,6 @@
-
+/** biome-ignore-all lint/performance/noAwaitInLoops: simplicity */
 
 /** @import { I2CAddressedBus, I2CBufferSource } from '@johntalton/and-other-delights' */
-/** biome-ignore-all lint/performance/noAwaitInLoops: <explanation> */
 
 export class BusUtil {
 
