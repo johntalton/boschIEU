@@ -47,6 +47,7 @@
  * @property {boolean} conversionEnabled
  * @property {Array<GasSetpoint>} setpoints
  * @property {number} [gas_wait_shared]
+ * @property {number|undefined} [ambientTemperatureC]
  */
 
 /**
@@ -86,7 +87,8 @@
 /**
  * @typedef {Object} Profile5xx
  * @property {ProfileModes} mode
- *
+ * @property {number|false} oversampling_p
+ * @property {number|false} oversampling_t
  */
 
 /**
@@ -108,5 +110,8 @@
 
 
 /** @typedef {Profile2xx | Profile3xx | Profile5xx | Profile6xx} Profile */
+
+
+/** @typedef {Pick<Profile, 'mode'|'oversampling_t'|'oversampling_p'>} ModeProfile */
 
 export {}

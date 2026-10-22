@@ -5,7 +5,7 @@
 /** biome-ignore-all lint/style/useNumericSeparators: TODO */
 
 /** @import { Calibration } from '../types/calibration.js' */
-/** @import { MeasurementRaw } from '../types/measurement.js' */
+/** @import { MeasurementRaw, MeasurementRaw6xx } from '../types/measurement.js' */
 
 /**
  * @typedef {Object} CompensateTemperature
@@ -35,10 +35,10 @@
 
 /**
  * @typedef {Object} CompensateGas
+ * @property {false} skip
  * @property {number} adc
  * @property {number} Ohm
  * @property {boolean} stable
- * @property {boolean} skip
  */
 
 /**
@@ -70,11 +70,13 @@ export class Compensate {
 	 * @param {Calibration} calibration
 	 */
 	static from(measurement, calibration) {
-		if (measurement.type === '2xy') { return Compensate.from_2xy(measurement, calibration) }
-		if (measurement.type === '3xy') { return Compensate.from_3xy(measurement, calibration) }
-		if (measurement.type === '6xy') { return Compensate.from_6xy(measurement, calibration) }
+		const { type } = measurement
 
-		throw new Error(`unknown measurement type: ${measurement.type}`)
+		if (type === '2xx') { return Compensate.from_2xx(measurement, calibration) }
+		if (type === '3xx') { return Compensate.from_3xx(measurement, calibration) }
+		if (type === '6xx') { return Compensate.from_6xx(measurement, calibration) }
+
+		throw new Error(`unknown measurement type: ${type}`)
 	}
 
 	/**
@@ -82,13 +84,13 @@ export class Compensate {
 	 * @param {Calibration} calibration
 	 * @returns {CompensateResult}
 	 */
-	static from_3xy(measurement, calibration) {
-		const temperature = Compensate.temperature_3xy(measurement.adcT, calibration.T)
+	static from_3xx(measurement, calibration) {
+		const temperature = Compensate.temperature_3xx(measurement.adcT, calibration.T)
 
 		return {
 			sensorTime: Compensate.sensorTime(measurement.sensorTime),
 			temperature,
-			pressure: Compensate.pressure_3xy(measurement.adcP, temperature, calibration.P)
+			pressure: Compensate.pressure_3xx(measurement.adcP, temperature, calibration.P)
 		}
 	}
 
@@ -115,7 +117,7 @@ export class Compensate {
 	 * @param {Calibration['T']} caliT
 	 * @returns {CompensateTemperature | CompensateSkip}
 	 */
-	static temperature_3xy(adcT, caliT) {
+	static temperature_3xx(adcT, caliT) {
 		if(adcT === false) { return { adc: false, skip: true, why: 'adc false' }}
 		const [T1, T2, T3] = caliT
 
@@ -136,7 +138,7 @@ export class Compensate {
 	 * @param {Calibration['P']} caliP
 	 * @returns {CompensatePressure | CompensateSkip}
 	 */
-	static pressure_3xy(adcP, temperature, caliP) {
+	static pressure_3xx(adcP, temperature, caliP) {
 		if(adcP === false) { return { skip: true, adc: false, why: 'adc false' } }
 		if(temperature === undefined) { return { skip: true, adc: false, why: 'undefined temperature' }}
 		if(temperature.skip === true) { return { skip: true, adc: false, why: 'skipped temperature' }}
@@ -182,17 +184,17 @@ export class Compensate {
 	}
 
 	/**
-	 * @param {MeasurementRaw} measurement
+	 * @param {MeasurementRaw6xx} measurement
 	 * @param {Calibration} calibration
 	 * @returns {CompensateResult}
 	 */
-	static from_6xy(measurement, calibration) {
-		const temperature = Compensate.temperature_6xy(measurement.adcT, calibration.T)
+	static from_6xx(measurement, calibration) {
+		const temperature = Compensate.temperature_6xx(measurement.adcT, calibration.T)
 		return {
 			temperature,
-			pressure: Compensate.pressure_6xy(measurement.adcP, temperature, calibration.P),
-			humidity: Compensate.humidity_6xy(measurement.adcH, temperature, calibration.H),
-			gas: Compensate.gas_6xy(measurement.adcG, calibration.G)
+			pressure: Compensate.pressure_6xx(measurement.adcP, temperature, calibration.P),
+			humidity: Compensate.humidity_6xx(measurement.adcH, temperature, calibration.H),
+			gas: Compensate.gas_6xx(measurement.subtype, measurement.adcG, calibration.G)
 		}
 	}
 
@@ -201,7 +203,7 @@ export class Compensate {
 	 * @param {Calibration['T']} caliT
 	 * @returns {CompensateTemperature | CompensateSkip}
 	 */
-	static temperature_6xy(adcT, caliT) {
+	static temperature_6xx(adcT, caliT) {
 		if (adcT === false) { return { adc: false, skip: true, why: 'adc false' } }
 
 		if (caliT.length !== 3) { return { adc: false, skip: true, why: 'calibration length' } }
@@ -211,8 +213,8 @@ export class Compensate {
 		if(T2 === undefined) { return { adc: false, skip: true, why: 'T2 undefined' } }
 		if(T3 === undefined) { return { adc: false, skip: true, why: 'T3 undefined' } }
 
-		const var1f = (adcT / 16384.0 - T1 / 1024.0) * T2
-		const var2f = (adcT / 131072.0 - T1 / 8192.0) * (adcT / 131072.0 - T1 / 8192.0) * T3
+		const var1f = ((adcT / 16384.0) - (T1 / 1024.0)) * T2
+		const var2f = ((adcT / 131072.0) - (T1 / 8192.0)) * ((adcT / 131072.0) - (T1 / 8192.0)) * (T3 * 16.0)
 		const Tfinef = var1f + var2f
 		const cf = Tfinef / 5120.0
 
@@ -225,7 +227,7 @@ export class Compensate {
 	 * @param {Calibration['P']} caliP
 	 * @returns {CompensatePressure | CompensateSkip}
 	 */
-	static pressure_6xy(adcP, temperature, caliP) {
+	static pressure_6xx(adcP, temperature, caliP) {
 		if (adcP === false) { return { adc: false, skip: true, why: 'adc false' } }
 		if (temperature === undefined) { return { adc: false, skip: true, why: 'temperature undefined' } }
 		if (temperature.skip === true) { return { adc: false, skip: true, why: 'temperature skip' } }
@@ -255,7 +257,7 @@ export class Compensate {
 		var1 = (((P3 * var1 * var1) / 16384.0) + (P2 * var1)) / 524288.0
 		var1 = (1.0 + (var1 / 32768.0)) * P1
 
-		let pressure_hPa = 0
+		let pressure_Pa = 0
 
 		if (var1 !== 0) {
 			let p = 1048576.0 - adcP
@@ -264,13 +266,10 @@ export class Compensate {
 			var2 = p * (P8 / 32768.0)
 			const var3 = (p / 256.0) * (p / 256.0) * (p / 256.0) * (P10 / 131072.0)
 			p = p + (var1 + var2 + var3 + (P7 * 128.0)) / 16
-			pressure_hPa = p / 100
+			pressure_Pa = p
 		}
 
-
-		const fPa = pressure_hPa * 100
-
-		return { adc: adcP, Pa: fPa, Tfine, skip: false }
+		return { adc: adcP, Pa: pressure_Pa, Tfine, skip: false }
 	}
 
 	/**
@@ -279,7 +278,7 @@ export class Compensate {
 	 * @param {Calibration['H']} caliH
 	 * @returns {CompensateHumidity | CompensateSkip}
 	 */
-	static humidity_6xy(adcH, temperature, caliH) {
+	static humidity_6xx(adcH, temperature, caliH) {
 		if (adcH === false) { return { adc: false, skip: true , why: 'adc false'} }
 		if(temperature === undefined) { return { skip: true, adc: false, why: 'temperature undefined' } }
 		if(temperature.skip === true) { return { skip: true, adc: false, why: 'temperature skipped' } }
@@ -318,11 +317,30 @@ export class Compensate {
 	}
 
 	/**
+	 * @param {MeasurementRaw6xx['subtype']} subtype
 	 * @param {MeasurementRaw['adcG']} adcG
 	 * @param {Calibration['G']} caliG
 	 * @returns {CompensateGas | CompensateSkip}
 	 */
-	static gas_6xy(adcG, caliG) {
+	static gas_6xx(subtype, adcG, caliG) {
+		if(subtype === '680') {
+			return Compensate.gas_6xx_680(adcG, caliG)
+		}
+
+		if(subtype === '688') {
+			return Compensate.gas_6xx_688(adcG, caliG)
+		}
+
+		console.warn('unknown measurement subtype for gas', subtype)
+		return { adc: false, skip: true, why: 'unknown subtype' }
+	}
+
+	/**
+	 * @param {MeasurementRaw['adcG']} adcG
+	 * @param {Calibration['G']} caliG
+	 * @returns {CompensateGas | CompensateSkip}
+	 */
+	static gas_6xx_680(adcG, caliG) {
 		if (adcG === false) { return { adc: false, skip: true, why: 'adc false' } }
 		if(caliG === undefined) { return { adc: false, skip: true, why: 'undefined calibration' } }
 
@@ -347,11 +365,33 @@ export class Compensate {
 		const var1 = (1340.0 + (5.0 * caliG.range_switching_error))
 		const var2 = var1 * (1.0 + (range1 / 100.0))
 		const var3 = 1.0 + (range2 / 100.0)
-		const calc_gas_res = 1.0 / (var3 * (0.000000125) * (1 << adcG.range) * ((((adcG.resistance) - 512.0) / var2) + 1.0))
+		const gas_res = 1.0 / (var3 * (0.000000125) * (1 << adcG.range) * ((((adcG.resistance) - 512.0) / var2) + 1.0))
 
-		const ohms = calc_gas_res
+		// const var1 = (1340.0 + (5 * caliG.range_switching_error)) * (1.0 + range1 / 100.0)
+		// const gas_res = var1 * range2 / (adcG.resistance - 512.0 + var1)
 
-		return { adc: adcG.range, Ohm: ohms, skip: !adcG.stable, stable: adcG.stable }
+
+		return { adc: adcG.range, Ohm: gas_res, skip: false, stable: adcG.stable }
+	}
+
+	/**
+	 * @param {MeasurementRaw['adcG']} adcG
+	 * @param {Calibration['G']} caliG
+	 * @returns {CompensateGas | CompensateSkip}
+	 */
+	static gas_6xx_688(adcG, caliG) {
+		if (adcG === false) { return { adc: false, skip: true, why: 'adc false' } }
+		if(caliG === undefined) { return { adc: false, skip: true, why: 'undefined calibration' } }
+
+		const Gg = caliG.G
+		if (Gg.length !== 3) { return { adc: false, skip: true, why: 'calibration length' } }
+
+
+		const var1 = 262144 >> adcG.range
+		const var2 = 4069 + ((adcG.resistance - 512) * 3)
+		const gas_res = 1_000_000.0 * var1 / var2
+
+		return { adc: adcG.range, Ohm: gas_res, skip: false, stable: adcG.stable }
 	}
 
 	/**
@@ -359,7 +399,7 @@ export class Compensate {
 	 * @param {Calibration} calibration
 	 * @returns {CompensateResult}
 	 */
-	static from_2xy(measurement, calibration) {
+	static from_2xx(measurement, calibration) {
 		const temperature = Compensate.temperature(measurement.adcT, calibration.T)
 		const pressure = Compensate.pressure(measurement.adcP, temperature, calibration.P)
 		const humidity = Compensate.humidity(measurement.adcH, temperature, calibration.H)

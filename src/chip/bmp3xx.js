@@ -14,7 +14,7 @@ import { GENERIC_FILTER_EXT, GENERIC_SPI_MODE, GenericChip } from './generic.js'
 import { bmp3xxFifo } from './fifo/index.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile3xx, ProfileModes } from '../types/profile.js' */
+/** @import { Profile3xx, ProfileModes, ModeProfile } from '../types/profile.js' */
 /** @import { Measurement3xx } from '../types/measurement.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { Features } from '../types/features.js' */
@@ -597,6 +597,16 @@ export class bmp3xx extends GenericChip {
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {ModeProfile} profile
+	 * @returns {Promise<void>}
+	 */
+	static async setMode(bus, profile) {
+		throw new Error('not implemented')
+	}
+
+	/**
+	 * @override
+	 * @param {I2CAddressedBus} bus
 	 * @param {Calibration} calibration
 	 * @returns {Promise<Measurement3xx>}
 	 */
@@ -651,7 +661,7 @@ export class bmp3xx extends GenericChip {
 				adcT: T,
 				adcH: false,
 				adcG: false,
-				type: '3xy'
+				type: '3xx'
 			}, calibration)
 		}
 	}

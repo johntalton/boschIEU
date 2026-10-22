@@ -12,7 +12,7 @@ import { Compensate } from './compensate.js'
 import { GENERIC_FILTER, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } from './generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile2xx, ProfileModes } from '../types/profile.js' */
+/** @import { Profile2xx, ProfileModes, ModeProfile } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { Measurement2xx } from '../types/measurement.js' */
 /** @import { Features } from '../types/features.js' */
@@ -248,6 +248,16 @@ export class bme280 extends GenericChip {
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {ModeProfile} profile
+	 * @returns {Promise<void>}
+	 */
+	static async setMode(bus, profile) {
+		throw new Error('not implemented')
+	}
+
+	/**
+	 * @override
+	 * @param {I2CAddressedBus} bus
 	 * @param {Calibration} calibration
 	 * @returns {Promise<Measurement2xx>}
 	 */
@@ -280,7 +290,7 @@ export class bme280 extends GenericChip {
 				adcT: T,
 				adcH: H,
 				adcG: false,
-				type: '2xy'
+				type: '2xx'
 			}, calibration)
 	}
 

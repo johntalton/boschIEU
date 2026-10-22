@@ -12,14 +12,16 @@ import { Bits } from './bits.js'
 import {
 	REGISTERS as BME6XX_REGISTERS,
 	bme6xx,
-	SKIP_VALUE_20_BIT
+	DEFAULT_AMBIENT_TEMPERATURE_C,
+	SKIP_VALUE_20_BIT,
 } from './bme6xx.js'
 import { Compensate } from './compensate.js'
 import { GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE } from './generic.js'
-import { Util } from './util.js'
+import { Util } from './range.js'
+import { Setpoint } from './setpoint.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile6xx, ProfileModes } from '../types/profile.js' */
+/** @import { Profile6xx, ProfileModes, ModeProfile } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { Measurement6xx } from '../types/measurement.js' */
 /** @import { Features } from '../types/features.js' */
@@ -32,11 +34,34 @@ export const MODES = [
 ]
 
 export const REGISTERS = {
+	STATUS: 0x73,
+	RESET: 0xE0,
+	ID: 0xD0,
+
+	CONFIG: 0x75,
+	CTRL_MEAS: 0x74,
+	//
+	CTRL_HUM: 0x72,
+	CTRL_GAS_1: 0x71,
+	CTRL_GAS_0: 0x70,
+
+	//
+	GAS_WAIT_0: 0x64,
+	RES_HEAT_0: 0x5A,
+	IDAC_HEAT_0: 0x50,
+
+	GAS_R_MSB: 0x2A,
+	HUM_MSB: 0x25,
+	TEMP_MSB: 0x22,
+	PRES_MSB: 0x1F,
+	//
 	MEASUREMENT_STATUS_0: 0x1D
 }
 
+export const CTRL_MEAS_MODE_MASK = 0b0000_0011
+
 /** @type {Array<[ number, number ]>} */
-export const SET_POINTS_BLOCK = [ [ BME6XX_REGISTERS.GAS_WAIT_0, 30 ] ]
+export const SET_POINTS_BLOCK = [ [ BME6XX_REGISTERS.IDAC_HEAT_0, 30 ] ]
 
 /** @type {Array<[ number, number ]>} */
 export const MEASUREMENT_BLOCK = [ [ REGISTERS.MEASUREMENT_STATUS_0, 15 ] ]
@@ -68,9 +93,10 @@ export class bme680 extends bme6xx {
 	/**
 	 * @override
 	 * @param {I2CAddressedBus} bus
+	 * @param {Calibration} calibration
 	 * @returns {Promise<Profile6xx>}
 	 */
-	static async profile(bus) {
+	static async profile(bus, calibration) {
 		const {
 			ctrl_gas_1,
 			mode,
@@ -85,6 +111,8 @@ export class bme680 extends bme6xx {
 			spi
 		} = await bme6xx.rawProfile(bus)
 
+		const ambientTemperatureC = calibration.G?.ambientTemperatureC ?? DEFAULT_AMBIENT_TEMPERATURE_C
+
 		const buffer = await BusUtil.readI2cBlocks(bus, SET_POINTS_BLOCK)
 		const dv = ArrayBuffer.isView(buffer) ?
 			new DataView(buffer.buffer, buffer.byteOffset) :
@@ -97,7 +125,7 @@ export class bme680 extends bme6xx {
 		// address unique to 680
 		const run_gas = BitSmush.extractBits(ctrl_gas_1, 4, 1) === 1
 
-		const setpoints = bme6xx.parseSetpoint(idac_heat, res_heat, gas_wait, nb_conv)
+		const setpoints = bme6xx.parseSetpoint(idac_heat, res_heat, gas_wait, nb_conv, calibration.G, ambientTemperatureC)
 
 		return {
 			mode: NameValueUtil.toName(mode, MODES),
@@ -130,9 +158,11 @@ export class bme680 extends bme6xx {
 		if (profile.gas.setpoints === undefined) { throw new Error('missing set-point') }
 		if (profile.gas.setpoints.length > 10) { throw new Error('set-point limit of 10') }
 
+		const ambientTemperatureC = profile.gas.ambientTemperatureC ?? calibration.G?.ambientTemperatureC ?? DEFAULT_AMBIENT_TEMPERATURE_C
+
 		const heat_off = profile.gas.heaterEnabled ? 0 : 1
 		const run_gas = profile.gas.conversionEnabled ? 1 : 0
-		const nb_conv = 0 // todo active index // todo why 0b1111
+		const nb_conv = profile.gas.setpoints.find(sp => sp.selected)?.index ?? 0
 
 		const mode = NameValueUtil.toValue(profile.mode, MODES)
 		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
@@ -152,43 +182,52 @@ export class bme680 extends bme6xx {
 		const config = BitSmush.smushBits([[4, 3], [0, 1]], [filter, spi_3w_en])
 		const status = BitSmush.smushBits([[4, 1]], [spi_mem_page])
 
-		// const status = 0 // todo, we need to redactor all this page stuff Util.packBits([[4, 1]], [spi_mem_page])
+		//
+		const setpointRegisterValues = profile.gas.setpoints.flatMap(setpoint => {
+			const { index, initialMa, temperatureC, durationMs } = setpoint
 
-		// const idac_heat = [
-		// 	false, false, false, false, false,
-		// 	false, false, false, false, false
-		// ] // todo fix, don't touch values  for now
+			const idac_heat = Setpoint.toIDACHeat(initialMa)
+			const res_heat = Setpoint.toRestHeat(temperatureC, calibration.G, ambientTemperatureC)
+			const gas_wait = Setpoint.toGasWait(durationMs)
 
-		// const [res_heat, gas_wait] = profile.gas.setpoints.reduce((out, sp, idx) => {
-		// 	if (sp.skip === true) { return [[...out[0], false], [...out[1], false]] }
+			return [
+				REGISTERS.IDAC_HEAT_0 + index, idac_heat,
+				REGISTERS.RES_HEAT_0 + index, res_heat,
+				REGISTERS.GAS_WAIT_0 + index, gas_wait
+			]
+		})
 
-		// 	const gw = durationToGasWait(sp.durationMs)
-		// 	const multi = NameValueUtil.toValue(gw.multiplier, gwMultipliers)
-		// 	const gas_wait_x = BitSmush.smushBits([[7, 2], [5, 6]], [multi, gw.base])
+		await bus.writeI2cBlock(REGISTERS.CTRL_MEAS, Uint8Array.from([
+			ctrl_meas & ~CTRL_MEAS_MODE_MASK, // sleep is zero
 
-		// 	const pat = profile.ambientTemperatureC === undefined ? 25 : profile.ambientTemperatureC // or 25C
-		// 	const ambientTemperatureC = sp.ambientTemperatureC === undefined ? pat : sp.ambientTemperatureC
+			REGISTERS.CTRL_GAS_0, ctrl_gas0,
+			REGISTERS.CTRL_GAS_1, ctrl_gas1,
+			REGISTERS.CTRL_HUM, ctrl_hum,
+			REGISTERS.CONFIG, config,
+			REGISTERS.STATUS, status,
 
-		// 	const res_heat_x = temperatureToHeaterRes(sp.temperatureC, ambientTemperatureC, calibration.G)
+			...setpointRegisterValues,
 
-		// 	return [[...out[0], res_heat_x], [...out[1], gas_wait_x]]
-		// }, [[], []])
+			REGISTERS.CTRL_MEAS, ctrl_meas
+		]))
+	}
 
-		// we no longer bulk write,
-		await bus.writeI2cBlock(0x74, Uint8Array.from([ctrl_meas & ~0b11])) // sleep
-		await Promise.all([
-			bus.writeI2cBlock(0x72, Uint8Array.from([ctrl_hum])),
-			bus.writeI2cBlock(0x75, Uint8Array.from([config])),
-			bus.writeI2cBlock(0x71, Uint8Array.from([ctrl_gas1])),
-			bus.writeI2cBlock(0x70, Uint8Array.from([ctrl_gas0])),
+	/**
+	 * @override
+	 * @param {I2CAddressedBus} bus
+	 * @param {ModeProfile} profile
+	 * @returns {Promise<void>}
+	 */
+	static async setMode(bus, profile) {
+		const mode = NameValueUtil.toValue(profile.mode, MODES)
+		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
 
-			// ...idac_heat.filter(x => x !== false).map((x, idx) => bus.writeI2cBlock(0x50 + idx, Uint8Array.from([x]))),
-			// ...res_heat.filter(x => x !== false).map((x, idx) => bus.writeI2cBlock(0x5A + idx, Uint8Array.from([x]))),
-			// ...gas_wait.filter(x => x !== false).map((x, idx) => bus.writeI2cBlock(0x64 + idx, Uint8Array.from([x])))
-		])
+		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
 
-		// now set valid mode
-		await bus.writeI2cBlock(0x74, Uint8Array.from([ctrl_meas]))
+		await bus.writeI2cBlock(REGISTERS.CTRL_MEAS, Uint8Array.from([
+			ctrl_meas
+		]))
 	}
 
 	/**
@@ -256,7 +295,7 @@ export class bme680 extends bme6xx {
 				adcT: T,
 				adcH: H,
 				adcG: G,
-				type: '6xy'
+				type: '6xx', subtype: '680'
 			}, calibration)
 		}
 	}

@@ -5,6 +5,7 @@
  * @property {number} res_heat_val
  * @property {number} res_heat_range
  * @property {number} range_switching_error
+ * @property {number|undefined} [ambientTemperatureC]
  */
 
 /**

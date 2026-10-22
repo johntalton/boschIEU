@@ -1,6 +1,6 @@
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile } from '../types/profile.js' */
+/** @import { Profile, ModeProfile } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { CompensateResult } from './compensate.js' */
 /** @import { Features } from '../types/features.js' */
@@ -117,16 +117,25 @@ export class GenericChip {
 
 	/**
 	 * @param {I2CAddressedBus} _bus
-	 * @param {Partial<Profile>} _profile
-	 * @param {Calibration} [_calibration]
+	 * @param {Profile} _profile
+	 * @param {Calibration|undefined} [_calibration]
+	 * @returns {Promise<void>}
 	 */
 	static async setProfile(_bus, _profile, _calibration) { throw new Error('setProfile not defined for generic chip') }
 
 	/**
 	 * @param {I2CAddressedBus} _bus
+	 * @param {ModeProfile} _profile
+	 * @returns {Promise<void>}
+	 */
+	static async setMode(_bus, _profile) { throw new Error('set mode not defined for generic') }
+
+	/**
+	 * @param {I2CAddressedBus} _bus
+	 * @param {Calibration|undefined} [_calibration]
 	 * @returns {Promise<Profile>}
 	 */
-	static async profile(_bus) { throw new Error('profile not defined for generic chip') }
+	static async profile(_bus, _calibration) { throw new Error('profile not defined for generic chip') }
 
 	/**
 	 * @param {I2CAddressedBus} _bus

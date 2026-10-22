@@ -9,8 +9,8 @@
  */
 
 /**
- * @typedef {Object} MeasurementRaw
- * @property {'2xy'|'3xy'|'6xy'} type
+ * @typedef {Object} MeasurementRawBase
+ * @property {'2xx'|'3xx'|'6xx'} type
  * @property {number|false} adcT
  * @property {number|false} adcP
  * @property {number|false} adcH
@@ -18,6 +18,35 @@
  *
  * @property {number} [sensorTime]
  */
+
+
+/**
+ * @typedef {Object} MeasurementRaw2xxBase
+ * @property {'2xx'} type
+ */
+/** @typedef {MeasurementRawBase & MeasurementRaw2xxBase} MeasurementRaw2xx */
+
+/**
+ * @typedef {Object} MeasurementRaw3xxBase
+ * @property {'3xx'} type
+ */
+/** @typedef {MeasurementRawBase & MeasurementRaw3xxBase} MeasurementRaw3xx */
+
+/**
+ * @typedef {Object} MeasurementRaw5xxBase
+ * @property {'5xx'} type
+ */
+/** @typedef {MeasurementRawBase & MeasurementRaw5xxBase} MeasurementRaw5xx */
+
+/**
+ * @typedef {Object} MeasurementRaw6xxBase
+ * @property {'6xx'} type
+ * @property {'680'|'688'} subtype
+ */
+/** @typedef {MeasurementRawBase & MeasurementRaw6xxBase} MeasurementRaw6xx */
+
+/** @typedef {MeasurementRaw2xx | MeasurementRaw3xx | MeasurementRaw5xx | MeasurementRaw6xx } MeasurementRaw */
+
 
 /** @typedef {CompensateResult} Measurement2xx */
 

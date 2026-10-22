@@ -2,7 +2,7 @@ import { Chip } from './chip/chip.js'
 import { BoschFifo } from './fifo.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
-/** @import { Profile } from './types/profile.js' */
+/** @import { Profile, ModeProfile } from './types/profile.js' */
 /** @import { Calibration } from './types/calibration.js' */
 /** @import { CompensateResult } from './chip/compensate.js' */
 /** @import { GenericChip } from './chip/generic.js'  */
@@ -82,15 +82,23 @@ export class BoschSensor {
 	/**
 	 * @returns {Promise<Profile>}
 	 */
-	async profile() { return this.#chip.profile(this.#bus) }
+	async profile() {
+		// calibration passed unchecked as only applies to bme680
+		return this.#chip.profile(this.#bus, this.#calibration)
+	}
 
 	/**
-	 * @param {Partial<Profile>} profile
+	 * @param {Profile} profile
 	 */
 	async setProfile(profile) {
 		// calibration passed unchecked as only applies to bme680
 		await this.#chip.setProfile(this.#bus, profile, this.#calibration)
 	}
+
+	/**
+	 * @param {ModeProfile} profile
+	 */
+	async setMode(profile) { await this.#chip.setMode(this.#bus, profile) }
 
 	/**
 	 * @returns {Promise<CompensateResult>}

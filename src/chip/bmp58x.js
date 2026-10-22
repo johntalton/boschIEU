@@ -2,7 +2,7 @@ import { GenericChip } from './generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Features } from '../types/features.js' */
-/** @import { Profile5xx } from '../types/profile.js' */
+/** @import { Profile5xx, ModeProfile } from '../types/profile.js' */
 /** @import { ChipKind } from './chip.js'  */
 
 export class bmp58x extends GenericChip {
@@ -69,5 +69,15 @@ export class bmp58x extends GenericChip {
 	 */
 	static async profile(bus) {
 
+	}
+
+	/**
+	 * @override
+	 * @param {I2CAddressedBus} bus
+	 * @param {ModeProfile} profile
+	 * @returns {Promise<void>}
+	 */
+	static async setMode(bus, profile) {
+		throw new Error('not implemented')
 	}
 }

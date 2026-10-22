@@ -4,7 +4,8 @@ import { NameValueUtil } from '../nvutil.js'
 import { BusUtil } from '../util.js'
 import { Bits } from './bits.js'
 import { GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } from './generic.js'
-import { Util } from './util.js'
+import { Util } from './range.js'
+import { Setpoint } from './setpoint.js'
 
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
@@ -40,6 +41,8 @@ import { Util } from './util.js'
  * @property {Profile6xx['spi']} spi
  */
 
+export const DEFAULT_AMBIENT_TEMPERATURE_C = 25.0
+
 export const REGISTERS = {
 	VARIANT: 0xF0, // 688 (reserved on 680)
 	RESET: 0xE0,
@@ -53,49 +56,17 @@ export const REGISTERS = {
 	CTRL_GAS_0: 0x70,
 
 
-	IDAC_HEAT_0: 0x50,
+	GAS_WAIT_0: 0x64,
 	RES_HEAT_0: 0x5A,
-	GAS_WAIT_0: 0x64
+	IDAC_HEAT_0: 0x50
 }
 
 /** @type {Array<[ number, number ]>} */
 export const PROFILE_BLOCK = [ [ REGISTERS.CTRL_GAS_0, 6 ] ]
 
-
 export const RESET_MAGIC = 0xB6
 
 export const SKIP_VALUE_20_BIT = 0x08_00_00
-
-// todo move to common enumerations in generic? but its not
-export const gwMultipliers = [
-	{ name: 1, value: 0 },
-	{ name: 4, value: 1 },
-	{ name: 16, value: 2 },
-	{ name: 64, value: 3 }
-]
-
-
-/** @param {number|undefined} gasWait  */
-export function gasWaitToDuration(gasWait) {
-	if(gasWait === undefined) { return undefined }
-	const multiplier = NameValueUtil.toName(BitSmush.extractBits(gasWait, 7, 2), gwMultipliers)
-	const baseMs = BitSmush.extractBits(gasWait, 5, 6)
-	return baseMs * multiplier
-}
-
-/**
- * @param {number|undefined} resHeat
- */
-export function resHeatToTemperature(resHeat) {
-	return resHeat // todo
-}
-
-/**
- * @param {number|undefined} idacHeat
- */
-export function idacHeatToMa(idacHeat) {
-	return idacHeat // todo
-}
 
 export class bme6xx extends GenericChip {
 	/**
@@ -192,13 +163,15 @@ export class bme6xx extends GenericChip {
 	 * @param {Array<number>} res_heat
 	 * @param {Array<number>} gas_wait
 	 * @param {number} nb_conv
+	 * @param {Calibration['G']} calibrationG
+	 * @param {number} ambientTemperatureC
 	 * @returns {Array<GasSetpoint>}
 	 */
- 	static parseSetpoint(idac_heat, res_heat, gas_wait, nb_conv) {
+ 	static parseSetpoint(idac_heat, res_heat, gas_wait, nb_conv, calibrationG, ambientTemperatureC) {
 		const setpoints = Util.range(0, 9).map(i => {
-			const durationMs = gasWaitToDuration(gas_wait[i]) ?? 0
-			const temperatureC = resHeatToTemperature(res_heat[i]) ?? 0
-			const initialMa = idacHeatToMa(idac_heat[i]) ?? 0
+			const durationMs = Setpoint.fromGasWait(gas_wait[i]) ?? 0
+			const temperatureC = Setpoint.fromResHeat(res_heat[i], calibrationG, ambientTemperatureC) ?? 0
+			const initialMa = Setpoint.fromIDACHeat(idac_heat[i]) ?? 0
 
 			return {
 				index: i,
@@ -209,7 +182,6 @@ export class bme6xx extends GenericChip {
 				initialMa
 			}
 		})
-
 
 		return setpoints
 	}

@@ -78,7 +78,7 @@ export class bmp3xxFifo extends genericFifo {
 							adcT: msg.temp,
 							adcH: false,
 							adcG: false,
-							type: '3xy'
+							type: '3xx'
 						}, calibration)
 				}
 			}
