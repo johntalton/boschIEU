@@ -25,7 +25,7 @@ Products:
  - [Adafruit BMP585](https://www.adafruit.com/product/6413)
 
  - [Adafruit BME680](https://www.adafruit.com/product/3660) / [Sparkfun BME680](https://www.sparkfun.com/sparkfun-environmental-sensor-breakout-bme680-qwiic.html)
- - [Adafruit BME688](hhttps://www.adafruit.com/product/5046) / [Sparkfun BME688](https://www.sparkfun.com/sparkfun-environmental-sensor-bme688-qwiic.html)
+ - [Adafruit BME688](https://www.adafruit.com/product/5046) / [Sparkfun BME688](https://www.sparkfun.com/sparkfun-environmental-sensor-bme688-qwiic.html)
 
 (note: Adafruit no-longer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
