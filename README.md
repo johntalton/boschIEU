@@ -29,9 +29,7 @@ Products:
 
 (note: Adafruit no-longer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
-## :triangular_ruler: [Example Usage](examples/README.md)
-
-# :wrench: API
+# :gear: API
 
 The API is organized around simple sensor class `BoschSensor` which provides an object interface for manipulating the sensor.
 
@@ -74,7 +72,7 @@ const sensor = BoschIEU.sensor(addressedBus, { chip: bmp390 })
 // use bmp390 specific interaction (etc)
 
 ```
-#### :page_facing_up: sensor.chip
+#### :wrench: sensor.chip
 
 The chips identification can be inspected via the `sensor.chip` property.
 
@@ -93,17 +91,17 @@ console.log('chip:', kind, name, hasFifo)
 
 ```
 
-#### :page_facing_up: calibration()
+#### :wrench: calibration()
 
 Calibration method fetches required parameters from the chip and caches them in the sensor class.  It also returns a copy for inspection.
 
 This is required prior to any `measurement` call to properly calculate results.
 
-#### :page_facing_up: profile()
+#### :wrench: profile()
 
 Returns the chips full profile object.
 
-#### :page_facing_up: setProfile(profile)
+#### :wrench: setProfile(profile)
 
 Sets the profile for the chip in full.
 
@@ -152,7 +150,7 @@ await sensor.setProfile({
 
 ```
 
-#### :page_facing_up: setMode(profile)
+#### :wrench: setMode(profile)
 
 Setting the Mode is a short form of setting the profile.  It allows for updating part of the profile that controls the mode.  This is useful for chips that can be used in single-shot measurement modes.
 
