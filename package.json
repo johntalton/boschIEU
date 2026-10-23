@@ -1,6 +1,6 @@
 {
   "name": "@johntalton/boschieu",
-  "version": "8.0.0",
+  "version": "8.0.1",
   "license": "MIT",
   "type": "module",
   "keywords": [
@@ -36,7 +36,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@github.com:johntalton/boschIEU.git"
+    "url": "git+ssh://git@github.com/johntalton/boschIEU.git"
   },
   "author": "johntalton@gmail.com"
 }
