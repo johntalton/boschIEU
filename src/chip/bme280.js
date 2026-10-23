@@ -1,13 +1,14 @@
+/** biome-ignore-all lint/style/noExcessiveLinesPerFile: self contained */
 import { BitSmush } from '@johntalton/bitsmush'
 //
 
-import { NameValueUtil } from '../nvutil.js'
+import { NameValueUtil } from '../util/nvutil.js'
 //
 
-import { Bits } from './bits.js'
+import { Bits } from '../util/bits.js'
 //
 
-import { BusUtil } from '../util.js'
+import { BusUtil } from '../util/util.js'
 import { Compensate } from './compensate.js'
 import { GENERIC_FILTER, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } from './generic.js'
 
@@ -17,7 +18,7 @@ import { GENERIC_FILTER, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } fr
 /** @import { Measurement2xx } from '../types/measurement.js' */
 /** @import { Features } from '../types/features.js' */
 /** @import { ChipKind } from './chip.js'  */
-/** @import { NVMap } from '../nvutil.js' */
+/** @import { NVMap } from '../util/nvutil.js' */
 
 /** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'|'NORMAL'>>} */
 export const MODES = [
@@ -50,6 +51,8 @@ export const REGISTER = {
 	CALIBRATION_26: 0xE1,
 	CALIBRATION_00: 0x88
 }
+
+export const CTRL_MEAS_MODE_MASK = 0b0000_0011
 
 // Calibration
 export const CALIBRATION_TP_START_ADDRESS = REGISTER.CALIBRATION_00
@@ -231,18 +234,18 @@ export class bme280 extends GenericChip {
 		const os_h = NameValueUtil.toValue(profile.oversampling_h, GENERIC_OVERSAMPLES)
 		const sb_t = NameValueUtil.toValue(profile.standby_time, STANDBY_TIME_HIRES)
 		const filter = NameValueUtil.toValue(profile.filter_coefficient, GENERIC_FILTER)
-		const en3w = profile.spi === undefined ? false : profile.spi.enable3w
+		const spi_3w_en = NameValueUtil.toValue(profile.spi.mode, GENERIC_SPI_MODE)
 
 		const ctrl_hum = BitSmush.smushBits([[2, 3]], [os_h])
 		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
-		const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
+		const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, spi_3w_en])
 
-		// TODO this should call serial promises, `all` does not guarantee order
-		await Promise.all([
-			bus.writeI2cBlock(REGISTER.CTRL_HUM, Uint8Array.from([ctrl_hum])),
-			bus.writeI2cBlock(REGISTER.CTRL_MEAS, Uint8Array.from([ctrl_meas])),
-			bus.writeI2cBlock(REGISTER.CONFIG, Uint8Array.from([config]))
-		])
+		await bus.writeI2cBlock(REGISTER.CTRL_MEAS, Uint8Array.from([
+			ctrl_meas & ~CTRL_MEAS_MODE_MASK,
+			REGISTER.CTRL_HUM, ctrl_hum,
+			REGISTER.CONFIG, config,
+			REGISTER.CTRL_MEAS, ctrl_meas
+		]))
 	}
 
 	/**
@@ -252,7 +255,16 @@ export class bme280 extends GenericChip {
 	 * @returns {Promise<void>}
 	 */
 	static async setMode(bus, profile) {
-		throw new Error('not implemented')
+		const mode = NameValueUtil.toValue(profile.mode, MODES)
+
+		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
+
+		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
+
+		await bus.writeI2cBlock(REGISTER.CTRL_MEAS, Uint8Array.from([
+			ctrl_meas
+		]))
 	}
 
 	/**

@@ -1,4 +1,3 @@
-import { bmp58x } from '../bmp58x.js'
 import { genericFifo } from '../generic.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */

@@ -1,4 +1,4 @@
-import { reconstruct9bit } from '../bits.js'
+import { reconstruct9bit } from '../../util/bits.js'
 import { Compensate } from '../compensate.js'
 import { genericFifo } from '../generic.js'
 import { bmp3xxFifoParser, FRAME_TYPE_MEASUREMENT, FRAME_TYPE_TIME } from './bmp3xxFifoParser.js'

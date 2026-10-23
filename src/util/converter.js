@@ -1,9 +1,9 @@
 export const PA_PER_KPA = 1000
 
-// record low of 870 mbar (87 kPa, 26 inHg).
-// record highs close to 1085 mbar (108.5 kPa, 32.0 inHg
+// record low of 870 mBar (87 kPa, 26 inHg).
+// record highs close to 1085 mBar (108.5 kPa, 32.0 inHg
 export const MIN_SEA_LEVEL_PA = 87 * PA_PER_KPA
-export const MAX_SEA_LEVL_PA = 1085 * PA_PER_KPA
+export const MAX_SEA_LEVEL_PA = 1085 * PA_PER_KPA
 
 // a normal guess for sea level
 export const NORMAL_SEA_LEVEL_PA = 101.325 * PA_PER_KPA

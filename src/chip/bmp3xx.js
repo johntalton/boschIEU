@@ -2,9 +2,9 @@
 import { BitSmush } from '@johntalton/bitsmush'
 //
 
-import { NameValueUtil } from '../nvutil.js'
-import { BusUtil } from '../util.js'
-import { reconstruct9bit, reconstruct24bit } from './bits.js'
+import { reconstruct9bit, reconstruct24bit } from '../util/bits.js'
+import { NameValueUtil } from '../util/nvutil.js'
+import { BusUtil } from '../util/util.js'
 //
 
 import { Compensate } from './compensate.js'
@@ -19,7 +19,7 @@ import { bmp3xxFifo } from './fifo/index.js'
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { Features } from '../types/features.js' */
 /** @import { ChipKind } from './chip.js'  */
-/** @import { NVMap } from '../nvutil.js' */
+/** @import { NVMap } from '../util/nvutil.js' */
 
 /** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'|'NORMAL'>>} */
 export const MODES = [
@@ -601,7 +601,15 @@ export class bmp3xx extends GenericChip {
 	 * @returns {Promise<void>}
 	 */
 	static async setMode(bus, profile) {
-		throw new Error('not implemented')
+		const mode = NameValueUtil.toValue(profile.mode.toUpperCase(), MODES)
+		const temp_en = profile.oversampling_t === false ? TEMP_DISABLED : TEMP_ENABLED
+		const press_en = profile.oversampling_p === false ? PRESS_DISABLED : PRESS_ENABLED
+
+		const pwr_ctrl = BitSmush.smushBits([[5, 2], [1, 1], [0, 1]], [mode, temp_en, press_en])
+
+		await bus.writeI2cBlock(REGISTERS.PWR_CTRL, Uint8Array.from([
+			pwr_ctrl
+		]))
 	}
 
 	/**

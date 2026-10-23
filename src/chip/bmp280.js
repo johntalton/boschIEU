@@ -1,9 +1,9 @@
 import { BitSmush } from '@johntalton/bitsmush'
 //
 
-import { NameValueUtil } from '../nvutil.js'
-import { BusUtil } from '../util.js'
-import { Bits } from './bits.js'
+import { Bits } from '../util/bits.js'
+import { NameValueUtil } from '../util/nvutil.js'
+import { BusUtil } from '../util/util.js'
 //
 
 import { Compensate } from './compensate.js'
@@ -15,7 +15,7 @@ import { GENERIC_FILTER, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } fr
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { Features } from '../types/features.js' */
 /** @import { ChipKind } from './chip.js'  */
-/** @import { NVMap } from '../nvutil.js' */
+/** @import { NVMap } from '../util/nvutil.js' */
 
 /** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'|'NORMAL'>>} */
 export const MODES = [
@@ -49,6 +49,8 @@ export const REGISTERS = {
 	PRESS_MSB: 0xF7,
 	TEMP_MSB: 0xFA
 }
+
+export const CTRL_MEAS_MODE_MASK = 0b0000_0011
 
 export const RESET_MAGIC = 0xB6
 export const SKIP_VALUE_20_BIT = 0x08_00_00
@@ -184,28 +186,30 @@ export class bmp280 extends GenericChip {
 		}
 	}
 
-	// /**
-	//  * @override
-	//  * @param {I2CAddressedBus} bus
-	//  * @param {Partial<Profile>} profile
-	//  * @returns {Promise<void>}
-	//  */
-	// static async setProfile(bus, profile) {
-	// 	const mode = NameValueUtil.toValue(profile.mode, MODES)
-	// 	const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
-	// 	const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
-	// 	const sb_t = NameValueUtil.toValue(profile.standby_time, STANDBY_TIME)
-	// 	const filter = NameValueUtil.toValue(profile.filter_coefficient, GENERIC_FILTER)
-	// 	const en3w = profile.spi === undefined ? 0 : profile.spi.enable3w
+	/**
+	 * @override
+	 * @param {I2CAddressedBus} bus
+	 * @param {Profile2xx} profile
+	 * @returns {Promise<void>}
+	 */
+	static async setProfile(bus, profile) {
+		const mode = NameValueUtil.toValue(profile.mode, MODES)
+		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
+		const sb_t = NameValueUtil.toValue(profile.standby_time, STANDBY_TIME)
+		const filter = NameValueUtil.toValue(profile.filter_coefficient, GENERIC_FILTER)
+		const spi_3w_en = NameValueUtil.toValue(profile.spi.mode, GENERIC_SPI_MODE)
 
-	// 	const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
-	// 	const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, en3w])
+		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
+		const config = BitSmush.smushBits([[7, 3], [4, 3], [0, 1]], [sb_t, filter, spi_3w_en])
 
-	// 	await Promise.all([
-	// 		bus.writeI2cBlock(0xF4, Uint8Array.from([ctrl_meas])),
-	// 		bus.writeI2cBlock(0xF5, Uint8Array.from([config]))
-	// 	])
-	// }
+		await bus.writeI2cBlock(REGISTERS.CTRL_MEAS, Uint8Array.from([
+			ctrl_meas & ~CTRL_MEAS_MODE_MASK,
+
+			REGISTERS.CONFIG, config,
+			REGISTERS.CTRL_MEAS, ctrl_meas
+		]))
+	}
 
 	/**
 	 * @override
@@ -214,7 +218,15 @@ export class bmp280 extends GenericChip {
 	 * @returns {Promise<void>}
 	 */
 	static async setMode(bus, profile) {
-		throw new Error('not implemented')
+		const mode = NameValueUtil.toValue(profile.mode, MODES)
+		const os_p = NameValueUtil.toValue(profile.oversampling_p, GENERIC_OVERSAMPLES)
+		const os_t = NameValueUtil.toValue(profile.oversampling_t, GENERIC_OVERSAMPLES)
+
+		const ctrl_meas = BitSmush.smushBits([[7, 3], [4, 3], [1, 2]], [os_t, os_p, mode])
+
+		await bus.writeI2cBlock(REGISTERS.CTRL_MEAS, Uint8Array.from([
+			ctrl_meas
+		]))
 	}
 
 	/**

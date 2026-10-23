@@ -2,23 +2,30 @@
 
 Common Unified Sensor API for supported IEU chips.
 
+Provides full feature access to all supported chips (bmp280 bme280 bme680 bme688 bmp388 bmp390) while still providing rich chip specific features (multiple heater profiles and fifo access).
+
 [![npm Version](http://img.shields.io/npm/v/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
 ![GitHub package.json version](https://img.shields.io/github/package-json/v/johntalton/boschieu)
-![CI](https://github.com/johntalton/boschIEU/workflows/CI/badge.svg?branch=master&event=push)
-![CodeQL](https://github.com/johntalton/boschIEU/workflows/CodeQL/badge.svg)
+[![CI](https://github.com/johntalton/boschieu/actions/workflows/CI.yml/badge.svg)](https://github.com/johntalton/boschieu/actions/workflows/CI.yml)
 ![GitHub](https://img.shields.io/github/license/johntalton/boschieu)
 [![Downloads Per Month](http://img.shields.io/npm/dm/@johntalton/boschieu.svg)](https://www.npmjs.com/package/@johntalton/boschieu)
 ![GitHub last commit](https://img.shields.io/github/last-commit/johntalton/boschieu)
-[![Package Quality](https://npm.packagequality.com/shield/%40johntalton%2Fboschieu.svg)](https://packagequality.com/#?package=@johntalton/boschieu)
 
-Provides full feature access to all supported chips (bmp280 bme280 bme680 bmp388 bmp390) while still providing rich chip specific features (multiple heater profiles and fifo access).
 
-Tested with these products:
+Products:
  - [Adafruit BMP280](https://www.adafruit.com/product/2651)
- - [Adafruit BME280](https://www.adafruit.com/product/2652)
- - [Adafruit BME680](https://www.adafruit.com/product/3660)
+ - [Adafruit BME280](https://www.adafruit.com/product/2652) / [Sparkfun BME280](https://www.sparkfun.com/sparkfun-atmospheric-sensor-breakout-bme280-qwiic.html)
+
+ - [Sparkfun BMP384](https://www.sparkfun.com/sparkfun-pressure-sensor-bmp384-qwiic.html)
  - [Adafruit BMP388](https://www.adafruit.com/product/3966)
  - [Adafruit BMP390](https://www.adafruit.com/product/4816)
+
+ - [Adafruit BMP580](https://www.adafruit.com/product/6411)
+ - [Adafruit BMP581](https://www.adafruit.com/product/6407) / [Sparkfun BMP581](https://www.sparkfun.com/sparkfun-pressure-sensor-bmp581-qwiic.html)
+ - [Adafruit BMP585](https://www.adafruit.com/product/6413)
+
+ - [Adafruit BME680](https://www.adafruit.com/product/3660) / [Sparkfun BME680](https://www.sparkfun.com/sparkfun-environmental-sensor-breakout-bme680-qwiic.html)
+ - [Adafruit BME688](hhttps://www.adafruit.com/product/5046) / [Sparkfun BME688](https://www.sparkfun.com/sparkfun-environmental-sensor-bme688-qwiic.html)
 
 (note: Adafruit no-longer sells the [bmp085](https://www.adafruit.com/product/391) or [bmp180](https://www.adafruit.com/product/1603), donation of legacy chips are welcome to aid in greater product support)
 
@@ -26,78 +33,127 @@ Tested with these products:
 
 # :wrench: API
 
-The API is organized around simple sensor class `BoschSensor` which provides an object interface for manipulating the sensor.  All method return a Promise.
+The API is organized around simple sensor class `BoschSensor` which provides an object interface for manipulating the sensor.
 
-A simple demo usage follows.
+
+Example using `detect` method to discover `chip` type.
+
 ```js
-const i2c1 = await i2c.openPromisified(1)
-const addressedI2C1 = new I2CAddressedBus(i2c1, 0x77)
-const sensor = await BoschIEU.sensor(addressedI2C1)
-await sensor.detectChip()
+import { BoschIEU } from '@johntalton/boschieu'
+import { I2CAddressedBus } from '@johntalton/and-other-delights'
+
+const DEFAULT_BOSCH_ADDRESS = 0x77
+const i2cBus = /* from I2CBus interface */
+const addressedBus = new I2CAddressedBus(i2cBus, DEFAULT_BOSCH_ADDRESS)
+
+// use `detect` method to identify sensor type
+const sensor = await BoschIEU.detect(addressedBus)
+
+// load the calibration data in sensor cache
+//  only needed once on chip initialization
 await sensor.calibration()
-const result = await sensor.measurement()
+
+// setting profile values
+//  different chips have addition profile properties and modes
+await sensor.setProfile({ /* ... */ })
+
+// perform a reading of the chips data values
+await sensor.measurement()
 
 ```
 
-## :blue_book: BoschIEU
-#### :page_facing_up: sensor(addressedBus)
-A static factory method to provide access to the `BoschSensor` class.
 
-
-## :blue_book: BoschIEU Sensor
-#### :page_facing_up: detectChip()
-After constructing a sensor object, the `detectChip` method is recommended as it will attempt to (get this) detect which version of the chip to use for further register interactions.
+Alternatively, if you wish to set the chip during initialization that is also possible (replacing the above `detect` with a call to `sensor` with the specified chip)
 ```js
-sensor.detectChip()
-   .then(() => { if(sensor.valid()) ... })
+// ...
+import { bmp390 } from '@johntalton/boschieu/chip'
+
+// ...
+const sensor = BoschIEU.sensor(addressedBus, { chip: bmp390 })
+
+// use bmp390 specific interaction (etc)
 
 ```
-Alternatively, if you are you wish to set the chip during initialization that is also possible
+#### :page_facing_up: sensor.chip
+
+The chips identification can be inspected via the `sensor.chip` property.
+
 ```js
-   // sensor.chipId = Chip.bmp388
+// ...
+
+const features = sensor.chip.features
+const hasFifo = features.fifo
+
+const name = sensor.chip.name
+const kind = sensor.chip.kind
+
+
+console.log('chip:', kind, name, hasFifo)
+// chip: 3xx bmp390 true
+
 ```
-#### :page_facing_up: id()
-Returns the chips id as defined by the vendor. This is only valid after a chip has been detected (`valid()` returns true)
-(note that legacy `id()` call will internal run `detectChip()` for now...)
-```js
-sensor.id()
-   .then(id => console.log('sensors Id', id)
-```
+
 #### :page_facing_up: calibration()
-Fetches the calibration constants from the chip.  These values are unique for each chip and needed to perform compensation of the raw data values into temperature and pressure readings.
 
-Note: This must be called before the `measurement` call will return valid results.
+Calibration method fetches required parameters from the chip and caches them in the sensor class.  It also returns a copy for inspection.
 
-Note: The method itself caches results in the class and is not needed externally (though returned for user inspection)
-#### :page_facing_up: fifo()
-The `fifo` getter method returns a static `Fifo` class implementation. This provides a namespace for fifo functionality.
-```js
-sensor.fifo.flush( ... ).then(...)
-```
+This is required prior to any `measurement` call to properly calculate results.
+
 #### :page_facing_up: profile()
-Returns current chip profile from the device.
+
+Returns the chips full profile object.
+
 #### :page_facing_up: setProfile(profile)
-Sets the profile for the chip.
 
-Note: This will set the entire profile, if fields are not included in `profile` they will be set to the defaults for the `Chip`.
-#### :page_facing_up: reset()
-Write a soft-reset to the chip.  Returning it to power-on state.
+Sets the profile for the chip in full.
+
+Using the bmp390 profile as an example, a full profile set would look similar to the following.
+
 ```js
-sensor.reset().then( ... )
-```
-#### :page_facing_up: measurement(...)
-Reads and calculates related measurement data from the `Chip`.
-```js
-sensor.measurement().then(results => {
-  // process results
+// ...
+
+await sensor.setProfile({
+   mode: 'NORMAL',
+
+   standby_prescaler: 1,
+   oversampling_p: 1,
+   oversampling_t: 1,
+   filter_coefficient: false,
+
+   watchdog: 'LONG',
+
+   spi: {
+      mode: '4-wire',
+      page: 0 // no paging for 3xx
+   },
+
+   fifo: {
+      active: true,
+      stopOnFull: false,
+      temp: true,
+      press: true,
+      time: true,
+      data: 'unfiltered',
+      subSampling: 0,
+      highWatermark: 1
+   },
+
+   interrupt: {
+      mode: 'open-drain',
+      level: 'active-low',
+      driveStrength: 'low',
+      latched: true,
+      onFifoWatermark: false,
+      onFifoFull: false,
+      onReady: true
+   }
 })
+
+
 ```
 
+#### :page_facing_up: setMode(profile)
 
-## :blue_book: Fifo
-#### :page_facing_up: flush()
-Flushes the fifo buffer using command register.
-#### :page_facing_up: read()
-Reads the current fifo buffer in full (as specified by size) and parses and compensates frame data.
-## :blue_book: Converter
-Converter class of common helps are included (ft to meters, altitude from Pa, etc)
+Setting the Mode is a short form of setting the profile.  It allows for updating part of the profile that controls the mode.  This is useful for chips that can be used in single-shot measurement modes.
+
+Note, the mode register contains the temperature and pressure oversampling values, thus the must be specified as part of this limited profile setting.

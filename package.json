@@ -5,14 +5,18 @@
   "type": "module",
   "keywords": [
     "bosch",
-    "IEU",
-    "bmp280",
-    "bme680",
-    "bmp388",
-    "bmp390"
+    "temperature",
+    "humidity",
+    "pressure",
+    "VOC", "gas",
+    "IEU", "FIFO",
+    "bmp280", "bmp384", "bmp388", "bmp390",
+    "bmp580", "bmp581", "bmp585",
+    "bme280", "bme680", "bme688"
   ],
   "exports": {
-    ".": "./src/index.js"
+    ".": "./src/index.js",
+    "./chip": "./src/chip/index.js"
   },
   "files": [
     "src/**/*.js"

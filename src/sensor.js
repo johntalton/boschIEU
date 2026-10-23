@@ -4,7 +4,7 @@ import { BoschFifo } from './fifo.js'
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Profile, ModeProfile } from './types/profile.js' */
 /** @import { Calibration } from './types/calibration.js' */
-/** @import { CompensateResult } from './chip/compensate.js' */
+/** @import { CompensateResult } from './types/compensate.js' */
 /** @import { GenericChip } from './chip/generic.js'  */
 
 /**
@@ -12,6 +12,25 @@ import { BoschFifo } from './fifo.js'
  * @typedef {Object} BoschUIEOptions
  * @property {C} chip
  */
+
+export class BoschIEU {
+	/**
+	 * @param {I2CAddressedBus} bus
+	 * @param {BoschUIEOptions<typeof GenericChip>} options
+	 * @returns {BoschSensor<typeof GenericChip>}
+	 */
+	static sensor(bus, options) {
+		return new BoschSensor(bus, options)
+	}
+
+	/**
+	 * @param {I2CAddressedBus} bus
+	 * @returns {Promise<BoschSensor<typeof GenericChip>>}
+	 */
+	static async detect(bus) {
+		return BoschSensor.detect(bus)
+	}
+}
 
 /**
  * @template {typeof GenericChip} C

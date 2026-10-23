@@ -1,12 +1,11 @@
 import { BitSmush } from '@johntalton/bitsmush'
 
-import { NameValueUtil } from '../nvutil.js'
-import { BusUtil } from '../util.js'
-import { Bits } from './bits.js'
+import { Bits } from '../util/bits.js'
+import { NameValueUtil } from '../util/nvutil.js'
+import { Util } from '../util/range.js'
+import { Setpoint } from '../util/setpoint.js'
+import { BusUtil } from '../util/util.js'
 import { GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE, GenericChip } from './generic.js'
-import { Util } from './range.js'
-import { Setpoint } from './setpoint.js'
-
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Calibration } from '../types/calibration.js' */

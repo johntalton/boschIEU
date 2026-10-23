@@ -2,13 +2,15 @@
 import { BitSmush } from '@johntalton/bitsmush'
 //
 
-import { NameValueUtil } from '../nvutil.js'
-import { BusUtil } from '../util.js'
+import { NameValueUtil } from '../util/nvutil.js'
+import { BusUtil } from '../util/util.js'
 //
 
-import { Bits } from './bits.js'
+import { Bits } from '../util/bits.js'
 //
 
+import { Util } from '../util/range.js'
+import { Setpoint } from '../util/setpoint.js'
 import {
 	REGISTERS as BME6XX_REGISTERS,
 	bme6xx,
@@ -17,15 +19,13 @@ import {
 } from './bme6xx.js'
 import { Compensate } from './compensate.js'
 import { GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE } from './generic.js'
-import { Util } from './range.js'
-import { Setpoint } from './setpoint.js'
 
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Profile6xx, ProfileModes, ModeProfile } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
 /** @import { Measurement6xx } from '../types/measurement.js' */
 /** @import { Features } from '../types/features.js' */
-/** @import { NVMap } from '../nvutil.js' */
+/** @import { NVMap } from '../util/nvutil.js' */
 
 /** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'>>} */
 export const MODES = [

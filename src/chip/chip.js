@@ -51,9 +51,7 @@ export const Ahoy = [
 	// BME 6xx
 	{ name: 'bme680', idReg: REGISTER_ID_D0, id: 0x61,               revReg: undefined,       rev: undefined, chip: bme680 },
 	{ name: 'bme688', idReg: REGISTER_ID_D0, id: 0x61,               revReg: REGISTER_REV_F0, rev: 0x01,      chip: bme688 },
-
 ]
-
 
 /**
  * @param {I2CAddressedBus} bus

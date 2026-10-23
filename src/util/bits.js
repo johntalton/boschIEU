@@ -1,7 +1,7 @@
 
 // const BIT_SIZE = 8
 const NEGATIVE_ONE = -1
-const ZERO = 0
+// const ZERO = 0
 const ONE = 1
 
 // const TEN = 10

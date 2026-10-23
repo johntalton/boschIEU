@@ -68,7 +68,7 @@ export class bmp58x extends GenericChip {
 	 * @returns {Promise<Profile5xx>}
 	 */
 	static async profile(bus) {
-
+		//
 	}
 
 	/**

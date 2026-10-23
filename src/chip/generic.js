@@ -2,10 +2,10 @@
 /** @import { I2CAddressedBus } from '@johntalton/and-other-delights' */
 /** @import { Profile, ModeProfile } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
-/** @import { CompensateResult } from './compensate.js' */
+/** @import { CompensateResult } from '../types/compensate.js' */
 /** @import { Features } from '../types/features.js' */
 /** @import { ChipKind } from './chip.js' */
-/** @import { NVMap } from '../nvutil.js' */
+/** @import { NVMap } from '../util/nvutil.js' */
 
 /** @type {NVMap<false|number>} */
 export const GENERIC_OVERSAMPLES = [

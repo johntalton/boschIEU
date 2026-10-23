@@ -1,8 +1,8 @@
 import { BitSmush } from "@johntalton/bitsmush"
-import { NameValueUtil } from "../nvutil.js"
+import { NameValueUtil } from "./nvutil.js"
 
 /** @import { Calibration } from '../types/calibration.js' */
-/** @import { NVMap } from '../nvutil.js' */
+/** @import { NVMap } from './nvutil.js' */
 
 /** @type {NVMap<number>} */
 export const GAS_WAIT_MULTIPLIER = [
@@ -109,9 +109,9 @@ export class Setpoint {
 		const var2 = ((G2 / 32_768.0) * 0.0005) + 0.002_35
 		const var3 = G3 / 1024.0
 
-		const Cunclamped = (((((((register / 3.4) + 25) / (1 / (1 + (calibrationG.res_heat_val * 0.002)))) / (4 / (4 + calibrationG.res_heat_range)))  -  (var3 * ambientTemperatureC)) / var1) - 1.0) / var2
+		const unclampedC = (((((((register / 3.4) + 25) / (1 / (1 + (calibrationG.res_heat_val * 0.002)))) / (4 / (4 + calibrationG.res_heat_range)))  -  (var3 * ambientTemperatureC)) / var1) - 1.0) / var2
 
-		return Math.max(0, Math.round(Cunclamped))
+		return Math.max(0, Math.round(unclampedC))
 	}
 
 	/**

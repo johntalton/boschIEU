@@ -1,9 +1,11 @@
-/** biome-ignore-all lint/style/noExcessiveLinesPerFile: <explanation> */
+/** biome-ignore-all lint/style/noExcessiveLinesPerFile: self contained */
 import { BitSmush } from '@johntalton/bitsmush'
 
-import { NameValueUtil } from '../nvutil.js'
-import { BusUtil } from '../util.js'
-import { Bits } from './bits.js'
+import { Bits } from '../util/bits.js'
+import { NameValueUtil } from '../util/nvutil.js'
+import { Util } from '../util/range.js'
+import { Setpoint } from '../util/setpoint.js'
+import { BusUtil } from '../util/util.js'
 import {
 	REGISTERS as BME6XX_REGISTERS,
 	bme6xx,
@@ -12,14 +14,12 @@ import {
 } from './bme6xx.js'
 import { Compensate } from './compensate.js'
 import { GENERIC_FILTER_EXT, GENERIC_OVERSAMPLES, GENERIC_SPI_MODE } from './generic.js'
-import { Util } from './range.js'
-import { Setpoint } from './setpoint.js'
 
 /** @import { I2CAddressedBus, I2CBufferSource } from '@johntalton/and-other-delights' */
 /** @import { Features } from '../types/features.js' */
 /** @import { Profile6xx, ProfileModes, ModeProfile } from '../types/profile.js' */
 /** @import { Calibration } from '../types/calibration.js' */
-/** @import { NVMap } from '../nvutil.js' */
+/** @import { NVMap } from '../util/nvutil.js' */
 /** @import { Measurement6xx, Measurement688 } from '../types/measurement.js' */
 
 /** @type {NVMap<Extract<ProfileModes, 'SLEEP'|'FORCED'|'PARALLEL'>>} */
@@ -224,24 +224,6 @@ export class bme688 extends bme6xx {
 
 			REGISTERS.CTRL_MEAS, ctrl_meas
 		]))
-
-		//
-		// await bus.writeI2cBlock(0x74, Uint8Array.from([ctrl_meas & ~0b11])) // sleep
-		// await Promise.all([
-		// 	bus.writeI2cBlock(0x72, Uint8Array.from([ctrl_hum])),
-		// 	bus.writeI2cBlock(0x75, Uint8Array.from([config])),
-		// 	bus.writeI2cBlock(0x71, Uint8Array.from([ctrl_gas1])),
-		// 	bus.writeI2cBlock(0x70, Uint8Array.from([ctrl_gas0])),
-		// ])
-
-		// const heatC = gasCelsiusToRegister(400, calibration.G, 20)
-		// const idx = 0
-		// await bus.writeI2cBlock(0x50 + idx, Uint8Array.from([ 1 ])) // initial
-		// await bus.writeI2cBlock(0x5A + idx, Uint8Array.from([ heatC ]))
-		// await bus.writeI2cBlock(0x64 + idx, Uint8Array.from([ 0x59 ])) // wait
-
-		// now set valid mode
-		// await bus.writeI2cBlock(0x74, Uint8Array.from([ctrl_meas]))
 	}
 
 	/**

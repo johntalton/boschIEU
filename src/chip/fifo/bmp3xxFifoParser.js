@@ -1,7 +1,7 @@
 
 /** @import { I2CBufferSource } from '@johntalton/and-other-delights' */
 
-import { reconstruct24bit } from '../bits.js'
+import { reconstruct24bit } from '../../util/bits.js'
 
 
 export const FRAME_TYPE_TIME = 'sensor.time'

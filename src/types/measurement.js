@@ -1,4 +1,4 @@
-/** @import { CompensateResult } from '../chip/compensate.js' */
+/** @import { CompensateResult } from '../types/compensate.js' */
 /** @import { ReadyStatus3xx, ReadyStatus6xx } from './ready.js' */
 
 /**

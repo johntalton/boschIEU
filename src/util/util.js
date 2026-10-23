@@ -3,7 +3,6 @@
 /** @import { I2CAddressedBus, I2CBufferSource } from '@johntalton/and-other-delights' */
 
 export class BusUtil {
-
 	/**
 	 * @param {I2CAddressedBus} bus
 	 * @param {Array<[ number, number]>} definition
@@ -35,6 +34,4 @@ export class BusUtil {
 
 		return target
   }
-
-
 }
